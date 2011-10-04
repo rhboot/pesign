@@ -22,6 +22,8 @@
 
 #include <libdpe/libdpe.h>
 
+#include "pe.h"
+
 void placeholder(void)
 {
 	return;
