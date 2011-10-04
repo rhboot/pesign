@@ -1,0 +1,38 @@
+INSTALLROOT:= /
+PREFIX := /usr/local
+LIBDIR := ${PREFIX}/lib
+
+HOSTARCH   = $(shell uname -m | sed s,i[3456789]86,ia32,)
+ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
+INCDIR	   = -I$(TOPDIR)/include
+CPPFLAGS   = -DCONFIG_$(ARCH)
+CFLAGS	   = $(ARCH3264) -O2 -fpic -Wall -fshort-wchar -fno-strict-aliasing -fno-merge-constants
+ASFLAGS    = $(ARCH3264)
+LDFLAGS	   = -nostdlib
+CCLDFLAGS  = -shared
+INSTALL	   = install
+prefix     = /usr/bin/
+
+CC            = $(prefix)gcc
+AS            = $(prefix)as
+LD            = $(prefix)ld
+AR            = $(prefix)ar
+RANLIB        = $(prefix)ranlib
+OBJCOPY       = $(prefix)objcopy
+
+ifeq ($(ARCH),ia64)
+  CFLAGS += -mfixed-range=f32-f127
+endif
+
+ifeq ($(ARCH), ia32)
+  ifeq ($(HOSTARCH), x86_64)
+    ARCH3264 = -m32
+  endif
+endif
+
+ifeq ($(ARCH), x86_64)
+  CFLAGS += -mno-red-zone
+  ifeq ($(HOSTARCH), ia32)
+    ARCH3264 = -m64
+  endif
+endif
