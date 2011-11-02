@@ -17,50 +17,15 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
+#ifndef LIBDPE_PRIV_H
+#define LIBDPE_PRIV_H 1
 
-#include <stdio.h>
+struct Pe {
 
-#include <libdpe/libdpe.h>
+};
 
-#include "pe.h"
-#include "libdpe.h"
+struct Pe_Scn {
+	
+};
 
-Pe *pe_begin(int fildes, Pe_Cmd cmd, Pe *ref)
-{
-	return NULL;
-}
-
-Pe *pe_clone(Pe *pe, Pe_Cmd cmd)
-{
-	return NULL;
-}
-
-Pe *pe_memory(char *image, size_t size)
-{
-	return NULL;
-}
-
-Pe *pe_next(Pe *pe)
-{
-	return NULL;
-}
-
-int pe_end(Pe *pe)
-{
-	return -1;
-}
-
-loff_t pe_update(Pe *pe, Pe_Cmd cmd)
-{
-	return 0;
-}
-
-Pe_Kind pe_kind(Pe *Pe)
-{
-	return PE_K_NONE;
-}
-
-loff_t pe_getbase(Pe *pe)
-{
-	return 0;
-}
+#endif /* LIBDPE_PRIV_H */

@@ -20,6 +20,44 @@
 #ifndef LIBDPE_H
 #define LIBDPE_H 1
 
-extern void placeholder(void);
+#include <sys/types.h>
+
+typedef enum {
+	PE_K_NONE,
+	PE_K_MZ,
+	PE_K_COFF,
+	PE_K_PE_OBJ,
+	PE_K_PE_EXE,
+	PE_K_NUM /* terminating entry */
+} Pe_Kind;
+
+typedef enum {
+	PE_C_NULL,
+	PE_C_READ,
+	PE_C_RDWR,
+	PE_C_WRITE,
+	PE_C_CLR,
+	PE_C_SET,
+	PE_C_FDDONE,
+	PE_C_FDREAD,
+	PE_C_READ_MMAP,
+	PE_C_RDWR_MMAP,
+	PE_C_WRITE_MMAP,
+	PE_C_READ_MMAP_PRIVATE,
+	PE_C_EMPTY,
+	PE_C_NUM /* last entry */
+} Pe_Cmd;
+
+typedef struct Pe Pe;
+typedef struct Pe_Scn Pe_Scn;
+
+extern Pe *pe_begin(int fildes, Pe_Cmd cmd, Pe *ref);
+extern Pe *pe_clone(Pe *pe, Pe_Cmd cmd);
+extern Pe *pe_memory(char *image, size_t size);
+extern Pe *pe_next(Pe *pe);
+extern int pe_end(Pe *pe);
+extern loff_t pe_update(Pe *pe, Pe_Cmd cmd);
+extern Pe_Kind pe_kind(Pe *Pe) __attribute__ ((__pure__));
+extern loff_t pe_getbase(Pe *pe);
 
 #endif /* LIBDPE_H */
