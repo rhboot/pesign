@@ -7,7 +7,7 @@ include $(TOPDIR)/Make.defaults
 
 all : libdpe.so libdpe.a
 
-SOURCES = libdpe pe_error pe_begin
+SOURCES = $(patsubst %.c,%,$(wildcard *.c))
 
 libdpe.a : $(foreach source,$(SOURCES),$(source)_pe.o)
 	$(AR) -cvq $@ $^
