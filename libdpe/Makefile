@@ -7,8 +7,10 @@ include $(TOPDIR)/Make.defaults
 
 all : libdpe.so libdpe.a
 
-libdpe.a : libdpe_pe.o
+libdpe.a : libdpe_pe.o pe_error_pe.o pe_begin_pe.o
 	$(AR) -cvq $@ $^
+
+libdpe.so :: pe_error.o pe_begin.o
 
 clean : 
 	@rm -rfv *~ *.o *.a *.so
