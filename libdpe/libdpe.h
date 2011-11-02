@@ -20,6 +20,12 @@
 #define LIBDPE_PRIV_H 1
 
 enum {
+	PE_F_MMAPPED = 0x40,
+	PE_F_MALLOCED = 0x80,
+	PE_F_FILEDATA = 0x100,
+};
+
+enum {
 	PE_E_NOERROR = 0,
 	PE_E_UNKNOWN_ERROR,
 	PE_E_INVALID_OP,
@@ -31,8 +37,20 @@ enum {
 extern void __libpe_seterrno(int value);
 
 struct Pe {
-	int fildes;
+	/* Address to which the file was mapped.  NULL if not mapped. */
+	void *map_address;
+
+	Pe *parent;
+	Pe *next;
+
+	/* command used to create this object */
 	Pe_Cmd cmd;
+
+	int fildes;
+	off_t start_offset;
+	size_t maximum_size;
+
+	int flags;
 };
 
 struct Pe_Scn {
