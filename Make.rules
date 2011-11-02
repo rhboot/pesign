@@ -6,7 +6,7 @@
 %_pe.so: %_pe.o
 	$(LD) $(LDFLAGS) $^ -o $@
 
-%.so : %.o
+%.so : 
 	$(CC) $(INCDIR) $(CFLAGS) -Wl,-soname,$(SONAME) $(CCLDFLAGS) $^ -o $@
 
 %_pe.o: %.c
