@@ -10,8 +10,7 @@ all : libdpe.so
 
 SOURCES = $(patsubst %.c,%,$(wildcard *.c))
 
-libdpe.a : $(foreach source,$(SOURCES),$(source)_pe.o)
-	$(AR) -cvq $@ $^
+libdpe.a :: $(foreach source,$(SOURCES),$(source)_pe.o)
 
 libdpe.so :: $(foreach source,$(SOURCES),$(source).o)
 
