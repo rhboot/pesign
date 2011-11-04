@@ -42,8 +42,12 @@ static const char msgstr[] =
 	(PE_E_NOERROR_IDX + sizeof "no error")
 	"unknown error"
 	"\0"
-#define PE_E_INVALID_OP_IDX \
+#define PE_E_NOMEM_IDX \
 	(PE_E_UNKNOWN_ERROR_IDX + sizeof "unknown error")
+	"out of memory"
+	"\0"
+#define PE_E_INVALID_OP_IDX \
+	(PE_E_NOMEM_IDX + sizeof "out of memory")
 	"invalid operation"
 	"\0"
 #define PE_E_INVALID_CMD_IDX \
