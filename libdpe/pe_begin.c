@@ -18,14 +18,96 @@
  */
 
 #include <assert.h>
+#include <errno.h>
+#include <stddef.h>
 #include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 
 #include "libdpe.h"
 
-static struct Pe *
-read_file (int fildes, off_t offset, size_t maxsize,
+static inline Pe *
+file_read_pe_obj(int fildes, void *map_address, unsigned char *p_ident,
+		off_t offset, size_t maxsize, Pe_Cmd cmd, Pe *parent)
+{
+	return NULL;
+}
+
+static inline Pe *
+file_read_pe_exe(int fildes, void *map_address, unsigned char *p_ident,
+		off_t offset, size_t maxsize, Pe_Cmd cmd, Pe *parent)
+{
+	return NULL;
+}
+
+Pe *
+__libpe_read_mmapped_file(int fildes, void *map_address, off_t offset,
+			size_t maxsize, Pe_Cmd cmd, Pe *parent)
+{
+	unsigned char *p_ident = (unsigned char *) map_address + offset;
+
+	Pe_Kind kind = determine_kind (p_ident, maxsize);
+
+	switch (kind) {
+		case PE_K_PE_OBJ:
+			return file_read_pe_obj(fildes, map_address, p_ident,
+						offset, maxsize, cmd, parent);
+		case PE_K_PE_EXE:
+			return file_read_pe_exe(fildes, map_address, p_ident,
+						offset, maxsize, cmd, parent);
+		default:
+			break;
+	}
+
+	return allocate_pe(fildes, map_address, offset, maxsize, cmd, parent,
+		PE_K_NONE, 0);
+}
+
+static Pe *
+read_unmmapped_file(int fildes, off_t offset, size_t maxsize, Pe_Cmd cmd,
+			Pe *parent)
+{
+	union {
+		struct {
+			struct mz_hdr mz;
+			struct pe_hdr pe;
+		};
+		unsigned char raw[1];
+	} mem;
+
+	ssize_t nread = pread_retry (fildes, &mem.mz, sizeof(mem.mz), offset);
+	if (nread == -1)
+		return NULL;
+
+	/* this handles MZ-only binaries wrong, but who cares, really? */
+	off_t peaddr = offset + le32_to_cpu(mem.mz.peaddr);
+	ssize_t prev_nread = nread;
+	nread += pread_retry (fildes, &mem.pe, sizeof(mem.pe), peaddr);
+	if (nread == prev_nread)
+		return NULL;
+	mem.mz.peaddr = cpu_to_le32(offsetof(typeof(mem), pe));
+
+	Pe_Kind kind = determine_kind(&mem, nread);
+
+	switch (kind) {
+		case PE_K_PE_OBJ:
+			return file_read_pe_obj(fildes, NULL, mem.raw, offset,
+						maxsize, cmd, parent);
+		case PE_K_PE_EXE:
+			return file_read_pe_exe(fildes, NULL, mem.raw, offset,
+						maxsize, cmd, parent);
+		default:
+			break;
+	}
+
+	return allocate_pe(fildes, NULL, offset, maxsize, cmd, parent,
+				PE_K_NONE, 0);
+}
+
+static Pe *
+read_file(int fildes, off_t offset, size_t maxsize,
 	   Pe_Cmd cmd, Pe *parent)
 {
 	void *map_address = NULL;
