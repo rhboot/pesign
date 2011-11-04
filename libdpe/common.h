@@ -19,8 +19,11 @@
 #ifndef LIBDPE_COMMON_H
 #define LIBDPE_COMMON_H 1
 
+#include <stdlib.h>
+
 static inline Pe_Kind
-determine_kind (void *buf, size_t len)
+__attribute__ ((unused))
+determine_kind(void *buf, size_t len)
 {
 	Pe_Kind retval = PE_K_NONE;
 	uint16_t mz_magic = MZ_MAGIC;
@@ -43,6 +46,28 @@ determine_kind (void *buf, size_t len)
 		retval = PE_K_PE_EXE;
 
 	return retval;
+}
+
+
+static inline Pe *
+__attribute__ ((unused))
+allocate_pe(int fildes, void *map_address, off_t offset, size_t maxsize,
+	Pe_Cmd cmd, Pe *parent, Pe_Kind kind, size_t extra)
+{
+	Pe *result = (Pe *) calloc(1, sizeof (Pe) + extra);
+	if (result == NULL) {
+		__libpe_seterrno(PE_E_NOMEM);
+	} else {
+		result->kind = kind;
+		result->cmd = cmd;
+		result->fildes = fildes;
+		result->start_offset = offset;
+		result->maximum_size = maxsize;
+		result->map_address = map_address;
+		result->parent = parent;
+	}
+
+	return result;
 }
 
 #endif /* LIBDPE_COMMON_H */
