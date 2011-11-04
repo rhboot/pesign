@@ -16,51 +16,33 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef LIBDPE_PRIV_H
-#define LIBDPE_PRIV_H 1
+#ifndef LIBDPE_COMMON_H
+#define LIBDPE_COMMON_H 1
 
-#include <libdpe/libdpe.h>
-#include "endian.h"
-#include "pe.h"
+static inline Pe_Kind
+determine_kind (void *buf, size_t len)
+{
+	Pe_Kind retval = PE_K_NONE;
+	uint16_t mz_magic = MZ_MAGIC;
+	struct mz_hdr *mz = (struct mz_hdr *)buf;
 
-enum {
-	PE_F_MMAPPED = 0x40,
-	PE_F_MALLOCED = 0x80,
-	PE_F_FILEDATA = 0x100,
-};
+	if (cmp_le16(&mz->magic, &mz_magic))
+		return retval;
+		
+	retval = PE_K_MZ;
 
-enum {
-	PE_E_NOERROR = 0,
-	PE_E_UNKNOWN_ERROR,
-	PE_E_INVALID_OP,
-	PE_E_INVALID_CMD,
-	PE_E_FD_MISMATCH,
-	PE_E_NUM /* terminating entry */
-};
+	off_t hdr = (off_t)le32_to_cpu(mz->peaddr);
+	struct pe_hdr *pe = (struct pe_hdr *)(buf + hdr);
+	uint32_t pe_magic = PE_MAGIC;
 
-extern void __libpe_seterrno(int value);
+	if (cmp_le32(&pe->magic, &pe_magic))
+		return retval;
 
-struct Pe {
-	/* Address to which the file was mapped.  NULL if not mapped. */
-	void *map_address;
+	retval = PE_K_PE_OBJ;
+	if (le32_to_cpu(pe->opt_hdr_size) != 0)
+		retval = PE_K_PE_EXE;
 
-	Pe *parent;
-	Pe *next;
+	return retval;
+}
 
-	/* command used to create this object */
-	Pe_Cmd cmd;
-
-	int fildes;
-	off_t start_offset;
-	size_t maximum_size;
-
-	int flags;
-};
-
-struct Pe_Scn {
-	
-};
-
-#include "common.h"
-
-#endif /* LIBDPE_PRIV_H */
+#endif /* LIBDPE_COMMON_H */
