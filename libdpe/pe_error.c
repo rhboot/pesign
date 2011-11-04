@@ -46,8 +46,12 @@ static const char msgstr[] =
 	(PE_E_UNKNOWN_ERROR_IDX + sizeof "unknown error")
 	"out of memory"
 	"\0"
-#define PE_E_INVALID_OP_IDX \
+#define PE_E_INVALID_FILE_IDX \
 	(PE_E_NOMEM_IDX + sizeof "out of memory")
+	"invalid file descriptor"
+	"\0"
+#define PE_E_INVALID_OP_IDX \
+	(PE_E_INVALID_FILE_IDX + sizeof "invalid file descriptor")
 	"invalid operation"
 	"\0"
 #define PE_E_INVALID_CMD_IDX \
@@ -63,6 +67,8 @@ static const uint16_t msgidx[PE_E_NUM] =
 {
 	[PE_E_NOERROR] = PE_E_NOERROR_IDX,
 	[PE_E_UNKNOWN_ERROR] = PE_E_UNKNOWN_ERROR_IDX,
+	[PE_E_NOMEM] = PE_E_NOMEM_IDX,
+	[PE_E_INVALID_FILE] = PE_E_INVALID_FILE_IDX,
 	[PE_E_INVALID_OP] = PE_E_INVALID_OP_IDX,
 	[PE_E_INVALID_CMD] = PE_E_INVALID_CMD_IDX,
 	[PE_E_FD_MISMATCH] = PE_E_FD_MISMATCH_IDX,
