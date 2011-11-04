@@ -22,9 +22,6 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
-#include <libdpe/libdpe.h>
-
-#include "pe.h"
 #include "libdpe.h"
 
 static struct Pe *

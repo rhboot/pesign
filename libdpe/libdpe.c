@@ -19,9 +19,6 @@
 
 #include <stdio.h>
 
-#include <libdpe/libdpe.h>
-
-#include "pe.h"
 #include "libdpe.h"
 
 Pe *pe_clone(Pe *pe, Pe_Cmd cmd)

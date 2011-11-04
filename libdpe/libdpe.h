@@ -19,6 +19,10 @@
 #ifndef LIBDPE_PRIV_H
 #define LIBDPE_PRIV_H 1
 
+#include <libdpe/libdpe.h>
+#include "endian.h"
+#include "pe.h"
+
 enum {
 	PE_F_MMAPPED = 0x40,
 	PE_F_MALLOCED = 0x80,
