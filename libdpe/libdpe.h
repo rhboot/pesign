@@ -50,6 +50,7 @@ struct Pe {
 
 	/* command used to create this object */
 	Pe_Cmd cmd;
+	Pe_Kind kind;
 
 	int fildes;
 	off_t start_offset;
