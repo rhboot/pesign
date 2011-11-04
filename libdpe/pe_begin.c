@@ -66,7 +66,7 @@ read_file (int fildes, off_t offset, size_t maxsize,
 	if (map_address != NULL) {
 		assert(map_address != MAP_FAILED);
 
-		struct Pe *result = __libpe_read_mapped_file(fildes,
+		struct Pe *result = __libpe_read_mmapped_file(fildes,
 						map_address, offset, maxsize,
 						cmd, parent);
 
@@ -79,7 +79,7 @@ read_file (int fildes, off_t offset, size_t maxsize,
 		return result;
 	}
 
-	return read_unmapped_file(fildes, offset, maxsize, cmd, parent);
+	return read_unmmapped_file(fildes, offset, maxsize, cmd, parent);
 }
 
 static struct Pe *
