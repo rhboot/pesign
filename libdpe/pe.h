@@ -96,7 +96,6 @@ struct mz_reloc {
 #define IMAGE_FILE_BYTES_REVERSED_HI         0x8000
 
 struct pe_hdr {
-	struct mz_hdr mz;	/* MZ header */
 	uint32_t magic;		/* PE magic */
 	uint16_t machine;	/* machine type */
 	uint16_t sections;	/* number of sections */
