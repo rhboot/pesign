@@ -5,7 +5,8 @@ SONAME = libdpe.so.0
 
 include $(TOPDIR)/Make.defaults
 
-all : libdpe.so libdpe.a
+# all : libdpe.so libdpe.a
+all : libdpe.so
 
 SOURCES = $(patsubst %.c,%,$(wildcard *.c))
 
