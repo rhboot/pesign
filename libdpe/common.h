@@ -21,6 +21,13 @@
 
 #include <stdlib.h>
 
+#define pwrite_retry(fd, buf,  len, off) \
+	TEMP_FAILURE_RETRY (pwrite (fd, buf, len, off))
+#define write_retry(fd, buf, n) \
+	TEMP_FAILURE_RETRY (write (fd, buf, n))
+#define pread_retry(fd, buf,  len, off) \
+	TEMP_FAILURE_RETRY (pread (fd, buf, len, off))
+
 static inline Pe_Kind
 __attribute__ ((unused))
 determine_kind(void *buf, size_t len)
