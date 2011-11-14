@@ -5,7 +5,7 @@ HOSTARCH   = $(shell uname -m | sed s,i[3456789]86,ia32,)
 ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
 INCDIR	   = -I$(TOPDIR)/include
 CPPFLAGS   = -DCONFIG_$(ARCH)
-CFLAGS	   = $(ARCH3264) -O2 -fpic -Wall -fshort-wchar -fno-strict-aliasing -fno-merge-constants --std=gnu99 -D_GNU_SOURCE
+CFLAGS	   = $(ARCH3264) -g -O2 -fpic -Wall -fshort-wchar -fno-strict-aliasing -fno-merge-constants --std=gnu99 -D_GNU_SOURCE
 ASFLAGS    = $(ARCH3264)
 LDFLAGS	   = -nostdlib
 CCLDFLAGS  = -shared
