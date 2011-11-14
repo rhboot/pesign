@@ -16,12 +16,44 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_IO_H
-#define PESIGN_IO_H 1
 
-#include <libdpe/libdpe.h>
-#include <nss3/cert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
-extern int copy_pe_file(Pe *in, Pe *out, CERTCertificate *cert, int hashgaps);
+#include "pesign.h"
 
-#endif /* PESIGN_IO_H */
+int read_cert(int certfd, CERTCertificate **cert)
+{
+	struct stat statbuf;
+	char *certstr = NULL;
+	int rc;
+
+	rc = fstat(certfd, &statbuf);
+	if (rc < 0)
+		return rc;
+
+	int i = 0, j = statbuf.st_size;
+	certstr = calloc(1, j + 1);
+	if (!certstr)
+		return -1;
+
+	while (i < statbuf.st_size) {
+		int x;
+		x = read(certfd, certstr + i, j);
+		if (x < 0) {
+			free(certstr);
+			return -1;
+		}
+		i += x;
+		j -= x;
+	}
+
+	*cert = CERT_ConvertAndDecodeCertificate(certstr);
+	free(certstr);
+	if (!*cert)
+		return -1;
+	return 0;
+}

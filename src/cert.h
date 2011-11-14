@@ -16,12 +16,11 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_IO_H
-#define PESIGN_IO_H 1
+#ifndef PESIGN_CERT_H
+#define PESIGN_CERT_H 1
 
-#include <libdpe/libdpe.h>
 #include <nss3/cert.h>
 
-extern int copy_pe_file(Pe *in, Pe *out, CERTCertificate *cert, int hashgaps);
+extern int read_cert(int certfd, CERTCertificate **cert);
 
-#endif /* PESIGN_IO_H */
+#endif /* PESIGN_CERT_H */

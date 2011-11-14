@@ -22,7 +22,7 @@ install :
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -m 644 pesign.popt $(INSTALLROOT)/etc/popt.d/
 
-pesign : pesign.o io.o
+pesign : pesign.o cert.o io.o
 
 .PHONY: all clean install
 

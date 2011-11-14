@@ -18,4 +18,10 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
-#include "io.h"
+#include "pesign.h"
+
+int copy_pe_file(Pe *in, Pe *out, CERTCertificate *cert, int hashgaps)
+{
+	return -1;
+}
+

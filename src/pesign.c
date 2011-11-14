@@ -26,24 +26,34 @@
 #include <sys/types.h>
 
 #include <popt.h>
-
 #include <libdpe/libdpe.h>
 
-#include "io.h"
+#include <nss3/cert.h>
+#include <nss3/pkcs7t.h>
+
+#include "pesign.h"
 
 int main(int argc, char *argv[])
 {
 	int rc;
-	char *infile = NULL, *outfile = NULL;
+
+	char *infile = NULL, *outfile = NULL, *certfile = NULL;
+	int infd = -1, outfd = -1;
+
+	Pe *inpe = NULL, *outpe = NULL;
+	CERTCertificate *cert = NULL;
+
 	int force = 0;
 	int hashgaps = 1;
-	int infd = -1, outfd = -1;
+
 	poptContext optCon;
 	struct poptOption options[] = {
 		{"in", 'i', POPT_ARG_STRING, &infile, 0,
 			"specify input file", "<infile>"},
 		{"out", 'o', POPT_ARG_STRING, &outfile, 0,
 			"specify output file", "<outfile>" },
+		{"certficate", 'c', POPT_ARG_STRING, &certfile, 0,
+			"specify certificate file", "<certificate>" },
 		{"force", 'f', POPT_ARG_NONE|POPT_ARG_VAL, &force,  1,
 			"force overwriting of output file", NULL },
 		{"nogaps", 'n', POPT_ARG_NONE|POPT_ARG_VAL, &hashgaps, 0,
@@ -95,6 +105,27 @@ int main(int argc, char *argv[])
 	}
 	if (outfd < 0) {
 		fprintf(stderr, "Error opening output: %m\n");
+		exit(1);
+	}
+
+	if (certfile) {
+		int certfd = open(certfile, O_RDONLY|O_CLOEXEC);
+
+		if (certfd < 0) {
+			fprintf(stderr, "pesign: could not open certificate "
+					"\"%s\": %m\n", certfile);
+			exit(1);
+		}
+
+		rc = read_cert(certfd, &cert);
+		if (rc < 0) {
+			fprintf(stderr, "pesign: could not read certificate\n");
+			exit(1);
+		}
+	}
+
+	rc = copy_pe_file(inpe, outpe, cert, hashgaps);
+	if (rc < 0) {
 		exit(1);
 	}
 
