@@ -29,7 +29,7 @@
 
 int initialize_crypto(void)
 {
-	SECStatus status = NSS_Initialize("/etc/pki/pesign", "", "", "", NSS_INIT_NOCERTDB);
+	SECStatus status = NSS_InitReadWrite("/etc/pki/pesign");
 
 	if (status == SECSuccess)
 		return 0;
