@@ -25,6 +25,17 @@
 
 #include "pesign.h"
 
+#include <nss3/nss.h>
+
+int initialize_crypto(void)
+{
+	SECStatus status = NSS_Initialize(".", "", "", "", NSS_INIT_NOCERTDB);
+
+	if (status == SECSuccess)
+		return 0;
+	return -1;
+}
+
 int read_cert(int certfd, CERTCertificate **cert)
 {
 	struct stat statbuf;
@@ -51,7 +62,7 @@ int read_cert(int certfd, CERTCertificate **cert)
 		j -= x;
 	}
 
-	*cert = CERT_ConvertAndDecodeCertificate(certstr);
+	*cert = CERT_DecodeCertFromPackage(certstr, i);
 	free(certstr);
 	if (!*cert)
 		return -1;

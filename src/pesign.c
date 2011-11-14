@@ -108,6 +108,12 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	rc = initialize_crypto();
+	if (rc < 0) {
+		fprintf(stderr, "Could not initialize cryptographic library\n");
+		exit(1);
+	}
+
 	if (certfile) {
 		int certfd = open(certfile, O_RDONLY|O_CLOEXEC);
 
