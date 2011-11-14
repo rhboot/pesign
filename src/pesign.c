@@ -23,6 +23,8 @@
 
 #include <popt.h>
 
+#include <libdpe/libdpe.h>
+
 int main(int argc, char *argv[])
 {
 	int rc;
