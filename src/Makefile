@@ -18,7 +18,7 @@ clean :
 
 install :
 
-pesign : pesign.o
+pesign : pesign.o io.o
 
 .PHONY: all clean install
 

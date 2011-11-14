@@ -29,6 +29,8 @@
 
 #include <libdpe/libdpe.h>
 
+#include "io.h"
+
 int main(int argc, char *argv[])
 {
 	int rc;
