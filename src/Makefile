@@ -3,7 +3,11 @@ TOPDIR = $(SRCDIR)/..
 
 include $(TOPDIR)/Make.defaults
 
-TARGETS = 
+LIBS = popt
+LDFLAGS=
+CCLDFLAGS=
+
+TARGETS = pesign
 
 all : $(TARGETS)
 
@@ -11,6 +15,8 @@ clean :
 	@rm -rfv *.o *.a *.so $(TARGETS)
 
 install :
+
+pesign : pesign.o
 
 .PHONY: all clean install
 
