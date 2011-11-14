@@ -5,8 +5,9 @@ SONAME = libdpe.so.0
 
 include $(TOPDIR)/Make.defaults
 
-# all : libdpe.so libdpe.a
-all : libdpe.so
+# TARGETS = libdpe.so libdpe.a
+TARGETS = libdpe.so
+all : $(TARGETS)
 
 SOURCES = $(patsubst %.c,%,$(wildcard *.c))
 
@@ -18,6 +19,11 @@ clean :
 	@rm -rfv *~ *.o *.a *.so
 
 install :
+	echo "LIBDIR: $(LIBDIR)"
+	$(INSTALL) -d -m 755 $(INSTALLROOT)$(LIBDIR)
+	for x in $(TARGETS) ; do \
+		$(INSTALL) -m 755  $$x $(INSTALLROOT)$(LIBDIR) ; \
+	done
 
 .PHONY: all clean install
 
