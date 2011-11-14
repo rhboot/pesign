@@ -36,12 +36,18 @@ int main(int argc, char *argv[])
 	int rc;
 	char *infile = NULL, *outfile = NULL;
 	int force = 0;
+	int hashgaps = 1;
 	int infd = -1, outfd = -1;
 	poptContext optCon;
 	struct poptOption options[] = {
-		{"in", 'i', POPT_ARG_STRING, &infile, 0, NULL, NULL },
-		{"out", 'o', POPT_ARG_STRING, &outfile, 0, NULL, NULL },
-		{"force", 'f', POPT_ARG_NONE|POPT_ARG_VAL, &force,  1, NULL, NULL },
+		{"in", 'i', POPT_ARG_STRING, &infile, 0,
+			"specify input file", "<infile>"},
+		{"out", 'o', POPT_ARG_STRING, &outfile, 0,
+			"specify output file", "<outfile>" },
+		{"force", 'f', POPT_ARG_NONE|POPT_ARG_VAL, &force,  1,
+			"force overwriting of output file", NULL },
+		{"nogaps", 'n', POPT_ARG_NONE|POPT_ARG_VAL, &hashgaps, 0,
+			"skip gaps between sections", NULL },
 		POPT_AUTOHELP
 		POPT_TABLEEND
 	};
