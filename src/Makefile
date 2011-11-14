@@ -21,6 +21,7 @@ install :
 	$(INSTALL) -m 755 pesign $(INSTALLROOT)$(PREFIX)/bin/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -m 644 pesign.popt $(INSTALLROOT)/etc/popt.d/
+	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pki/pesign/
 
 pesign : pesign.o cert.o io.o
 
