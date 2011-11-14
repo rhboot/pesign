@@ -4,3 +4,4 @@
 *.a
 *.efi
 pesign
+*.sw?
