@@ -3,9 +3,10 @@ TOPDIR = $(SRCDIR)/..
 
 include $(TOPDIR)/Make.defaults
 
-LIBS = popt
-LDFLAGS=
-CCLDFLAGS=
+LIBS = popt dpe
+LDFLAGS =
+CCLDFLAGS = -L../libdpe
+CFLAGS += -I../include/
 
 TARGETS = pesign
 
