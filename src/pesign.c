@@ -17,9 +17,13 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include <popt.h>
 
@@ -29,14 +33,18 @@ int main(int argc, char *argv[])
 {
 	int rc;
 	char *infile = NULL, *outfile = NULL;
-	int infd, outfd;
+	int force = 0;
+	int infd = -1, outfd = -1;
 	poptContext optCon;
 	struct poptOption options[] = {
 		{"in", 'i', POPT_ARG_STRING, &infile, 0, NULL, NULL },
 		{"out", 'o', POPT_ARG_STRING, &outfile, 0, NULL, NULL },
+		{"force", 'f', POPT_ARG_NONE|POPT_ARG_VAL, &force,  1, NULL, NULL },
 		POPT_AUTOHELP
 		POPT_TABLEEND
 	};
+	mode_t outmode = 0644;
+	struct stat statbuf;
 
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
@@ -49,12 +57,38 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (!infile)
-		infd = STDIN_FILENO;
-	if (!outfile)
-		outfd = STDOUT_FILENO;
+	if (infile && outfile && !strcmp(infile, outfile)) {
+		fprintf(stderr, "pesign: in-place file editing is not yet "
+				"supported\n");
+		exit(1);
+	}
 
-	printf("infd: %d outfd: %d\n", infd, outfd);
+	if (!infile || !strcmp(infile, "-")) {
+		infd = STDIN_FILENO;
+	} else {
+		infd = open(infile, O_RDONLY|O_CLOEXEC);
+		stat(infile, &statbuf); 
+		outmode = statbuf.st_mode;
+	}
+	if (infd < 0) {
+		fprintf(stderr, "Error opening input: %m\n");
+		exit(1);
+	}
+
+	if (!outfile || !strcmp(outfile, "-")) {
+		outfd = STDOUT_FILENO;
+	} else {
+		if (access(outfile, F_OK) == 0 && force == 0) {
+			fprintf(stderr, "pesign: \"%s\" exits and --force was "
+					"not given.\n", outfile);
+			exit(1);
+		}
+		outfd = open(outfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,outmode);
+	}
+	if (outfd < 0) {
+		fprintf(stderr, "Error opening output: %m\n");
+		exit(1);
+	}
 
 	close(infd);
 	close(outfd);
