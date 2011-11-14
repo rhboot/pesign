@@ -1,4 +1,3 @@
-
 %.a :
 	$(AR) -cvq $@ $^
 
@@ -6,8 +5,11 @@
 	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
 		   -j .rela -j .reloc --target=$(FORMAT) $*.so $@
 
+% : %.o
+	$(CC) $(CCLDFLAGS) -o $@ $^ $(foreach lib,$(LIBS),-l$(lib))
+
 %_pe.so: %_pe.o
-	$(LD) $(LDFLAGS) $^ -o $@
+	$(LD) $(LDFLAGS) -o $@ $^
 
 %.so : 
 	$(CC) $(INCDIR) $(CFLAGS) -Wl,-soname,$(SONAME) $(CCLDFLAGS) $^ -o $@
