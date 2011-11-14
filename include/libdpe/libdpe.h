@@ -59,7 +59,6 @@ extern Pe_Kind pe_kind(Pe *Pe) __attribute__ ((__pure__));
 extern loff_t pe_getbase(Pe *pe);
 
 extern int pe_errno(void);
-
-
+extern const char *pe_errmsg(int error);
 
 #endif /* LIBDPE_H */
