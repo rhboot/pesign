@@ -1,6 +1,5 @@
 INSTALLROOT:= /
 PREFIX := /usr/local
-LIBDIR := ${PREFIX}/lib
 
 HOSTARCH   = $(shell uname -m | sed s,i[3456789]86,ia32,)
 ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
@@ -11,6 +10,8 @@ ASFLAGS    = $(ARCH3264)
 LDFLAGS	   = -nostdlib
 CCLDFLAGS  = -shared
 INSTALL	   = install
+# XXX this is broken
+LIBDIR	   = $(PREFIX)/lib64
 prefix     = /usr/bin/
 
 CC            = $(prefix)gcc
@@ -22,17 +23,21 @@ OBJCOPY       = $(prefix)objcopy
 
 ifeq ($(ARCH),ia64)
   CFLAGS += -mfixed-range=f32-f127
+  LIBDIR = $(PREFIX)/lib64
 endif
 
 ifeq ($(ARCH), ia32)
   ifeq ($(HOSTARCH), x86_64)
-    ARCH3264 = -m32
+    ARCH3264 := -m32
+    LIBDIR := $(PREFIX)/lib
   endif
 endif
 
 ifeq ($(ARCH), x86_64)
   CFLAGS += -mno-red-zone
   ifeq ($(HOSTARCH), ia32)
-    ARCH3264 = -m64
+    ARCH3264 := -m64
+    LIBDIR := $(PREFIX)/lib64
   endif
 endif
+
