@@ -130,6 +130,19 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	inpe = pe_begin(infd, PE_C_READ_MMAP, NULL);
+	if (!inpe) {
+		fprintf(stderr, "pesign: could not load input file: %s\n",
+			pe_errmsg(pe_errno()));
+		exit(1);
+	}
+	outpe = pe_begin(outfd, PE_C_RDWR_MMAP, inpe);
+	if (!outpe) {
+		fprintf(stderr, "pesign: could not load output file: %s\n",
+			pe_errmsg(pe_errno()));
+		exit(1);
+	}
+
 	rc = copy_pe_file(inpe, outpe, cert, hashgaps);
 	if (rc < 0) {
 		exit(1);
