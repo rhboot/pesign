@@ -28,6 +28,17 @@
 #define pread_retry(fd, buf,  len, off) \
 	TEMP_FAILURE_RETRY (pread (fd, buf, len, off))
 
+#define is_64_bit(mtype) (				\
+	   ((mtype) == IMAGE_FILE_MACHINE_AMD64)	\
+	|| ((mtype) == IMAGE_FILE_MACHINE_IA64)		\
+	)
+
+#define choose_kind(mtype, object) (				\
+	is_64_bit(mtype)					\
+		? ((object) ? PE_K_PE64_OBJ : PE_K_PE64_EXE)	\
+		: ((object) ? PE_K_PE_OBJ : PE_K_PE_EXE)	\
+	)
+
 static inline Pe_Kind
 __attribute__ ((unused))
 determine_kind(void *buf, size_t len)
@@ -48,13 +59,15 @@ determine_kind(void *buf, size_t len)
 	if (cmp_le32(&pe->magic, &pe_magic))
 		return retval;
 
-	retval = PE_K_PE_OBJ;
+	retval = choose_kind(le32_to_cpu(pe->machine), 1);
 	if (le32_to_cpu(pe->opt_hdr_size) != 0)
-		retval = PE_K_PE_EXE;
+		retval = choose_kind(le32_to_cpu(pe->machine), 0);
 
 	return retval;
 }
 
+#undef choose_kind
+#undef is_64_bit
 
 static inline Pe *
 __attribute__ ((unused))

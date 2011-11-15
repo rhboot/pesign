@@ -52,8 +52,10 @@ __libpe_read_mmapped_file(int fildes, void *map_address, off_t offset,
 
 	switch (kind) {
 		case PE_K_PE_OBJ:
+		case PE_K_PE64_OBJ:
 			return file_read_pe_obj(fildes, map_address, p_ident,
 						offset, maxsize, cmd, parent);
+		case PE_K_PE64_EXE:
 		case PE_K_PE_EXE:
 			return file_read_pe_exe(fildes, map_address, p_ident,
 						offset, maxsize, cmd, parent);

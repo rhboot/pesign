@@ -26,6 +26,8 @@ typedef enum {
 	PE_K_MZ,
 	PE_K_PE_OBJ,
 	PE_K_PE_EXE,
+	PE_K_PE64_OBJ,
+	PE_K_PE64_EXE,
 	PE_K_NUM /* terminating entry */
 } Pe_Kind;
 
