@@ -42,6 +42,21 @@ enum {
 
 extern void __libpe_seterrno(int value);
 
+struct Pe_Scn {
+	size_t index;
+	struct Pe *pe;
+	struct section_header *shdr;
+	struct Pe_ScnList *list;
+};
+
+typedef struct Pe_ScnList
+{
+	unsigned int cnt;
+	unsigned int max;
+	struct Pe_ScnList *next;
+	struct Pe_Scn data[0];
+} Pe_ScnList;
+
 struct Pe {
 	/* Address to which the file was mapped.  NULL if not mapped. */
 	void *map_address;
@@ -60,10 +75,14 @@ struct Pe {
 	int flags;
 
 	int ref_count;
-};
 
-struct Pe_Scn {
-	
+	union {
+		struct {
+			Pe_ScnList *scns_last;
+			unsigned int scnincr;
+		} pe;
+
+	} state;
 };
 
 #include "common.h"

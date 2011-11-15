@@ -28,6 +28,24 @@
 
 #include "libdpe.h"
 
+static size_t
+get_shnum(void *map_address, off_t offset, size_t maxsize)
+{
+	size_t result = 0;
+	void *buf = (void *)map_address + offset;
+	struct mz_hdr *mz = (struct mz_hdr *)buf;
+
+	off_t hdr = (off_t)le32_to_cpu(mz->peaddr);
+	struct pe_hdr *pe = (struct pe_hdr *)(buf + hdr);
+
+	uint16_t sections = pe->sections;
+
+	result = le16_to_cpu(sections);
+
+	printf("got %ld sections!\n", result);
+	return result;
+}
+
 static inline Pe *
 file_read_pe_obj(int fildes, void *map_address, unsigned char *p_ident,
 		off_t offset, size_t maxsize, Pe_Cmd cmd, Pe *parent)
@@ -39,6 +57,15 @@ static inline Pe *
 file_read_pe_exe(int fildes, void *map_address, unsigned char *p_ident,
 		off_t offset, size_t maxsize, Pe_Cmd cmd, Pe *parent)
 {
+	size_t scncnt = get_shnum(map_address, offset, maxsize);
+	if (scncnt == (size_t) -1l) {
+		/* Could not determine the number of sections. */
+		return NULL;
+	}
+
+	if (scncnt > SIZE_MAX / sizeof (struct section_header))
+		return NULL;
+
 	return NULL;
 }
 
