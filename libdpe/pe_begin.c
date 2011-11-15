@@ -196,7 +196,17 @@ read_file(int fildes, off_t offset, size_t maxsize,
 static struct Pe *
 write_file (int fd, Pe_Cmd cmd)
 {
-	return NULL;
+#define NSCNSALLOC	10
+	Pe *result = allocate_pe(fd, NULL, 0, 0, cmd, NULL, PE_K_PE_EXE,
+				NSCNSALLOC * sizeof (Pe_Scn));
+
+	if (result != NULL) {
+		result->flags = PE_F_DIRTY;
+
+		result->state.pe.scnincr = NSCNSALLOC;
+	}
+
+	return result;
 }
 
 static Pe *

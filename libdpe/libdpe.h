@@ -24,6 +24,7 @@
 #include "pe.h"
 
 enum {
+	PE_F_DIRTY = 0x1,
 	PE_F_MMAPPED = 0x40,
 	PE_F_MALLOCED = 0x80,
 	PE_F_FILEDATA = 0x100,
