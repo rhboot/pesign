@@ -21,7 +21,7 @@
 
 #include <stdint.h>
 
-#define MZ_MAGIC	0x5a4	/* "MZ" */
+#define MZ_MAGIC	0x5a4d	/* "MZ" */
 
 struct mz_hdr {
 	uint16_t magic;		/* MZ_MAGIC */
