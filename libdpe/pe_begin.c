@@ -57,16 +57,75 @@ static inline Pe *
 file_read_pe_exe(int fildes, void *map_address, unsigned char *p_ident,
 		off_t offset, size_t maxsize, Pe_Cmd cmd, Pe *parent)
 {
+	Pe_Kind kind = determine_kind(p_ident, maxsize);
 	size_t scncnt = get_shnum(map_address, offset, maxsize);
 	if (scncnt == (size_t) -1l) {
 		/* Could not determine the number of sections. */
 		return NULL;
 	}
 
-	if (scncnt > SIZE_MAX / sizeof (struct section_header))
+	if (scncnt > SIZE_MAX / sizeof(Pe_Scn) + sizeof (struct section_header))
 		return NULL;
 
-	return NULL;
+	const size_t scnmax = (scncnt ?: (cmd == PE_C_RDWR || cmd == PE_C_RDWR_MMAP) ? 1: 0);
+	Pe *pe = allocate_pe(fildes, map_address, offset, maxsize, cmd, parent,
+			kind, scnmax * sizeof (Pe_Scn));
+	if (pe == NULL)
+		return NULL;
+
+	pe->state.pe32_obj.mzhdr = (struct mz_hdr *)
+					((char *)map_address + offset);
+
+	pe->state.pe32_obj.pehdr = (struct pe_hdr *)((char *)map_address +
+		 (off_t)le32_to_cpu(pe->state.pe32_obj.mzhdr->peaddr));
+
+	assert((unsigned int)scncnt == scncnt);
+	pe->state.pe32_obj.scns.cnt = scncnt;
+	pe->state.pe32_obj.scns.max = scnmax;
+
+	pe->state.pe32_obj.scnincr = 10;
+
+	switch (kind) {
+		case PE_K_PE_OBJ:
+			pe->state.pe32_obj.shdr = (struct section_header *)
+				((char *)pe->state.pe32_obj.pehdr +
+				sizeof (struct pe_hdr));
+			break;
+		case PE_K_PE_EXE:
+			pe->state.pe32_exe.opthdr = (struct pe32_opt_hdr *)
+				((char *)pe->state.pe32_exe.pehdr +
+				sizeof (struct pe_hdr));
+			pe->state.pe32_exe.shdr = (struct section_header *)
+				((char *)pe->state.pe32_exe.opthdr +
+				sizeof (struct pe32_opt_hdr));
+			break;
+		case PE_K_PE64_OBJ:
+			pe->state.pe32plus_obj.shdr = (struct section_header *)
+				((char *)pe->state.pe32plus_obj.pehdr +
+				sizeof (struct pe_hdr));
+			break;
+		case PE_K_PE64_EXE:
+			pe->state.pe32plus_exe.opthdr =
+				(struct pe32plus_opt_hdr *)
+					((char *)pe->state.pe32plus_exe.pehdr +
+					sizeof (struct pe_hdr));
+			pe->state.pe32plus_exe.shdr = (struct section_header *)
+				((char *)pe->state.pe32plus_exe.opthdr +
+				sizeof (struct pe32plus_opt_hdr));
+			break;
+		default:
+			break;
+	}
+
+	for (size_t cnt = 0; cnt < scncnt; cnt++) {
+		pe->state.pe32_obj.scns.data[cnt].index = cnt;
+		pe->state.pe32_obj.scns.data[cnt].pe = pe;
+		pe->state.pe32_obj.scns.data[cnt].shdr =
+			&pe->state.pe32_obj.shdr[cnt];
+		pe->state.pe32_obj.scns.data[cnt].pe = pe;
+	}
+
+	return pe;
 }
 
 Pe *

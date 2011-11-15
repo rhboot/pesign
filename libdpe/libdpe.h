@@ -79,10 +79,58 @@ struct Pe {
 
 	union {
 		struct {
+			struct mz_hdr *mzhdr;
+			struct pe_hdr *pehdr;
+			void *reserved;
+			struct section_header *shdr;
+
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
 		} pe;
 
+		struct {
+			struct mz_hdr *mzhdr;
+			struct pe_hdr *pehdr;
+			void *reserved;
+			struct section_header *shdr;
+			Pe_ScnList *scns_last;
+			unsigned int scnincr;
+			
+			Pe_ScnList scns;
+		} pe32_obj;
+
+		struct {
+			struct mz_hdr *mzhdr;
+			struct pe_hdr *pehdr;
+			struct pe32_opt_hdr *opthdr;
+			struct section_header *shdr;
+			Pe_ScnList *scns_last;
+			unsigned int scnincr;
+			
+			Pe_ScnList scns;
+		} pe32_exe;
+
+		struct {
+			struct mz_hdr *mzhdr;
+			struct pe_hdr *pehdr;
+			void *reserved;
+			struct section_header *shdr;
+			Pe_ScnList *scns_last;
+			unsigned int scnincr;
+			
+			Pe_ScnList scns;
+		} pe32plus_obj;
+
+		struct {
+			struct mz_hdr *mzhdr;
+			struct pe_hdr *pehdr;
+			struct pe32plus_opt_hdr *opthdr;
+			struct section_header *shdr;
+			Pe_ScnList *scns_last;
+			unsigned int scnincr;
+			
+			Pe_ScnList scns;
+		} pe32plus_exe;
 	} state;
 };
 
