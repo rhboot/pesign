@@ -58,6 +58,8 @@ struct Pe {
 	size_t maximum_size;
 
 	int flags;
+
+	int ref_count;
 };
 
 struct Pe_Scn {

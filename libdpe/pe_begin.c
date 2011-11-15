@@ -175,8 +175,6 @@ write_file (int fd, Pe_Cmd cmd)
 static Pe *
 dup_pe(int fildes, Pe_Cmd cmd, Pe *ref)
 {
-	struct Pe *result = NULL;
-
 	if (fildes == -1) {
 		fildes = ref->fildes;
 	} else if (ref->fildes != -1 && fildes != ref->fildes) {
@@ -192,7 +190,10 @@ dup_pe(int fildes, Pe_Cmd cmd, Pe *ref)
 		return NULL;
 	}
 
-	return result;
+	/* for now, just increment the refcount and return the same object */
+	ref->ref_count++;
+
+	return ref;
 }
 
 Pe *
