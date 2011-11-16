@@ -51,7 +51,10 @@ struct mz_reloc {
 	uint16_t segment;
 };
 
-#define PE_MAGIC	0x00004550	/* "PE\0\0" */
+#define PE_MAGIC		0x00004550	/* "PE\0\0" */
+#define PE_OPT_MAGIC_PE32	0x010b
+#define PE_OPT_MAGIC_PE32_ROM	0x0107
+#define PE_OPT_MAGIC_PE32PLUS	0x020b
 
 /* machine type */
 #define	IMAGE_FILE_MACHINE_UNKNOWN	0x0000

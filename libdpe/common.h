@@ -28,16 +28,7 @@
 #define pread_retry(fd, buf,  len, off) \
 	TEMP_FAILURE_RETRY (pread (fd, buf, len, off))
 
-#define is_64_bit(mtype) (				\
-	   ((mtype) == IMAGE_FILE_MACHINE_AMD64)	\
-	|| ((mtype) == IMAGE_FILE_MACHINE_IA64)		\
-	)
-
-#define choose_kind(mtype, object) (				\
-	is_64_bit(mtype)					\
-		? ((object) ? PE_K_PE64_OBJ : PE_K_PE64_EXE)	\
-		: ((object) ? PE_K_PE_OBJ : PE_K_PE_EXE)	\
-	)
+#define is_64_bit(pe) ((pe)->flags & IMAGE_FILE_32BIT_MACHINE)
 
 static inline Pe_Kind
 __attribute__ ((unused))
@@ -59,9 +50,38 @@ determine_kind(void *buf, size_t len)
 	if (cmp_le32(&pe->magic, &pe_magic))
 		return retval;
 
-	retval = choose_kind(le32_to_cpu(pe->machine), 1);
-	if (le32_to_cpu(pe->opt_hdr_size) != 0)
-		retval = choose_kind(le32_to_cpu(pe->machine), 0);
+	if (pe->flags & IMAGE_FILE_EXECUTABLE_IMAGE) {
+		if (le32_to_cpu(pe->opt_hdr_size) == 0) {
+			/* this PE header is invalid, so return PE_K_MZ */
+			return retval;
+		}
+
+		struct pe32_opt_hdr *peo =
+			(struct pe32_opt_hdr *)(buf + hdr + sizeof(*pe));
+
+		/* if we don't have an optional header, fall back to testing
+		 * our machine type list... */
+		switch (le16_to_cpu(peo->magic)) {
+			case PE_OPT_MAGIC_PE32:
+				retval = PE_K_PE_EXE;
+				break;
+			case PE_OPT_MAGIC_PE32_ROM:
+				retval = PE_K_PE_ROM;
+				break;
+			case PE_OPT_MAGIC_PE32PLUS:
+				retval = PE_K_PE64_EXE;
+				break;
+			default:
+				/* some magic we don't know?  Guess based on
+				 * machine type */
+				retval = is_64_bit(pe)
+					? PE_K_PE64_EXE : PE_K_PE_EXE;
+				break;
+		}
+	} else {
+		/* this is an object file */
+		retval = is_64_bit(pe) ? PE_K_PE64_OBJ : PE_K_PE_OBJ;
+	}
 
 	return retval;
 }
