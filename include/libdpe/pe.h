@@ -16,8 +16,8 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef private_PE_H
-#define private_PE_H 1
+#ifndef PE_H
+#define PE_H 1
 
 #include <stdint.h>
 
@@ -429,4 +429,4 @@ struct coff_reloc {
 	};
 };
 
-#endif /* private_PE_H */
+#endif /* PE_H */

@@ -20,8 +20,8 @@
 #define LIBDPE_PRIV_H 1
 
 #include <libdpe/libdpe.h>
+#include <libdpe/pe.h>
 #include "endian.h"
-#include "pe.h"
 
 enum {
 	PE_F_DIRTY = 0x1,
