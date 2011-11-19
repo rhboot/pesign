@@ -36,6 +36,10 @@ int initialize_crypto(void)
 	return -1;
 }
 
+/* read a cert generated with:
+ * $ openssl req -new -key privkey.pem -out cert.csr
+ * $ openssl req -new -x509 -key privkey.pem -out cacert.pem -days 1095
+ */
 int read_cert(int certfd, CERTCertificate **cert)
 {
 	struct stat statbuf;
