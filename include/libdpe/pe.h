@@ -16,12 +16,12 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef private_PE_H
-#define private_PE_H 1
+#ifndef PE_H
+#define PE_H 1
 
 #include <stdint.h>
 
-#define MZ_MAGIC	0x5a4	/* "MZ" */
+#define MZ_MAGIC	0x5a4d	/* "MZ" */
 
 struct mz_hdr {
 	uint16_t magic;		/* MZ_MAGIC */
@@ -51,7 +51,10 @@ struct mz_reloc {
 	uint16_t segment;
 };
 
-#define PE_MAGIC	0x00004550	/* "PE\0\0" */
+#define PE_MAGIC		0x00004550	/* "PE\0\0" */
+#define PE_OPT_MAGIC_PE32	0x010b
+#define PE_OPT_MAGIC_PE32_ROM	0x0107
+#define PE_OPT_MAGIC_PE32PLUS	0x020b
 
 /* machine type */
 #define	IMAGE_FILE_MACHINE_UNKNOWN	0x0000
@@ -426,4 +429,4 @@ struct coff_reloc {
 	};
 };
 
-#endif /* private_PE_H */
+#endif /* PE_H */

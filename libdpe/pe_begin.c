@@ -28,6 +28,24 @@
 
 #include "libdpe.h"
 
+static size_t
+get_shnum(void *map_address, off_t offset, size_t maxsize)
+{
+	size_t result = 0;
+	void *buf = (void *)map_address + offset;
+	struct mz_hdr *mz = (struct mz_hdr *)buf;
+
+	off_t hdr = (off_t)le32_to_cpu(mz->peaddr);
+	struct pe_hdr *pe = (struct pe_hdr *)(buf + hdr);
+
+	uint16_t sections = pe->sections;
+
+	result = le16_to_cpu(sections);
+
+	printf("got %ld sections!\n", result);
+	return result;
+}
+
 static inline Pe *
 file_read_pe_obj(int fildes, void *map_address, unsigned char *p_ident,
 		off_t offset, size_t maxsize, Pe_Cmd cmd, Pe *parent)
@@ -39,7 +57,75 @@ static inline Pe *
 file_read_pe_exe(int fildes, void *map_address, unsigned char *p_ident,
 		off_t offset, size_t maxsize, Pe_Cmd cmd, Pe *parent)
 {
-	return NULL;
+	Pe_Kind kind = determine_kind(p_ident, maxsize);
+	size_t scncnt = get_shnum(map_address, offset, maxsize);
+	if (scncnt == (size_t) -1l) {
+		/* Could not determine the number of sections. */
+		return NULL;
+	}
+
+	if (scncnt > SIZE_MAX / sizeof(Pe_Scn) + sizeof (struct section_header))
+		return NULL;
+
+	const size_t scnmax = (scncnt ?: (cmd == PE_C_RDWR || cmd == PE_C_RDWR_MMAP) ? 1: 0);
+	Pe *pe = allocate_pe(fildes, map_address, offset, maxsize, cmd, parent,
+			kind, scnmax * sizeof (Pe_Scn));
+	if (pe == NULL)
+		return NULL;
+
+	pe->state.pe32_obj.mzhdr = (struct mz_hdr *)
+					((char *)map_address + offset);
+
+	pe->state.pe32_obj.pehdr = (struct pe_hdr *)((char *)map_address +
+		 (off_t)le32_to_cpu(pe->state.pe32_obj.mzhdr->peaddr));
+
+	assert((unsigned int)scncnt == scncnt);
+	pe->state.pe32_obj.scns.cnt = scncnt;
+	pe->state.pe32_obj.scns.max = scnmax;
+
+	pe->state.pe32_obj.scnincr = 10;
+
+	switch (kind) {
+		case PE_K_PE_OBJ:
+			pe->state.pe32_obj.shdr = (struct section_header *)
+				((char *)pe->state.pe32_obj.pehdr +
+				sizeof (struct pe_hdr));
+			break;
+		case PE_K_PE_EXE:
+			pe->state.pe32_exe.opthdr = (struct pe32_opt_hdr *)
+				((char *)pe->state.pe32_exe.pehdr +
+				sizeof (struct pe_hdr));
+			pe->state.pe32_exe.shdr = (struct section_header *)
+				((char *)pe->state.pe32_exe.opthdr +
+				sizeof (struct pe32_opt_hdr));
+			break;
+		case PE_K_PE64_OBJ:
+			pe->state.pe32plus_obj.shdr = (struct section_header *)
+				((char *)pe->state.pe32plus_obj.pehdr +
+				sizeof (struct pe_hdr));
+			break;
+		case PE_K_PE64_EXE:
+			pe->state.pe32plus_exe.opthdr =
+				(struct pe32plus_opt_hdr *)
+					((char *)pe->state.pe32plus_exe.pehdr +
+					sizeof (struct pe_hdr));
+			pe->state.pe32plus_exe.shdr = (struct section_header *)
+				((char *)pe->state.pe32plus_exe.opthdr +
+				sizeof (struct pe32plus_opt_hdr));
+			break;
+		default:
+			break;
+	}
+
+	for (size_t cnt = 0; cnt < scncnt; cnt++) {
+		pe->state.pe32_obj.scns.data[cnt].index = cnt;
+		pe->state.pe32_obj.scns.data[cnt].pe = pe;
+		pe->state.pe32_obj.scns.data[cnt].shdr =
+			&pe->state.pe32_obj.shdr[cnt];
+		pe->state.pe32_obj.scns.data[cnt].pe = pe;
+	}
+
+	return pe;
 }
 
 Pe *
@@ -52,8 +138,10 @@ __libpe_read_mmapped_file(int fildes, void *map_address, off_t offset,
 
 	switch (kind) {
 		case PE_K_PE_OBJ:
+		case PE_K_PE64_OBJ:
 			return file_read_pe_obj(fildes, map_address, p_ident,
 						offset, maxsize, cmd, parent);
+		case PE_K_PE64_EXE:
 		case PE_K_PE_EXE:
 			return file_read_pe_exe(fildes, map_address, p_ident,
 						offset, maxsize, cmd, parent);
@@ -167,14 +255,22 @@ read_file(int fildes, off_t offset, size_t maxsize,
 static struct Pe *
 write_file (int fd, Pe_Cmd cmd)
 {
-	return NULL;
+#define NSCNSALLOC	10
+	Pe *result = allocate_pe(fd, NULL, 0, 0, cmd, NULL, PE_K_PE_EXE,
+				NSCNSALLOC * sizeof (Pe_Scn));
+
+	if (result != NULL) {
+		result->flags = PE_F_DIRTY;
+
+		result->state.pe.scnincr = NSCNSALLOC;
+	}
+
+	return result;
 }
 
 static Pe *
 dup_pe(int fildes, Pe_Cmd cmd, Pe *ref)
 {
-	struct Pe *result = NULL;
-
 	if (fildes == -1) {
 		fildes = ref->fildes;
 	} else if (ref->fildes != -1 && fildes != ref->fildes) {
@@ -190,7 +286,10 @@ dup_pe(int fildes, Pe_Cmd cmd, Pe *ref)
 		return NULL;
 	}
 
-	return result;
+	/* for now, just increment the refcount and return the same object */
+	ref->ref_count++;
+
+	return ref;
 }
 
 Pe *

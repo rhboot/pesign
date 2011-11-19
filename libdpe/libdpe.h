@@ -20,10 +20,11 @@
 #define LIBDPE_PRIV_H 1
 
 #include <libdpe/libdpe.h>
+#include <libdpe/pe.h>
 #include "endian.h"
-#include "pe.h"
 
 enum {
+	PE_F_DIRTY = 0x1,
 	PE_F_MMAPPED = 0x40,
 	PE_F_MALLOCED = 0x80,
 	PE_F_FILEDATA = 0x100,
@@ -42,6 +43,21 @@ enum {
 
 extern void __libpe_seterrno(int value);
 
+struct Pe_Scn {
+	size_t index;
+	struct Pe *pe;
+	struct section_header *shdr;
+	struct Pe_ScnList *list;
+};
+
+typedef struct Pe_ScnList
+{
+	unsigned int cnt;
+	unsigned int max;
+	struct Pe_ScnList *next;
+	struct Pe_Scn data[0];
+} Pe_ScnList;
+
 struct Pe {
 	/* Address to which the file was mapped.  NULL if not mapped. */
 	void *map_address;
@@ -58,10 +74,64 @@ struct Pe {
 	size_t maximum_size;
 
 	int flags;
-};
 
-struct Pe_Scn {
-	
+	int ref_count;
+
+	union {
+		struct {
+			struct mz_hdr *mzhdr;
+			struct pe_hdr *pehdr;
+			void *reserved;
+			struct section_header *shdr;
+
+			Pe_ScnList *scns_last;
+			unsigned int scnincr;
+		} pe;
+
+		struct {
+			struct mz_hdr *mzhdr;
+			struct pe_hdr *pehdr;
+			void *reserved;
+			struct section_header *shdr;
+			Pe_ScnList *scns_last;
+			unsigned int scnincr;
+			
+			Pe_ScnList scns;
+		} pe32_obj;
+
+		struct {
+			struct mz_hdr *mzhdr;
+			struct pe_hdr *pehdr;
+			struct pe32_opt_hdr *opthdr;
+			struct section_header *shdr;
+			Pe_ScnList *scns_last;
+			unsigned int scnincr;
+			
+			Pe_ScnList scns;
+		} pe32_exe;
+
+		struct {
+			struct mz_hdr *mzhdr;
+			struct pe_hdr *pehdr;
+			void *reserved;
+			struct section_header *shdr;
+			Pe_ScnList *scns_last;
+			unsigned int scnincr;
+			
+			Pe_ScnList scns;
+		} pe32plus_obj;
+
+		struct {
+			struct mz_hdr *mzhdr;
+			struct pe_hdr *pehdr;
+			struct pe32plus_opt_hdr *opthdr;
+			struct section_header *shdr;
+			Pe_ScnList *scns_last;
+			unsigned int scnincr;
+			
+			Pe_ScnList scns;
+		} pe32plus_exe;
+	} state;
 };
 
 #include "common.h"
