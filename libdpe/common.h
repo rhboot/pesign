@@ -105,9 +105,25 @@ allocate_pe(int fildes, void *map_address, off_t offset, size_t maxsize,
 		result->maximum_size = maxsize;
 		result->map_address = map_address;
 		result->parent = parent;
+
+		rwlock_init(result->lock);
 	}
 
 	return result;
+}
+
+static void
+__attribute__ ((unused))
+libpe_acquire_all(Pe *pe)
+{
+	rwlock_wrlock(pe->lock);
+}
+
+static void
+__attribute__ ((unused))
+libpe_release_all(Pe *pe)
+{
+	rwlock_unlock(pe->lock);
 }
 
 #endif /* LIBDPE_COMMON_H */

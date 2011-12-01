@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -297,6 +298,13 @@ pe_begin(int fildes, Pe_Cmd cmd, Pe *ref)
 {
 	Pe *retval = NULL;
 
+	if (ref != NULL) {
+		rwlock_rdlock(ref->lock);
+	} else if (fcntl(fildes, F_GETFL) == -1 && errno == EBADF) {
+		__libpe_seterrno(PE_E_INVALID_FILE);
+		return NULL;
+	}
+
 	switch (cmd) {
 		case PE_C_NULL:
 			break;
@@ -327,6 +335,9 @@ pe_begin(int fildes, Pe_Cmd cmd, Pe *ref)
 			__libpe_seterrno(PE_E_INVALID_CMD);
 			break;
 	}
+
+	if (ref != NULL)
+		rwlock_unlock(ref->lock);
 	return retval;
 }
 

@@ -22,6 +22,7 @@
 #include <libdpe/libdpe.h>
 #include <libdpe/pe.h>
 #include "endian.h"
+#include "lock.h"
 
 enum {
 	PE_F_DIRTY = 0x1,
@@ -76,6 +77,7 @@ struct Pe {
 	int flags;
 
 	int ref_count;
+	rwlock_define(,lock);
 
 	union {
 		struct {
