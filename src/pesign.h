@@ -19,6 +19,9 @@
 #ifndef PESIGN_H
 #define PESIGN_H 1
 
+#include <stdlib.h>
+#define xfree(x) ({if (x) { free(x); x = NULL; }})
+
 #include <libdpe/libdpe.h>
 #include "cert.h"
 #include "io.h"
