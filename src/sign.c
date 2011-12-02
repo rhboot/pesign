@@ -16,12 +16,10 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_H
-#define PESIGN_H 1
 
-#include <libdpe/libdpe.h>
-#include "cert.h"
-#include "io.h"
-#include "sign.h"
+#include "pesign.h"
 
-#endif /* PESIGN_H */
+int pe_sign(Pe *pe, CERTCertificate *cert)
+{
+	return 0;
+}

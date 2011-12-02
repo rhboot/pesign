@@ -154,10 +154,11 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	rc = copy_pe_file(inpe, outpe, cert, hashgaps);
-	if (rc < 0) {
-		exit(1);
+	if (cert) {
+		pe_sign(outpe, cert);
 	}
+	pe_end(inpe);
+	pe_end(outpe);
 
 	close(infd);
 	close(outfd);
