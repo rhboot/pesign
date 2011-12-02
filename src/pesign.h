@@ -19,6 +19,7 @@
 #ifndef PESIGN_H
 #define PESIGN_H 1
 
+#include <libdpe/libdpe.h>
 #include "cert.h"
 #include "io.h"
 

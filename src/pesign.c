@@ -26,7 +26,6 @@
 #include <sys/types.h>
 
 #include <popt.h>
-#include <libdpe/libdpe.h>
 
 #include <nss3/cert.h>
 #include <nss3/pkcs7t.h>
