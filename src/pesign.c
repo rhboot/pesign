@@ -74,13 +74,22 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (infile && outfile && !strcmp(infile, outfile)) {
+	if (!infile) {
+		fprintf(stderr, "No input file specified.\n");
+		exit(1);
+	}
+	if (!outfile) {
+		fprintf(stderr, "No output file specified.\n");
+		exit(1);
+	}
+
+	if (!strcmp(infile, outfile) && strcmp(infile,"-")) {
 		fprintf(stderr, "pesign: in-place file editing is not yet "
 				"supported\n");
 		exit(1);
 	}
 
-	if (!infile || !strcmp(infile, "-")) {
+	if (!strcmp(infile, "-")) {
 		infd = STDIN_FILENO;
 	} else {
 		infd = open(infile, O_RDONLY|O_CLOEXEC);
@@ -92,7 +101,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (!outfile || !strcmp(outfile, "-")) {
+	if (!strcmp(outfile, "-")) {
 		outfd = STDOUT_FILENO;
 	} else {
 		if (access(outfile, F_OK) == 0 && force == 0) {
@@ -129,14 +138,16 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	inpe = pe_begin(infd, PE_C_READ_MMAP, NULL);
+	Pe_Cmd cmd = infd == STDIN_FILENO ? PE_C_READ : PE_C_READ_MMAP;
+	inpe = pe_begin(infd, cmd, NULL);
 	if (!inpe) {
 		fprintf(stderr, "pesign: could not load input file: %s\n",
 			pe_errmsg(pe_errno()));
 		exit(1);
 	}
 
-	outpe = pe_begin(outfd, PE_C_WRITE_MMAP, inpe);
+	cmd = outfd == STDOUT_FILENO ? PE_C_WRITE : PE_C_WRITE_MMAP;
+	outpe = pe_begin(outfd, cmd, inpe);
 	if (!outpe) {
 		fprintf(stderr, "pesign: could not load output file: %s\n",
 			pe_errmsg(pe_errno()));
