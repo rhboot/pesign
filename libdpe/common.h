@@ -20,6 +20,7 @@
 #define LIBDPE_COMMON_H 1
 
 #include <stdlib.h>
+#include <sys/mman.h>
 
 #define pwrite_retry(fd, buf,  len, off) \
 	TEMP_FAILURE_RETRY (pwrite (fd, buf, len, off))
@@ -29,6 +30,9 @@
 	TEMP_FAILURE_RETRY (pread (fd, buf, len, off))
 
 #define is_64_bit(pe) ((pe)->flags & IMAGE_FILE_32BIT_MACHINE)
+
+#define xfree(x) ({if (x) { free(x); x = NULL; }})
+#define xmunmap(addr, size) ({if (addr) { munmap(addr,size); addr = NULL; }})
 
 static inline Pe_Kind
 __attribute__ ((unused))
