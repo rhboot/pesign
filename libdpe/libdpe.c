@@ -43,7 +43,7 @@ loff_t pe_update(Pe *pe, Pe_Cmd cmd)
 
 Pe_Kind pe_kind(Pe *Pe)
 {
-	return PE_K_NONE;
+	return pe == NULL ? PE_K_NONE : pe->kind;
 }
 
 off_t pe_getbase(Pe *pe)
