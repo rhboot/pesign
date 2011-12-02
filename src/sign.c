@@ -19,7 +19,10 @@
 
 #include "pesign.h"
 
-int pe_sign(Pe *pe, CERTCertificate *cert)
+#include <nss3/secpkcs7.h>
+
+int pe_sign(pesign_context *ctx)
 {
+	SEC_PKCS7ContentInfo *ci = NULL;
 	return 0;
 }

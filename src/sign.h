@@ -19,8 +19,6 @@
 #ifndef PESIGN_SIGN_H
 #define PESIGN_SIGN_H 1
 
-#include "pesign.h"
-
-extern int pe_sign(Pe *pe, CERTCertificate *cert);
+extern int pe_sign(pesign_context *ctx);
 
 #endif /* PESIGN_SIGN_H */
