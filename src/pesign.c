@@ -136,7 +136,8 @@ int main(int argc, char *argv[])
 			pe_errmsg(pe_errno()));
 		exit(1);
 	}
-	outpe = pe_begin(outfd, PE_C_WRITE_MMAP, NULL);
+
+	outpe = pe_begin(outfd, PE_C_WRITE_MMAP, inpe);
 	if (!outpe) {
 		fprintf(stderr, "pesign: could not load output file: %s\n",
 			pe_errmsg(pe_errno()));
