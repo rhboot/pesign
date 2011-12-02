@@ -63,14 +63,13 @@ pe_end(Pe *pe)
 		
 					if (pe->map_address == NULL)
 						xfree(scn->rawdata_base);
-		
-					Pe_ScnList *oldp = list;
-					list = list->next;
-					assert (list == NULL ||
-						oldp->cnt == oldp->max);
-					if (oldp != &pe->state.pe.scns)
-						xfree(oldp);
 				}
+		
+				Pe_ScnList *oldp = list;
+				list = list->next;
+				assert(list == NULL || oldp->cnt == oldp->max);
+				if (oldp != &pe->state.pe.scns)
+					xfree(oldp);
 			} while (list);
 		}
 		break;
