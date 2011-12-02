@@ -10,10 +10,12 @@ TARGETS = libdpe.so
 all : $(TARGETS)
 
 SOURCES = $(patsubst %.c,%,$(wildcard *.c))
+OBJECTS = $(foreach source,$(SOURCES),$(source).o)
+PEOBJECTS = $(foreach source,$(SOURCES),$(source)_pe.o)
 
-libdpe.a :: $(foreach source,$(SOURCES),$(source)_pe.o)
+libdpe.a :: $(PEOBJECTS)
 
-libdpe.so :: $(foreach source,$(SOURCES),$(source).o)
+libdpe.so :: $(OBJECTS)
 
 clean : 
 	@rm -rfv *~ *.o *.a *.so

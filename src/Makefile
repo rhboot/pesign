@@ -10,6 +10,8 @@ CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags -
 CFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib)))
 
 TARGETS = pesign
+SOURCES = $(patsubst %.c,%,$(wildcard *.c))
+OBJECTS = $(foreach source,$(SOURCES),$(source).o)
 
 all : $(TARGETS)
 
@@ -23,7 +25,7 @@ install :
 	$(INSTALL) -m 644 pesign.popt $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pki/pesign/
 
-pesign : pesign.o cert.o io.o
+pesign : $(OBJECTS)
 
 .PHONY: all clean install
 
