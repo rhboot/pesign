@@ -55,7 +55,6 @@ typedef struct Pe_Scn Pe_Scn;
 extern Pe *pe_begin(int fildes, Pe_Cmd cmd, Pe *ref);
 extern Pe *pe_clone(Pe *pe, Pe_Cmd cmd);
 extern Pe *pe_memory(char *image, size_t size);
-extern Pe *pe_next(Pe *pe);
 extern int pe_end(Pe *pe);
 extern loff_t pe_update(Pe *pe, Pe_Cmd cmd);
 extern Pe_Kind pe_kind(Pe *Pe) __attribute__ ((__pure__));

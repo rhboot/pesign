@@ -31,11 +31,6 @@ Pe *pe_memory(char *image, size_t size)
 	return NULL;
 }
 
-Pe *pe_next(Pe *pe)
-{
-	return NULL;
-}
-
 loff_t pe_update(Pe *pe, Pe_Cmd cmd)
 {
 	return 0;
