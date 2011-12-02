@@ -26,6 +26,7 @@
 #include "pesign.h"
 
 #include <nss3/nss.h>
+#include <nss3/secpkcs7.h>
 
 int crypto_init(void)
 {
@@ -75,5 +76,11 @@ int read_cert(int certfd, CERTCertificate **cert)
 	free(certstr);
 	if (!*cert)
 		return -1;
+	return 0;
+}
+
+int pe_sign(pesign_context *ctx)
+{
+	SEC_PKCS7ContentInfo *ci = NULL;
 	return 0;
 }

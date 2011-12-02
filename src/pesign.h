@@ -24,8 +24,6 @@
 
 #include <libdpe/libdpe.h>
 #include "context.h"
-#include "cert.h"
-#include "io.h"
-#include "sign.h"
+#include "crypto.h"
 
 #endif /* PESIGN_H */
