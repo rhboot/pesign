@@ -36,11 +36,6 @@ Pe *pe_next(Pe *pe)
 	return NULL;
 }
 
-int pe_end(Pe *pe)
-{
-	return -1;
-}
-
 loff_t pe_update(Pe *pe, Pe_Cmd cmd)
 {
 	return 0;
