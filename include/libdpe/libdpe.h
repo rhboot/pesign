@@ -59,7 +59,7 @@ extern int pe_end(Pe *pe);
 extern loff_t pe_update(Pe *pe, Pe_Cmd cmd);
 extern Pe_Kind pe_kind(Pe *Pe) __attribute__ ((__pure__));
 extern off_t pe_getbase(Pe *pe);
-extern pe_nextscn(Pe *pe, Pe_Scn *scn);
+extern Pe_Scn *pe_nextscn(Pe *pe, Pe_Scn *scn);
 
 extern int pe_errno(void);
 extern const char *pe_errmsg(int error);
