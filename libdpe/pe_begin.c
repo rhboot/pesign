@@ -43,7 +43,6 @@ get_shnum(void *map_address, off_t offset, size_t maxsize)
 
 	result = le16_to_cpu(sections);
 
-	printf("got %ld sections!\n", result);
 	return result;
 }
 
