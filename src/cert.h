@@ -21,7 +21,8 @@
 
 #include <nss3/cert.h>
 
-extern int initialize_crypto(void);
+extern int crypto_init(void);
+extern void crypto_fini(void);
 extern int read_cert(int certfd, CERTCertificate **cert);
 
 #endif /* PESIGN_CERT_H */

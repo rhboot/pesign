@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	rc = initialize_crypto();
+	rc = crypto_init();
 	if (rc < 0) {
 		fprintf(stderr, "Could not initialize cryptographic library\n");
 		exit(1);
@@ -162,5 +162,6 @@ int main(int argc, char *argv[])
 
 	close(infd);
 	close(outfd);
+	crypto_fini();
 	return 0;
 }

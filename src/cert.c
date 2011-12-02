@@ -27,13 +27,18 @@
 
 #include <nss3/nss.h>
 
-int initialize_crypto(void)
+int crypto_init(void)
 {
 	SECStatus status = NSS_InitReadWrite("/etc/pki/pesign");
 
 	if (status == SECSuccess)
 		return 0;
 	return -1;
+}
+
+void crypto_fini(void)
+{
+	NSS_Shutdown();
 }
 
 /* read a cert generated with:
