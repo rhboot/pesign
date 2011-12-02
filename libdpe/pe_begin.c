@@ -264,6 +264,8 @@ write_file (int fd, Pe_Cmd cmd)
 		result->flags = PE_F_DIRTY;
 
 		result->state.pe.scnincr = NSCNSALLOC;
+		result->state.pe.scns_last = &result->state.pe.scns;
+		result->state.pe.scns.max = NSCNSALLOC;
 	}
 
 	return result;
