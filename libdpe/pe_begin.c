@@ -119,11 +119,22 @@ file_read_pe_exe(int fildes, void *map_address, unsigned char *p_ident,
 	}
 
 	for (size_t cnt = 0; cnt < scncnt; cnt++) {
-		pe->state.pe32_obj.scns.data[cnt].index = cnt;
-		pe->state.pe32_obj.scns.data[cnt].pe = pe;
-		pe->state.pe32_obj.scns.data[cnt].shdr =
-			&pe->state.pe32_obj.shdr[cnt];
-		pe->state.pe32_obj.scns.data[cnt].pe = pe;
+		pe->state.pe.scns.data[cnt].index = cnt;
+		pe->state.pe.scns.data[cnt].pe = pe;
+		pe->state.pe.scns.data[cnt].shdr =
+			&pe->state.pe.shdr[cnt];
+
+		uint32_t raw_data_size =
+			le32_to_cpu(pe->state.pe.shdr[cnt].raw_data_size);
+		uint32_t data_addr =
+			le32_to_cpu(pe->state.pe.shdr[cnt].data_addr);
+
+		if (data_addr < maxsize &&
+				maxsize - data_addr <= raw_data_size)
+			pe->state.pe.scns.data[cnt].rawdata_base =
+				pe->state.pe.scns.data[cnt].data_base = 
+				((char *)map_address + offset + data_addr);
+		pe->state.pe.scns.data[cnt].list = &pe->state.pe.scns;
 	}
 
 	return pe;
