@@ -48,6 +48,12 @@ struct Pe_Scn {
 	size_t index;
 	struct Pe *pe;
 	struct section_header *shdr;
+	unsigned int shdr_flags;
+	unsigned int flags;
+
+	char *rawdata_base;
+	char *data_base;
+
 	struct Pe_ScnList *list;
 };
 
@@ -88,6 +94,8 @@ struct Pe {
 
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
+
+			Pe_ScnList scns;
 		} pe;
 
 		struct {
@@ -95,6 +103,7 @@ struct Pe {
 			struct pe_hdr *pehdr;
 			void *reserved;
 			struct section_header *shdr;
+
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
 			
@@ -106,6 +115,7 @@ struct Pe {
 			struct pe_hdr *pehdr;
 			struct pe32_opt_hdr *opthdr;
 			struct section_header *shdr;
+
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
 			
@@ -117,6 +127,7 @@ struct Pe {
 			struct pe_hdr *pehdr;
 			void *reserved;
 			struct section_header *shdr;
+
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
 			
@@ -128,6 +139,7 @@ struct Pe {
 			struct pe_hdr *pehdr;
 			struct pe32plus_opt_hdr *opthdr;
 			struct section_header *shdr;
+
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
 			
