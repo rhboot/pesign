@@ -103,6 +103,7 @@ allocate_pe(int fildes, void *map_address, off_t offset, size_t maxsize,
 		__libpe_seterrno(PE_E_NOMEM);
 	} else {
 		result->kind = kind;
+		result->ref_count = 1;
 		result->cmd = cmd;
 		result->fildes = fildes;
 		result->start_offset = offset;
