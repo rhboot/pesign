@@ -36,32 +36,29 @@ int main(int argc, char *argv[])
 {
 	int rc;
 
-	char *infile = NULL, *outfile = NULL, *certfile = NULL;
-	int infd = -1, outfd = -1;
+	pesign_context ctx;
 
-	Pe *inpe = NULL, *outpe = NULL;
-	CERTCertificate *cert = NULL;
-
-	int force = 0;
-	int hashgaps = 1;
+	int force;
 
 	poptContext optCon;
 	struct poptOption options[] = {
-		{"in", 'i', POPT_ARG_STRING, &infile, 0,
+		{"in", 'i', POPT_ARG_STRING, &ctx.infile, 0,
 			"specify input file", "<infile>"},
-		{"out", 'o', POPT_ARG_STRING, &outfile, 0,
+		{"out", 'o', POPT_ARG_STRING, &ctx.outfile, 0,
 			"specify output file", "<outfile>" },
-		{"certficate", 'c', POPT_ARG_STRING, &certfile, 0,
+		{"certficate", 'c', POPT_ARG_STRING, &ctx.certfile, 0,
 			"specify certificate file", "<certificate>" },
 		{"force", 'f', POPT_ARG_NONE|POPT_ARG_VAL, &force,  1,
 			"force overwriting of output file", NULL },
-		{"nogaps", 'n', POPT_ARG_NONE|POPT_ARG_VAL, &hashgaps, 0,
+		{"nogaps", 'n', POPT_ARG_NONE|POPT_ARG_VAL, &ctx.hashgaps, 0,
 			"skip gaps between sections", NULL },
 		POPT_AUTOHELP
 		POPT_TABLEEND
 	};
 	mode_t outmode = 0644;
 	struct stat statbuf;
+
+	pesign_context_init(&ctx);
 
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
@@ -82,44 +79,45 @@ int main(int argc, char *argv[])
 
 	poptFreeContext(optCon);
 
-	if (!infile) {
+	if (!ctx.infile) {
 		fprintf(stderr, "No input file specified.\n");
 		exit(1);
 	}
-	if (!outfile) {
+	if (!ctx.outfile) {
 		fprintf(stderr, "No output file specified.\n");
 		exit(1);
 	}
 
-	if (!strcmp(infile, outfile) && strcmp(infile,"-")) {
+	if (!strcmp(ctx.infile, ctx.outfile) && strcmp(ctx.infile,"-")) {
 		fprintf(stderr, "pesign: in-place file editing is not yet "
 				"supported\n");
 		exit(1);
 	}
 
-	if (!strcmp(infile, "-")) {
-		infd = STDIN_FILENO;
+	if (!strcmp(ctx.infile, "-")) {
+		ctx.infd = STDIN_FILENO;
 	} else {
-		infd = open(infile, O_RDONLY|O_CLOEXEC);
-		stat(infile, &statbuf); 
+		ctx.infd = open(ctx.infile, O_RDONLY|O_CLOEXEC);
+		stat(ctx.infile, &statbuf); 
 		outmode = statbuf.st_mode;
 	}
-	if (infd < 0) {
+	if (ctx.infd < 0) {
 		fprintf(stderr, "Error opening input: %m\n");
 		exit(1);
 	}
 
-	if (!strcmp(outfile, "-")) {
-		outfd = STDOUT_FILENO;
+	if (!strcmp(ctx.outfile, "-")) {
+		ctx.outfd = STDOUT_FILENO;
 	} else {
-		if (access(outfile, F_OK) == 0 && force == 0) {
+		if (access(ctx.outfile, F_OK) == 0 && force == 0) {
 			fprintf(stderr, "pesign: \"%s\" exits and --force was "
-					"not given.\n", outfile);
+					"not given.\n", ctx.outfile);
 			exit(1);
 		}
-		outfd = open(outfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,outmode);
+		ctx.outfd = open(ctx.outfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
+				 outmode);
 	}
-	if (outfd < 0) {
+	if (ctx.outfd < 0) {
 		fprintf(stderr, "Error opening output: %m\n");
 		exit(1);
 	}
@@ -130,46 +128,42 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (certfile) {
-		int certfd = open(certfile, O_RDONLY|O_CLOEXEC);
+	if (ctx.certfile) {
+		int certfd = open(ctx.certfile, O_RDONLY|O_CLOEXEC);
 
 		if (certfd < 0) {
 			fprintf(stderr, "pesign: could not open certificate "
-					"\"%s\": %m\n", certfile);
+					"\"%s\": %m\n", ctx.certfile);
 			exit(1);
 		}
 
-		rc = read_cert(certfd, &cert);
+		rc = read_cert(certfd, &ctx.cert);
 		if (rc < 0) {
 			fprintf(stderr, "pesign: could not read certificate\n");
 			exit(1);
 		}
 	}
 
-	Pe_Cmd cmd = infd == STDIN_FILENO ? PE_C_READ : PE_C_READ_MMAP;
-	inpe = pe_begin(infd, cmd, NULL);
-	if (!inpe) {
+	Pe_Cmd cmd = ctx.infd == STDIN_FILENO ? PE_C_READ : PE_C_READ_MMAP;
+	ctx.inpe = pe_begin(ctx.infd, cmd, NULL);
+	if (!ctx.inpe) {
 		fprintf(stderr, "pesign: could not load input file: %s\n",
 			pe_errmsg(pe_errno()));
 		exit(1);
 	}
 
-	cmd = outfd == STDOUT_FILENO ? PE_C_WRITE : PE_C_WRITE_MMAP;
-	outpe = pe_begin(outfd, cmd, inpe);
-	if (!outpe) {
+	cmd = ctx.outfd == STDOUT_FILENO ? PE_C_WRITE : PE_C_WRITE_MMAP;
+	ctx.outpe = pe_begin(ctx.outfd, cmd, ctx.inpe);
+	if (!ctx.outpe) {
 		fprintf(stderr, "pesign: could not load output file: %s\n",
 			pe_errmsg(pe_errno()));
 		exit(1);
 	}
 
-	if (cert) {
-		pe_sign(outpe, cert);
-	}
-	pe_end(inpe);
-	pe_end(outpe);
+	if (ctx.cert)
+		pe_sign(&ctx);
 
-	close(infd);
-	close(outfd);
+	pesign_context_fini(&ctx);
 	crypto_fini();
 	return 0;
 }

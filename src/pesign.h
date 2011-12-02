@@ -23,6 +23,7 @@
 #define xfree(x) ({if (x) { free(x); x = NULL; }})
 
 #include <libdpe/libdpe.h>
+#include "context.h"
 #include "cert.h"
 #include "io.h"
 #include "sign.h"
