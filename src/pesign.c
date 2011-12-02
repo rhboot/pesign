@@ -69,10 +69,18 @@ int main(int argc, char *argv[])
 		;
 
 	if (rc < -1) {
-		fprintf(stderr, "pesign: Invalid argument: %s\n",
-			poptStrerror(rc));
+		fprintf(stderr, "pesign: Invalid argument: %s: %s\n",
+			poptBadOption(optCon, 0), poptStrerror(rc));
 		exit(1);
 	}
+
+	if (poptPeekArg(optCon)) {
+		fprintf(stderr, "pesign: Invalid Argument: \"%s\"\n",
+				poptPeekArg(optCon));
+		exit(1);
+	}
+
+	poptFreeContext(optCon);
 
 	if (!infile) {
 		fprintf(stderr, "No input file specified.\n");
