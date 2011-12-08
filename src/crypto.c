@@ -83,6 +83,12 @@ int pe_sign(pesign_context *ctx)
 {
 	SEC_PKCS7ContentInfo *ci = NULL;
 
+	Pe_Scn *scn = NULL;
+
+	for (int i = 0 ; (scn = pe_getscn(ctx->inpe, i)) != NULL; i++) {
+		printf("got section %d\n", i);
+	}
+
 	return 0;
 }
 
