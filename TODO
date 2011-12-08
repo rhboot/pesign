@@ -1,0 +1,19 @@
+Stuff that needs to get done:
+
+In no particular order, this stuff still needs to be done (or is in progress):
+
+1) file i/o
+ a) get an in-memory representation via mmap
+ b) render in-memory representation back to disk also via mmap
+2) signatures
+ a) read signature from stand-alone file
+ b) write signature to stand-alone file
+ c) verify signature from stand-alone file
+ d) read cert from file (done)
+ e) create new signature
+ f) create cert table
+ g) find cert table
+ h) implant cert in table
+
+See also: https://github.com/vathpela/pesign/issues/milestones
+
