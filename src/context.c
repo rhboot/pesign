@@ -48,6 +48,9 @@ pesign_context_init(pesign_context *ctx)
 		return -1;
 	memset(ctx, '\0', sizeof (*ctx));
 
+	ctx->infd = -1;
+	ctx->outfd = -1;
+
 	ctx->hashgaps = 1;
 	return 0;
 }
