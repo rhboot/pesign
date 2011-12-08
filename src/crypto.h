@@ -25,5 +25,6 @@ extern int crypto_init(void);
 extern void crypto_fini(void);
 extern int read_cert(int certfd, CERTCertificate **cert);
 extern int pe_sign(pesign_context *ctx);
+extern int list_signatures(pesign_context *ctx);
 
 #endif /* PESIGN_CERT_H */

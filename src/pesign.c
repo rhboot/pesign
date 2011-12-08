@@ -38,7 +38,8 @@ int main(int argc, char *argv[])
 
 	pesign_context ctx;
 
-	int force;
+	int force = 0;
+	int list = 0;
 
 	poptContext optCon;
 	struct poptOption options[] = {
@@ -51,7 +52,17 @@ int main(int argc, char *argv[])
 		{"force", 'f', POPT_ARG_NONE|POPT_ARG_VAL, &force,  1,
 			"force overwriting of output file", NULL },
 		{"nogaps", 'n', POPT_ARG_NONE|POPT_ARG_VAL, &ctx.hashgaps, 0,
-			"skip gaps between sections", NULL },
+			"skip gaps between sections when signing", NULL },
+		{"sign", 's', POPT_ARG_VAL, &ctx.sign, 1,
+			"create a new signature", NULL },
+		{"import-signature", 'm', POPT_ARG_STRING, &ctx.insig, 0,
+			"import signature from file", "<insig>" },
+		{"signature-number", 'u', POPT_ARG_INT, &ctx.signum, 0,
+			"specify which signature to operate on","<sig-number>"},
+		{"list-signatures", 'l', POPT_ARG_NONE|POPT_ARG_VAL, &list, 1,
+			"list signatures", NULL },
+		{"export-signature", 'e', POPT_ARG_STRING, &ctx.outsig, 0,
+			"export signature to file", "<outsig>" },
 		POPT_AUTOHELP
 		POPT_TABLEEND
 	};
@@ -83,16 +94,6 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "No input file specified.\n");
 		exit(1);
 	}
-	if (!ctx.outfile) {
-		fprintf(stderr, "No output file specified.\n");
-		exit(1);
-	}
-
-	if (!strcmp(ctx.infile, ctx.outfile) && strcmp(ctx.infile,"-")) {
-		fprintf(stderr, "pesign: in-place file editing is not yet "
-				"supported\n");
-		exit(1);
-	}
 
 	if (!strcmp(ctx.infile, "-")) {
 		ctx.infd = STDIN_FILENO;
@@ -101,8 +102,33 @@ int main(int argc, char *argv[])
 		stat(ctx.infile, &statbuf); 
 		outmode = statbuf.st_mode;
 	}
+
 	if (ctx.infd < 0) {
 		fprintf(stderr, "Error opening input: %m\n");
+		exit(1);
+	}
+
+	Pe_Cmd cmd = ctx.infd == STDIN_FILENO ? PE_C_READ : PE_C_READ_MMAP;
+	ctx.inpe = pe_begin(ctx.infd, cmd, NULL);
+	if (!ctx.inpe) {
+		fprintf(stderr, "pesign: could not load input file: %s\n",
+			pe_errmsg(pe_errno()));
+		exit(1);
+	}
+
+	if (list) {
+		rc = list_signatures(&ctx);
+		exit(rc);
+	}
+
+	if (!ctx.outfile) {
+		fprintf(stderr, "No output file specified.\n");
+		exit(1);
+	}
+
+	if (!strcmp(ctx.infile, ctx.outfile) && strcmp(ctx.infile,"-")) {
+		fprintf(stderr, "pesign: in-place file editing is not yet "
+				"supported\n");
 		exit(1);
 	}
 
@@ -142,14 +168,6 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "pesign: could not read certificate\n");
 			exit(1);
 		}
-	}
-
-	Pe_Cmd cmd = ctx.infd == STDIN_FILENO ? PE_C_READ : PE_C_READ_MMAP;
-	ctx.inpe = pe_begin(ctx.infd, cmd, NULL);
-	if (!ctx.inpe) {
-		fprintf(stderr, "pesign: could not load input file: %s\n",
-			pe_errmsg(pe_errno()));
-		exit(1);
 	}
 
 	cmd = ctx.outfd == STDOUT_FILENO ? PE_C_WRITE : PE_C_WRITE_MMAP;

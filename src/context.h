@@ -44,6 +44,9 @@ typedef struct {
 
 	int flags;
 
+	int signum;
+
+	int sign;
 	int hashgaps;
 } pesign_context;
 

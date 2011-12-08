@@ -82,5 +82,11 @@ int read_cert(int certfd, CERTCertificate **cert)
 int pe_sign(pesign_context *ctx)
 {
 	SEC_PKCS7ContentInfo *ci = NULL;
+
+	return 0;
+}
+
+int list_signatures(pesign_context *ctx)
+{
 	return 0;
 }

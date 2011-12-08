@@ -54,6 +54,8 @@ pesign_context_init(pesign_context *ctx)
 	ctx->insigfd = -1;
 	ctx->outsigfd = -1;
 
+	ctx->signum = -1;
+
 	ctx->hashgaps = 1;
 	return 0;
 }
@@ -106,6 +108,8 @@ pesign_context_fini(pesign_context *ctx)
 		close(ctx->infd);
 		ctx->infd = -1;
 	}
+
+	ctx->signum = -1;
 
 	if (!(ctx->flags & PESIGN_C_ALLOCATED))
 		pesign_context_init(ctx);
