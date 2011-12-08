@@ -31,6 +31,11 @@ typedef struct {
 	char *infile;
 	char *outfile;
 
+	char *insig;
+	int insigfd;
+	char *outsig;
+	int outsigfd;
+
 	Pe *inpe;
 	Pe *outpe;
 

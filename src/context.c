@@ -51,6 +51,9 @@ pesign_context_init(pesign_context *ctx)
 	ctx->infd = -1;
 	ctx->outfd = -1;
 
+	ctx->insigfd = -1;
+	ctx->outsigfd = -1;
+
 	ctx->hashgaps = 1;
 	return 0;
 }
@@ -80,6 +83,19 @@ pesign_context_fini(pesign_context *ctx)
 
 	xfree(ctx->outfile);
 	xfree(ctx->infile);
+
+	xfree(ctx->insig);
+	xfree(ctx->outsig);
+
+	if (ctx->insigfd >= 0) {
+		close(ctx->insigfd);
+		ctx->insigfd = -1;
+	}
+
+	if (ctx->outsigfd >= 0) {
+		close(ctx->outsigfd);
+		ctx->outsigfd = -1;
+	}
 
 	if (ctx->outfd >= 0) {
 		close(ctx->outfd);
