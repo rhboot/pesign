@@ -16,18 +16,17 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_CRYPTO_H
-#define PESIGN_CRYPTO_H 1
+#ifndef PESIGN_WINCERT_H
+#define PESIGN_WINCERT_H 1
 
-#include <nss3/cert.h>
+#define WIN_CERT_TYPE_PKCS_SIGNED_DATA	0x0002
+#define WIN_CERT_TYPE_EFI_OKCS115	0x0EF0
+#define WIN_CERT_TYPE_EFI_GUID		0x0EF1
 
-#include "wincert.h"
+typedef struct win_certificate {
+	uint32_t length;
+	uint16_t revision;
+	uint16_t cert_type;
+} win_certificate;
 
-extern int crypto_init(void);
-extern void crypto_fini(void);
-extern int read_cert(int certfd, CERTCertificate **cert);
-extern int pe_sign(pesign_context *ctx);
-extern int list_signatures(pesign_context *ctx);
-extern int remove_signature(pesign_context *ctx, int signum);
-
-#endif /* PESIGN_CRYPTO_H */
+#endif /* PESIGN_WINCERT_H */
