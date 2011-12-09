@@ -26,7 +26,6 @@
 #define WIN_CERT_REVISION_1_0	0x0100
 #define WIN_CERT_REVISION_2_0	0x0200
 
-
 typedef struct win_certificate {
 	uint32_t length;
 	uint16_t revision;
