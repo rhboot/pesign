@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
 
 	int force = 0;
 	int list = 0;
+	int remove = -1;
 
 	poptContext optCon;
 	struct poptOption options[] = {
@@ -57,12 +58,14 @@ int main(int argc, char *argv[])
 			"create a new signature", NULL },
 		{"import-signature", 'm', POPT_ARG_STRING, &ctx.insig, 0,
 			"import signature from file", "<insig>" },
-		{"signature-number", 'u', POPT_ARG_INT, &ctx.signum, 0,
+		{"signature-number", 'u', POPT_ARG_INT, &ctx.signum, -1,
 			"specify which signature to operate on","<sig-number>"},
 		{"list-signatures", 'l', POPT_ARG_NONE|POPT_ARG_VAL, &list, 1,
 			"list signatures", NULL },
 		{"export-signature", 'e', POPT_ARG_STRING, &ctx.outsig, 0,
 			"export signature to file", "<outsig>" },
+		{"remove-signature", 'r', POPT_ARG_INT, &remove, -1,
+			"remove signature", "<sig-number>" },
 		POPT_AUTOHELP
 		POPT_TABLEEND
 	};
@@ -146,6 +149,11 @@ int main(int argc, char *argv[])
 	if (ctx.outfd < 0) {
 		fprintf(stderr, "Error opening output: %m\n");
 		exit(1);
+	}
+
+	if (remove) {
+		rc = remove_signature(&ctx, remove);
+		exit(rc);
 	}
 
 	rc = crypto_init();

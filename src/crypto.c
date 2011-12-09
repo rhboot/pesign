@@ -96,3 +96,8 @@ int list_signatures(pesign_context *ctx)
 {
 	return 0;
 }
+
+int remove_signature(pesign_context *ctx, int signum)
+{
+	return 0;
+}
