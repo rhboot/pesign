@@ -25,5 +25,6 @@
 #include <libdpe/libdpe.h>
 #include "context.h"
 #include "crypto.h"
+#include "endian.h"
 
 #endif /* PESIGN_H */

@@ -27,6 +27,7 @@
 
 #include <nss3/nss.h>
 #include <nss3/secpkcs7.h>
+#include <nss3/secder.h>
 
 int crypto_init(void)
 {
@@ -81,7 +82,7 @@ int read_cert(int certfd, CERTCertificate **cert)
 
 int pe_sign(pesign_context *ctx)
 {
-	SEC_PKCS7ContentInfo *ci = NULL;
+	//SEC_PKCS7ContentInfo *ci = NULL;
 
 	Pe_Scn *scn = NULL;
 
@@ -92,8 +93,132 @@ int pe_sign(pesign_context *ctx)
 	return 0;
 }
 
+static int saw_content;
+
+static void
+handle_bytes(void *arg, const char *buf, unsigned long len)
+{
+	saw_content = 1;
+}
+
+static PRBool
+decryption_allowed(SECAlgorithmID *algid, PK11SymKey *key)
+{
+	return PR_TRUE;
+}
+
 int list_signatures(pesign_context *ctx)
 {
+	void *certs = NULL;
+	size_t size = 0;
+	int rc;
+	int nsigs = 0;
+
+	rc = pe_getdatadir(ctx->inpe, PE_DATA_DIR_CERTIFICATES, &certs, &size);
+	if (rc < 0) {
+		fprintf(stderr, "Could not find certificate table: %s\n",
+			pe_errmsg(pe_errno()));
+		return rc;
+	}
+
+	win_certificate *cert;
+	for(size_t n = 0; n < size;) {
+		cert = certs + n;
+		uint32_t length = le32_to_cpu(cert->length);
+		uint16_t rev = le16_to_cpu(cert->revision);
+
+		if (rev != WIN_CERT_REVISION_2_0)
+			goto next;
+
+		nsigs++;
+		void *data = (void *)cert + sizeof(*cert);
+		size_t datalen = length - sizeof(*cert);
+
+		SEC_PKCS7DecoderContext *dc = NULL;
+		saw_content = 0;
+		dc = SEC_PKCS7DecoderStart(handle_bytes, NULL, NULL, NULL,
+					NULL, NULL, decryption_allowed);
+
+		if (dc == NULL) {
+			fprintf(stderr, "SEC_PKCS7DecoderStart failed\n");
+			exit(1);
+		}
+
+		SECStatus status = SEC_PKCS7DecoderUpdate(dc, data, datalen);
+
+		if (status != SECSuccess) {
+			fprintf(stderr, "Found invalid certificate\n");
+			goto next;
+		}
+
+		SEC_PKCS7ContentInfo *cinfo = SEC_PKCS7DecoderFinish(dc);
+
+		if (cinfo == NULL) {
+			fprintf(stderr, "Found invalid certificate\n");
+			goto next;
+		}
+
+		printf("---------------------------------------------\n");
+		printf("Content was%s encrypted.\n",
+			SEC_PKCS7ContentIsEncrypted(cinfo) ? "" : " not");
+		if (SEC_PKCS7ContentIsSigned(cinfo)) {
+			char *signer_cname, *signer_ename;
+			SECItem *signing_time;
+
+			if (saw_content) {
+				printf("Signature is ");
+				PORT_SetError(0);
+				if (SEC_PKCS7VerifySignature(cinfo,
+						certUsageEmailSigner,
+						PR_FALSE)) {
+					printf("valid.\n");
+				} else {
+					printf("invalid (Reason: 0x%08x).\n",
+						(uint32_t)PORT_GetError());
+				}
+			} else {
+				printf("Content is detached; signature cannot "
+					"be verified.\n");
+			}
+
+			signer_cname = SEC_PKCS7GetSignerCommonName(cinfo);
+			if (signer_cname != NULL) {
+				printf("The signer's common name is %s\n",
+					signer_cname);
+				PORT_Free(signer_cname);
+			} else {
+				printf("No signer common name.\n");
+			}
+
+			signer_ename = SEC_PKCS7GetSignerEmailAddress(cinfo);
+			if (signer_ename != NULL) {
+				printf("The signer's email address is %s\n",
+					signer_ename);
+				PORT_Free(signer_ename);
+			} else {
+				printf("No signer email address.\n");
+			}
+
+			signing_time = SEC_PKCS7GetSigningTime(cinfo);
+			if (signing_time != NULL) {
+				printf("Signing time: %s\n", DER_TimeChoiceDayToAscii(signing_time));
+			} else {
+				printf("No signing time included.\n");
+			}
+
+			printf("There were%s certs or crls included.\n",
+				SEC_PKCS7ContainsCertsOrCrls(cinfo) ? "" : " no");
+
+			SEC_PKCS7DestroyContentInfo(cinfo);
+		}
+next:
+		n += length;
+	}
+	if (nsigs) {
+		printf("---------------------------------------------\n");
+	} else {
+		printf("No signatures found.\n");
+	}
 	return 0;
 }
 
