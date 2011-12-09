@@ -119,9 +119,15 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	rc = crypto_init();
+	if (rc < 0) {
+		fprintf(stderr, "Could not initialize cryptographic library\n");
+		exit(1);
+	}
+
 	if (list) {
 		rc = list_signatures(&ctx);
-		exit(rc);
+		exit(1);
 	}
 
 	if (!ctx.outfile) {
@@ -153,12 +159,6 @@ int main(int argc, char *argv[])
 
 	if (remove) {
 		rc = remove_signature(&ctx, remove);
-		exit(rc);
-	}
-
-	rc = crypto_init();
-	if (rc < 0) {
-		fprintf(stderr, "Could not initialize cryptographic library\n");
 		exit(1);
 	}
 
