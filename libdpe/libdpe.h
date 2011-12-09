@@ -91,7 +91,8 @@ struct Pe {
 		struct {
 			struct mz_hdr *mzhdr;
 			struct pe_hdr *pehdr;
-			void *reserved;
+			void *reserved0;
+			void *reserved1;
 			struct section_header *shdr;
 
 			Pe_ScnList *scns_last;
@@ -103,7 +104,8 @@ struct Pe {
 		struct {
 			struct mz_hdr *mzhdr;
 			struct pe_hdr *pehdr;
-			void *reserved;
+			void *reserved0;
+			void *reserved1;
 			struct section_header *shdr;
 
 			Pe_ScnList *scns_last;
@@ -115,7 +117,21 @@ struct Pe {
 		struct {
 			struct mz_hdr *mzhdr;
 			struct pe_hdr *pehdr;
+			void *reserved0;
+			void *reserved1;
+			struct section_header *shdr;
+
+			Pe_ScnList *scns_last;
+			unsigned int scnincr;
+			
+			Pe_ScnList scns;
+		} pe32_rom;
+
+		struct {
+			struct mz_hdr *mzhdr;
+			struct pe_hdr *pehdr;
 			struct pe32_opt_hdr *opthdr;
+			struct data_directory *datadir;
 			struct section_header *shdr;
 
 			Pe_ScnList *scns_last;
@@ -127,7 +143,8 @@ struct Pe {
 		struct {
 			struct mz_hdr *mzhdr;
 			struct pe_hdr *pehdr;
-			void *reserved;
+			void *reserved0;
+			void *reserved1;
 			struct section_header *shdr;
 
 			Pe_ScnList *scns_last;
@@ -140,6 +157,7 @@ struct Pe {
 			struct mz_hdr *mzhdr;
 			struct pe_hdr *pehdr;
 			struct pe32plus_opt_hdr *opthdr;
+			struct data_directory *datadir;
 			struct section_header *shdr;
 
 			Pe_ScnList *scns_last;

@@ -49,6 +49,26 @@ typedef enum {
 	PE_C_NUM /* last entry */
 } Pe_Cmd;
 
+typedef enum {
+	PE_DATA_DIR_EXPORTS = 1,
+	PE_DATA_DIR_IMPORTS,
+	PE_DATA_DIR_RESOURCES,
+	PE_DATA_DIR_EXCEPTIONS,
+	PE_DATA_DIR_CERTIFICATES,
+	PE_DATA_DIR_BASE_RELOCATIONS,
+	PE_DATA_DIR_DEBUG,
+	PE_DATA_DIR_ARCH,
+	PE_DATA_DIR_GLOBAL_POINTER,
+	PE_DATA_TLS,
+	PE_DATA_LOAD_CONFIG,
+	PE_DATA_BOUND_IMPORT,
+	PE_DATA_IMPORT_ADDRESS,
+	PE_DATA_DELAY_IMPORTS,
+	PE_DATA_CLR_RUNTIME_HEADER,
+	PE_DATA_RESERVED,
+	PE_DATA_NUM /* last entry */
+} Pe_DataDir_Type;
+
 typedef struct Pe Pe;
 typedef struct Pe_Scn Pe_Scn;
 
@@ -61,6 +81,7 @@ extern Pe_Kind pe_kind(Pe *Pe) __attribute__ ((__pure__));
 extern off_t pe_getbase(Pe *pe);
 extern Pe_Scn *pe_nextscn(Pe *pe, Pe_Scn *scn);
 extern Pe_Scn *pe_getscn(Pe *pe, size_t idx);
+extern int pe_getdatadir(Pe *pe, Pe_DataDir_Type ddt, void **addr, size_t *size);
 
 extern int pe_errno(void);
 extern const char *pe_errmsg(int error);

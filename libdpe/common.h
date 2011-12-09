@@ -34,6 +34,16 @@
 #define xfree(x) ({if (x) { free(x); x = NULL; }})
 #define xmunmap(addr, size) ({if (addr) { munmap(addr,size); addr = NULL; }})
 
+#include <stdio.h>
+
+static inline void *
+__attribute__ ((unused))
+compute_address(Pe *pe, off_t offset)
+{
+	/* XXX this might not work when we're not mmapped */
+	return (char *)pe->map_address + pe->start_offset + offset;
+}
+
 static inline Pe_Kind
 __attribute__ ((unused))
 determine_kind(void *buf, size_t len)

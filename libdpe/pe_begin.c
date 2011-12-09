@@ -85,6 +85,8 @@ file_read_pe_exe(int fildes, void *map_address, unsigned char *p_ident,
 
 	pe->state.pe32_obj.scnincr = 10;
 
+	size_t ddsize = 0;
+
 	switch (kind) {
 		case PE_K_PE_OBJ:
 			pe->state.pe32_obj.shdr = (struct section_header *)
@@ -95,9 +97,14 @@ file_read_pe_exe(int fildes, void *map_address, unsigned char *p_ident,
 			pe->state.pe32_exe.opthdr = (struct pe32_opt_hdr *)
 				((char *)pe->state.pe32_exe.pehdr +
 				sizeof (struct pe_hdr));
-			pe->state.pe32_exe.shdr = (struct section_header *)
+			pe->state.pe32_exe.datadir = (struct data_directory *)
 				((char *)pe->state.pe32_exe.opthdr +
 				sizeof (struct pe32_opt_hdr));
+			ddsize = le32_to_cpu(
+					pe->state.pe32_exe.opthdr->data_dirs);
+			pe->state.pe32_exe.shdr = (struct section_header *)
+				((char *)pe->state.pe32_exe.datadir +
+				(sizeof (data_dirent) * ddsize));
 			break;
 		case PE_K_PE64_OBJ:
 			pe->state.pe32plus_obj.shdr = (struct section_header *)
@@ -109,9 +116,15 @@ file_read_pe_exe(int fildes, void *map_address, unsigned char *p_ident,
 				(struct pe32plus_opt_hdr *)
 					((char *)pe->state.pe32plus_exe.pehdr +
 					sizeof (struct pe_hdr));
+			pe->state.pe32plus_exe.datadir = 
+				(struct data_directory *)
+					((char *)pe->state.pe32plus_exe.opthdr +
+					sizeof (struct pe32plus_opt_hdr));
+			ddsize = le32_to_cpu(
+				pe->state.pe32plus_exe.opthdr->data_dirs);
 			pe->state.pe32plus_exe.shdr = (struct section_header *)
-				((char *)pe->state.pe32plus_exe.opthdr +
-				sizeof (struct pe32plus_opt_hdr));
+				((char *)pe->state.pe32plus_exe.datadir +
+				(sizeof (data_dirent) * ddsize));
 			break;
 		default:
 			break;
