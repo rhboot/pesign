@@ -127,12 +127,16 @@ int list_signatures(pesign_context *ctx)
 		uint32_t length = le32_to_cpu(cert->length);
 		uint16_t rev = le16_to_cpu(cert->revision);
 
-		if (rev != WIN_CERT_REVISION_2_0)
-			goto next;
+		if (rev != WIN_CERT_REVISION_2_0) {
+			n += length;
+			continue;
+		}
 
 		nsigs++;
-		void *data = (void *)cert + sizeof(*cert);
+		void *data = (uint8_t *)cert + sizeof(*cert);
 		size_t datalen = length - sizeof(*cert);
+
+		n += length;
 
 		SEC_PKCS7DecoderContext *dc = NULL;
 		saw_content = 0;
@@ -148,14 +152,14 @@ int list_signatures(pesign_context *ctx)
 
 		if (status != SECSuccess) {
 			fprintf(stderr, "Found invalid certificate\n");
-			goto next;
+			continue;
 		}
 
 		SEC_PKCS7ContentInfo *cinfo = SEC_PKCS7DecoderFinish(dc);
 
 		if (cinfo == NULL) {
 			fprintf(stderr, "Found invalid certificate\n");
-			goto next;
+			continue;
 		}
 
 		printf("---------------------------------------------\n");
@@ -211,8 +215,6 @@ int list_signatures(pesign_context *ctx)
 
 			SEC_PKCS7DestroyContentInfo(cinfo);
 		}
-next:
-		n += length;
 	}
 	if (nsigs) {
 		printf("---------------------------------------------\n");
