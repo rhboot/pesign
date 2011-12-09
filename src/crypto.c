@@ -107,36 +107,98 @@ decryption_allowed(SECAlgorithmID *algid, PK11SymKey *key)
 	return PR_TRUE;
 }
 
+typedef struct {
+	Pe *pe;
+	off_t n;
+	void *certs;
+	size_t size;
+} cert_iter;
+
+static int
+cert_iter_init(cert_iter *iter, Pe *pe)
+{
+	iter->pe = pe;
+	iter->n = 0;
+
+	int rc = pe_getdatadir(pe, PE_DATA_DIR_CERTIFICATES, &iter->certs,
+				&iter->size);
+	return rc;
+}
+
+static int
+next_cert(cert_iter *iter, void **cert, ssize_t *cert_size)
+{
+	if (!iter)
+		return -1;
+	if (!iter->certs)
+		return -1;
+
+	if (iter->n >= iter->size) {
+done:
+		*cert = NULL;
+		*cert_size = -1;
+		return 0;
+	}
+
+	off_t n = iter->n;
+	void *certs = iter->certs;
+	size_t size = iter->size;
+
+	while (1) {
+		win_certificate *tmpcert;
+		if (n + sizeof (*tmpcert) >= size)
+			goto done;
+
+		tmpcert = (win_certificate *)((uint8_t *)certs + n);
+
+		/* length _includes_ the size of the structure. */
+		uint32_t length = le32_to_cpu(tmpcert->length);
+
+		if (length < sizeof (*tmpcert))
+			return -1;
+
+		n += sizeof (*tmpcert);
+		length -= sizeof (*tmpcert);
+
+		if (n + length > size)
+			goto done;
+
+		if (length == 0)
+			continue;
+
+		uint16_t rev = le16_to_cpu(tmpcert->revision);
+		if (rev != WIN_CERT_REVISION_2_0)
+			continue;
+
+		*cert = (uint8_t *)tmpcert + sizeof(*tmpcert);
+		*cert_size = length;
+
+		iter->n = n;
+
+		return 1;
+	}
+}
+
 int list_signatures(pesign_context *ctx)
 {
-	void *certs = NULL;
-	size_t size = 0;
-	int rc;
-	int nsigs = 0;
+	cert_iter iter;
 
-	rc = pe_getdatadir(ctx->inpe, PE_DATA_DIR_CERTIFICATES, &certs, &size);
+	int rc = cert_iter_init(&iter, ctx->inpe);
+
 	if (rc < 0) {
-		fprintf(stderr, "Could not find certificate table: %s\n",
-			pe_errmsg(pe_errno()));
+		printf("No certificate list found.\n");
 		return rc;
 	}
 
-	win_certificate *cert;
-	for(size_t n = 0; n < size;) {
-		cert = certs + n;
-		uint32_t length = le32_to_cpu(cert->length);
-		uint16_t rev = le16_to_cpu(cert->revision);
+	void *data;
+	ssize_t datalen;
+	int nsigs = 0;
 
-		if (rev != WIN_CERT_REVISION_2_0) {
-			n += length;
-			continue;
-		}
-
-		nsigs++;
-		void *data = (uint8_t *)cert + sizeof(*cert);
-		size_t datalen = length - sizeof(*cert);
-
-		n += length;
+	rc = 0;
+	while (1) {
+		rc = next_cert(&iter, &data, &datalen);
+		if (rc <= 0)
+			break;
 
 		SEC_PKCS7DecoderContext *dc = NULL;
 		saw_content = 0;
@@ -162,6 +224,7 @@ int list_signatures(pesign_context *ctx)
 			continue;
 		}
 
+		nsigs++;
 		printf("---------------------------------------------\n");
 		printf("Content was%s encrypted.\n",
 			SEC_PKCS7ContentIsEncrypted(cinfo) ? "" : " not");
@@ -221,7 +284,7 @@ int list_signatures(pesign_context *ctx)
 	} else {
 		printf("No signatures found.\n");
 	}
-	return 0;
+	return rc;
 }
 
 int remove_signature(pesign_context *ctx, int signum)
