@@ -66,6 +66,8 @@ int main(int argc, char *argv[])
 			"export signature to file", "<outsig>" },
 		{"remove-signature", 'r', POPT_ARG_INT, &remove, -1,
 			"remove signature", "<sig-number>" },
+		{"ascii-armor", 'a', POPT_ARG_VAL, &ctx.ascii, 1,
+			"use ascii armoring", NULL },
 		POPT_AUTOHELP
 		POPT_TABLEEND
 	};
@@ -130,6 +132,35 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	if (ctx.outsig) {
+		if (!strcmp(ctx.outsig, "-")) {
+			ctx.outsigfd = STDOUT_FILENO;
+		} else {
+			if (access(ctx.outsig, F_OK) == 0 && force == 0) {
+				fprintf(stderr, "pesign: \"%s\" exists and "
+					"--force was not given.\n",
+					ctx.outsig);
+				exit(1);
+			}
+			ctx.outsigfd = open(ctx.outsig,
+				O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC, outmode);
+		}
+		if (ctx.outsigfd < 0) {
+			fprintf(stderr, "Error opening signature output: %m\n");
+			exit(1);
+		}
+
+		rc = export_signature(&ctx);
+		if (rc < 0) {
+			fprintf(stderr, "Could not extract signature.\n");
+			exit(1);
+		}
+
+		pesign_context_fini(&ctx);
+		crypto_fini();
+		exit(0);
+	}
+
 	if (!ctx.outfile) {
 		fprintf(stderr, "No output file specified.\n");
 		exit(1);
@@ -145,7 +176,7 @@ int main(int argc, char *argv[])
 		ctx.outfd = STDOUT_FILENO;
 	} else {
 		if (access(ctx.outfile, F_OK) == 0 && force == 0) {
-			fprintf(stderr, "pesign: \"%s\" exits and --force was "
+			fprintf(stderr, "pesign: \"%s\" exists and --force was "
 					"not given.\n", ctx.outfile);
 			exit(1);
 		}

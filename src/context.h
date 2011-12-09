@@ -46,8 +46,9 @@ typedef struct {
 
 	int signum;
 
-	int sign;
+	int ascii;
 	int hashgaps;
+	int sign;
 } pesign_context;
 
 extern int pesign_context_new(pesign_context **ctx);

@@ -28,6 +28,7 @@
 #include <nss3/nss.h>
 #include <nss3/secpkcs7.h>
 #include <nss3/secder.h>
+#include <nss3/base64.h>
 
 int crypto_init(void)
 {
@@ -170,8 +171,10 @@ done:
 		if (rev != WIN_CERT_REVISION_2_0)
 			continue;
 
-		*cert = (uint8_t *)tmpcert + sizeof(*tmpcert);
-		*cert_size = length;
+		if (cert)
+			*cert = (uint8_t *)tmpcert + sizeof(*tmpcert);
+		if (cert_size)
+			*cert_size = length;
 
 		iter->n = n;
 
@@ -179,7 +182,23 @@ done:
 	}
 }
 
-int list_signatures(pesign_context *ctx)
+int
+has_signatures(pesign_context *ctx)
+{
+	cert_iter iter;
+
+	int rc = cert_iter_init(&iter, ctx->inpe);
+	if (rc < 0)
+		return 0;
+
+	rc = next_cert(&iter, NULL, NULL);
+	if (rc <= 0)
+		return 0;
+	return 1;
+}
+
+int
+list_signatures(pesign_context *ctx)
 {
 	cert_iter iter;
 
@@ -287,7 +306,74 @@ int list_signatures(pesign_context *ctx)
 	return rc;
 }
 
-int remove_signature(pesign_context *ctx, int signum)
+int
+export_signature(pesign_context *ctx)
+{
+	cert_iter iter;
+
+	int rc = cert_iter_init(&iter, ctx->inpe);
+
+	if (rc < 0) {
+		printf("No certificate list found.\n");
+		return rc;
+	}
+
+	void *data;
+	ssize_t datalen;
+	int nsigs = 0;
+
+	rc = 0;
+	while (1) {
+		rc = next_cert(&iter, &data, &datalen);
+		if (rc <= 0)
+			break;
+
+		if (nsigs < ctx->signum) {
+			nsigs++;
+			continue;
+		}
+
+		if (ctx->ascii) {
+			char *beginstr = "-----BEGIN AUTHENTICODE SIGNATURE-----\n";
+			char *endstr = "\n-----END AUTHENTICODE SIGNATURE-----\n";
+			char *ascii = BTOA_DataToAscii(data, datalen);
+			if (!ascii) {
+				fprintf(stderr, "Error exporting signature\n");
+				exit(1);
+			}
+
+			rc = write(ctx->outsigfd, beginstr, strlen(beginstr));
+			if (rc < 0) {
+				fprintf(stderr, "Error exporting signature: %m\n");
+				exit(1);
+			}
+
+			rc = write(ctx->outsigfd, ascii, strlen(ascii));
+			if (rc < 0) {
+				fprintf(stderr, "Error exporting signature: %m\n");
+				exit(1);
+			}
+
+			rc = write(ctx->outsigfd, endstr, strlen(endstr));
+			if (rc < 0) {
+				fprintf(stderr, "Error exporting signature: %m\n");
+				exit(1);
+			}
+
+			PORT_Free(ascii);
+		} else {
+			rc = write(ctx->outsigfd, data, datalen);
+			if (rc < 0) {
+				fprintf(stderr, "Error exporting signature: %m\n");
+				exit(1);
+			}
+		}
+	}
+	return 0;
+}
+
+int
+remove_signature(pesign_context *ctx, int signum)
 {
 	return 0;
 }
