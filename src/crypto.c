@@ -373,6 +373,12 @@ export_signature(pesign_context *ctx)
 }
 
 int
+import_signature(pesign_context *ctx, SEC_PKCS7ContentInfo **cinfo)
+{
+	return 0;
+}
+
+int
 remove_signature(pesign_context *ctx, int signum)
 {
 	return 0;

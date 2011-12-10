@@ -20,6 +20,7 @@
 #define PESIGN_CRYPTO_H 1
 
 #include <nss3/cert.h>
+#include <nss3/secpkcs7.h>
 
 #include "wincert.h"
 
@@ -32,6 +33,7 @@ extern int pe_sign(pesign_context *ctx);
 extern int has_signatures(pesign_context *ctx);
 extern int list_signatures(pesign_context *ctx);
 extern int export_signature(pesign_context *ctx);
+extern int import_signature(pesign_context *ctx, SEC_PKCS7ContentInfo **cinfo);
 extern int remove_signature(pesign_context *ctx, int signum);
 
 #endif /* PESIGN_CRYPTO_H */
