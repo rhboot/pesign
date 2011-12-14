@@ -306,6 +306,10 @@ list_signatures(pesign_context *ctx)
 	return rc;
 }
 
+
+static const char *sig_begin_marker ="-----BEGIN AUTHENTICODE SIGNATURE-----\n";
+static const char *sig_end_marker = "\n-----END AUTHENTICODE SIGNATURE-----\n";
+
 int
 export_signature(pesign_context *ctx)
 {
@@ -334,15 +338,14 @@ export_signature(pesign_context *ctx)
 		}
 
 		if (ctx->ascii) {
-			char *beginstr = "-----BEGIN AUTHENTICODE SIGNATURE-----\n";
-			char *endstr = "\n-----END AUTHENTICODE SIGNATURE-----\n";
 			char *ascii = BTOA_DataToAscii(data, datalen);
 			if (!ascii) {
 				fprintf(stderr, "Error exporting signature\n");
 				exit(1);
 			}
 
-			rc = write(ctx->outsigfd, beginstr, strlen(beginstr));
+			rc = write(ctx->outsigfd, sig_begin_marker,
+					strlen(sig_begin_marker));
 			if (rc < 0) {
 				fprintf(stderr, "Error exporting signature: %m\n");
 				exit(1);
@@ -354,7 +357,8 @@ export_signature(pesign_context *ctx)
 				exit(1);
 			}
 
-			rc = write(ctx->outsigfd, endstr, strlen(endstr));
+			rc = write(ctx->outsigfd, sig_end_marker,
+				strlen(sig_end_marker));
 			if (rc < 0) {
 				fprintf(stderr, "Error exporting signature: %m\n");
 				exit(1);
@@ -372,8 +376,53 @@ export_signature(pesign_context *ctx)
 	return 0;
 }
 
+static int
+parse_signature(char *sig, SEC_PKCS7ContentInfo **cinfop)
+{
+	char *data = NULL, *end = NULL;
+	unsigned int datalen = 0;
+
+	if (!sig)
+		return -1;
+	
+	data = strstr(sig, sig_begin_marker) + 1;
+	if (!data)
+		return -1;
+
+	end = strstr(data, sig_end_marker);
+	if (!end)
+		return -1;
+	
+	datalen = end - data;
+	data[datalen] = '\0';
+
+	unsigned char *base64 = ATOB_AsciiToData(data, &datalen);
+
+	SEC_PKCS7DecoderContext *dc = NULL;
+	saw_content = 0;
+	dc = SEC_PKCS7DecoderStart(handle_bytes, NULL, NULL, NULL, NULL, NULL,
+				decryption_allowed);
+	if (dc == NULL) {
+decoder_error:
+		PORT_Free(base64);
+		return -1;
+	}
+
+	SECStatus status = SEC_PKCS7DecoderUpdate(dc, data, datalen);
+	if (status != SECSuccess)
+		goto decoder_error;
+
+	SEC_PKCS7ContentInfo *cinfo = SEC_PKCS7DecoderFinish(dc);
+	if (!cinfo)
+		goto decoder_error;
+
+	*cinfop = cinfo;
+	PORT_Free(base64);
+	return 0;
+}
+
 int
-import_signature(pesign_context *ctx, SEC_PKCS7ContentInfo **cinfo)
+import_signature(pesign_context *ctx)
 {
 	return 0;
 }
