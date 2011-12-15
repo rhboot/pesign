@@ -260,8 +260,11 @@ main(int argc, char *argv[])
 	if (list != 0)
 		action |= LIST_SIGNATURES;
 
-	if (ctx.sign)
-		action |= GENERATE_SIGNATURE|IMPORT_SIGNATURE;
+	if (ctx.sign) {
+		action |= GENERATE_SIGNATURE;
+		if (!(action & EXPORT_SIGNATURE))
+			action |= IMPORT_SIGNATURE;
+	}
 
 	rc = crypto_init();
 	if (rc < 0) {
