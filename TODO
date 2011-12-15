@@ -14,6 +14,7 @@ In no particular order, this stuff still needs to be done (or is in progress):
  f) create cert table
  g) find cert table
  h) implant cert in table
+3) test suite
 
 See also: https://github.com/vathpela/pesign/issues/milestones
 
