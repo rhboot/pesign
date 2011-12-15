@@ -34,9 +34,8 @@ read_file(int fd, char **bufp, size_t *lenptr) {
     } while ((i = read(fd, buf + size, 1024)) > 0);
 
     if (i < 0) {
-	fprintf(stderr, _("error reading input: %m\n"));
         free(buf);
-	return 1;
+	return -1;
     }
 
     *bufp = buf;

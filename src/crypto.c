@@ -50,31 +50,15 @@ void crypto_fini(void)
  */
 int read_cert(int certfd, CERTCertificate **cert)
 {
-	struct stat statbuf;
 	char *certstr = NULL;
+	size_t certlen = 0;
 	int rc;
 
-	rc = fstat(certfd, &statbuf);
+	rc = read_file(certfd, &certstr, &certlen);
 	if (rc < 0)
-		return rc;
-
-	int i = 0, j = statbuf.st_size;
-	certstr = calloc(1, j + 1);
-	if (!certstr)
 		return -1;
 
-	while (i < statbuf.st_size) {
-		int x;
-		x = read(certfd, certstr + i, j);
-		if (x < 0) {
-			free(certstr);
-			return -1;
-		}
-		i += x;
-		j -= x;
-	}
-
-	*cert = CERT_DecodeCertFromPackage(certstr, i);
+	*cert = CERT_DecodeCertFromPackage(certstr, certlen);
 	free(certstr);
 	if (!*cert)
 		return -1;
@@ -380,27 +364,45 @@ failure:
 	}
 }
 
-static int
-parse_signature(char *sig, SEC_PKCS7ContentInfo **cinfop)
+void
+parse_signature(pesign_context *ctx)
 {
-	char *data = NULL, *end = NULL;
-	unsigned int datalen = 0;
+	int rc;
+	char *sig;
+	size_t siglen;
 
-	if (!sig)
-		return -1;
+	rc = read_file(ctx->insigfd, &sig, &siglen);
+	if (rc < 0) {
+		fprintf(stderr, "pesign: could not read signature.\n");
+		exit(1);
+	}
+	close(ctx->insigfd);
+	ctx->insigfd = -1;
+
+	unsigned char *der;
+	unsigned int derlen;
 	
-	data = strstr(sig, sig_begin_marker) + 1;
-	if (!data)
-		return -1;
 
-	end = strstr(data, sig_end_marker);
-	if (!end)
-		return -1;
+	/* XXX FIXME: ignoring length for now */
+	char *base64 = strstr(sig, sig_begin_marker);
+	if (base64) {
+		base64 += strlen(sig_begin_marker);
+		char *end = strstr(base64, sig_end_marker);
+		if (!end) {
+			fprintf(stderr, "pesign: Invalid signature.\n");
+			exit(1);
+		}
 	
-	datalen = end - data;
-	data[datalen] = '\0';
+		derlen = end - base64;
+		base64[derlen] = '\0';
 
-	unsigned char *base64 = ATOB_AsciiToData(data, &datalen);
+		der = ATOB_AsciiToData(base64, &derlen);
+	} else {
+		der = PORT_Alloc(siglen);
+		memmove(der, sig, siglen);
+		derlen = siglen;
+	}
+	free(sig);
 
 	SEC_PKCS7DecoderContext *dc = NULL;
 	saw_content = 0;
@@ -408,11 +410,12 @@ parse_signature(char *sig, SEC_PKCS7ContentInfo **cinfop)
 				decryption_allowed);
 	if (dc == NULL) {
 decoder_error:
-		PORT_Free(base64);
-		return -1;
+		fprintf(stderr, "pesign: Invalid signature.\n");
+		PORT_Free(der);
+		exit(1);
 	}
 
-	SECStatus status = SEC_PKCS7DecoderUpdate(dc, data, datalen);
+	SECStatus status = SEC_PKCS7DecoderUpdate(dc, (char *)der, derlen);
 	if (status != SECSuccess)
 		goto decoder_error;
 
@@ -420,35 +423,19 @@ decoder_error:
 	if (!cinfo)
 		goto decoder_error;
 
-	*cinfop = cinfo;
-	PORT_Free(base64);
-	return 0;
+	ctx->cinfo = cinfo;
+	PORT_Free(der);
+}
+
+void
+generate_signature(pesign_context *ctx)
+{
+	return;
 }
 
 int
 import_signature(pesign_context *ctx)
 {
-	SEC_PKCS7ContentInfo *cinfo = NULL;
-
-	if (ctx->insigfd < 0)
-		return ctx->insigfd;
-
-	struct stat sb;
-	int rc;
-
-	rc = fstat(ctx->insigfd, &sb);
-	if (rc < 0)
-		return -1;
-	char *buf = malloc(sb.st_size + 1);
-	if (!buf)
-		return -1;
-
-	read(ctx->insigfd, &buf, sb.st_size);
-	buf[sb.st_size] = '\0';
-
-	rc = parse_signature(buf, &cinfo);
-	printf("rc: %d\n", rc);
-
 	return 0;
 }
 

@@ -121,7 +121,7 @@ open_output(pesign_context *ctx)
 static void
 open_sig_input(pesign_context *ctx)
 {
-	if (!ctx->outsig) {
+	if (!ctx->insig) {
 		fprintf(stderr, "pesign: No input file specified.\n");
 		exit(1);
 	}
@@ -182,6 +182,26 @@ open_certificate(pesign_context *ctx)
 	}
 
 	close(certfd);
+}
+
+static void
+check_inputs(pesign_context *ctx)
+{
+	if (!ctx->infile) {
+		fprintf(stderr, "pesign: No input file specified.\n");
+		exit(1);
+	}
+
+	if (!ctx->outfile) {
+		fprintf(stderr, "pesign: No output file specified.\n");
+		exit(1);
+	}
+
+	if (!strcmp(ctx->infile, ctx->outfile)) {
+		fprintf(stderr, "pesign: in-place file editing "
+				"is not yet supported\n");
+		exit(1);
+	}
 }
 
 int
@@ -279,15 +299,12 @@ main(int argc, char *argv[])
 			break;
 		/* add a signature from a file */
 		case IMPORT_SIGNATURE:
-			if (!strcmp(ctx.infile, ctx.outfile)) {
-				fprintf(stderr, "pesign: in-place file editing "
-					"is not yet supported\n");
-				exit(1);
-			}
-
+			check_inputs(ctxp);
 			open_input(ctxp);
 			open_output(ctxp);
 			open_sig_input(ctxp);
+			parse_signature(ctxp);
+			import_signature(ctxp);
 			break;
 		/* find a signature in the binary and save it to a file */
 		case EXPORT_SIGNATURE:
@@ -297,12 +314,7 @@ main(int argc, char *argv[])
 			break;
 		/* remove a signature from the binary */
 		case REMOVE_SIGNATURE:
-			if (!strcmp(ctx.infile, ctx.outfile)) {
-				fprintf(stderr, "pesign: in-place file editing "
-					"is not yet supported\n");
-				exit(1);
-			}
-
+			check_inputs(ctxp);
 			open_input(ctxp);
 			open_output(ctxp);
 			rc = remove_signature(&ctx, remove);
@@ -317,19 +329,17 @@ main(int argc, char *argv[])
 			open_certificate(ctxp);
 			open_input(ctxp);
 			open_sig_output(ctxp);
+			generate_signature(ctxp);
 			export_signature(ctxp);
 			break;
 		/* generate a signature and embed it in the binary */
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
-			if (!strcmp(ctx.infile, ctx.outfile)) {
-				fprintf(stderr, "pesign: in-place file editing "
-					"is not yet supported\n");
-				exit(1);
-			}
-
+			check_inputs(ctxp);
 			open_certificate(ctxp);
 			open_input(ctxp);
 			open_output(ctxp);
+			generate_signature(ctxp);
+			import_signature(ctxp);
 			break;
 		default:
 			fprintf(stderr, "Incompatible flags (0x%08x): ", action);
