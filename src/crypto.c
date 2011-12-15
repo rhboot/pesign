@@ -306,11 +306,10 @@ list_signatures(pesign_context *ctx)
 	return rc;
 }
 
-
 static const char *sig_begin_marker ="-----BEGIN AUTHENTICODE SIGNATURE-----\n";
 static const char *sig_end_marker = "\n-----END AUTHENTICODE SIGNATURE-----\n";
 
-int
+void
 export_signature(pesign_context *ctx)
 {
 	cert_iter iter;
@@ -319,12 +318,15 @@ export_signature(pesign_context *ctx)
 
 	if (rc < 0) {
 		printf("No certificate list found.\n");
-		return rc;
+		return;
 	}
 
 	void *data;
 	ssize_t datalen;
 	int nsigs = 0;
+
+	if (ctx->signum < 0)
+		ctx->signum = 0;
 
 	rc = 0;
 	while (1) {
@@ -341,6 +343,9 @@ export_signature(pesign_context *ctx)
 			char *ascii = BTOA_DataToAscii(data, datalen);
 			if (!ascii) {
 				fprintf(stderr, "Error exporting signature\n");
+failure:
+				close(ctx->outsigfd);
+				unlink(ctx->outsig);
 				exit(1);
 			}
 
@@ -348,20 +353,20 @@ export_signature(pesign_context *ctx)
 					strlen(sig_begin_marker));
 			if (rc < 0) {
 				fprintf(stderr, "Error exporting signature: %m\n");
-				exit(1);
+				goto failure;
 			}
 
 			rc = write(ctx->outsigfd, ascii, strlen(ascii));
 			if (rc < 0) {
 				fprintf(stderr, "Error exporting signature: %m\n");
-				exit(1);
+				goto failure;
 			}
 
 			rc = write(ctx->outsigfd, sig_end_marker,
 				strlen(sig_end_marker));
 			if (rc < 0) {
 				fprintf(stderr, "Error exporting signature: %m\n");
-				exit(1);
+				goto failure;
 			}
 
 			PORT_Free(ascii);
@@ -369,11 +374,10 @@ export_signature(pesign_context *ctx)
 			rc = write(ctx->outsigfd, data, datalen);
 			if (rc < 0) {
 				fprintf(stderr, "Error exporting signature: %m\n");
-				exit(1);
+				goto failure;
 			}
 		}
 	}
-	return 0;
 }
 
 static int

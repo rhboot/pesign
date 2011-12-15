@@ -293,6 +293,7 @@ main(int argc, char *argv[])
 		case EXPORT_SIGNATURE:
 			open_input(ctxp);
 			open_sig_output(ctxp);
+			export_signature(ctxp);
 			break;
 		/* remove a signature from the binary */
 		case REMOVE_SIGNATURE:
@@ -316,6 +317,7 @@ main(int argc, char *argv[])
 			open_certificate(ctxp);
 			open_input(ctxp);
 			open_sig_output(ctxp);
+			export_signature(ctxp);
 			break;
 		/* generate a signature and embed it in the binary */
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:

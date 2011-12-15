@@ -32,7 +32,7 @@ extern int pe_sign(pesign_context *ctx);
 
 extern int has_signatures(pesign_context *ctx);
 extern int list_signatures(pesign_context *ctx);
-extern int export_signature(pesign_context *ctx);
+extern void export_signature(pesign_context *ctx);
 extern int import_signature(pesign_context *ctx);
 extern int remove_signature(pesign_context *ctx, int signum);
 
