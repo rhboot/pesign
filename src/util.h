@@ -16,16 +16,33 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_H
-#define PESIGN_H 1
+#ifndef PESIGN_UTIL_H
+#define PESIGN_UTIL_H 1
 
-#include <stdlib.h>
-#define xfree(x) ({if (x) { free(x); x = NULL; }})
+static inline int
+__attribute__ ((unused))
+read_file(int fd, char **bufp, size_t *lenptr) {
+    int alloced = 0, size = 0, i = 0;
+    char * buf = NULL;
 
-#include <libdpe/libdpe.h>
-#include "util.h"
-#include "context.h"
-#include "crypto.h"
-#include "endian.h"
+    do {
+	size += i;
+	if ((size + 1024) > alloced) {
+	    alloced += 4096;
+	    buf = realloc(buf, alloced + 1);
+	}
+    } while ((i = read(fd, buf + size, 1024)) > 0);
 
-#endif /* PESIGN_H */
+    if (i < 0) {
+	fprintf(stderr, _("error reading input: %m\n"));
+        free(buf);
+	return 1;
+    }
+
+    *bufp = buf;
+    *lenptr = size;
+
+    return 0;
+}
+
+#endif /* PESIGN_UTIL_H */
