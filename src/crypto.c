@@ -424,6 +424,27 @@ decoder_error:
 int
 import_signature(pesign_context *ctx)
 {
+	SEC_PKCS7ContentInfo *cinfo = NULL;
+
+	if (ctx->insigfd < 0)
+		return ctx->insigfd;
+
+	struct stat sb;
+	int rc;
+
+	rc = fstat(ctx->insigfd, &sb);
+	if (rc < 0)
+		return -1;
+	char *buf = malloc(sb.st_size + 1);
+	if (!buf)
+		return -1;
+
+	read(ctx->insigfd, &buf, sb.st_size);
+	buf[sb.st_size] = '\0';
+
+	rc = parse_signature(buf, &cinfo);
+	printf("rc: %d\n", rc);
+
 	return 0;
 }
 

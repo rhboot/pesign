@@ -32,13 +32,165 @@
 
 #include "pesign.h"
 
-int main(int argc, char *argv[])
+#define NO_FLAGS		0x00
+#define GENERATE_SIGNATURE	0x01
+#define IMPORT_SIGNATURE	0x02
+#define EXPORT_SIGNATURE	0x04
+#define REMOVE_SIGNATURE	0x08
+#define LIST_SIGNATURES		0x10
+#define FLAG_LIST_END		0x20
+
+static struct {
+	int flag;
+	const char *name;
+} flag_names[] = {
+	{GENERATE_SIGNATURE, "sign"},
+	{IMPORT_SIGNATURE, "import"},
+	{EXPORT_SIGNATURE, "export"},
+	{REMOVE_SIGNATURE, "remove"},
+	{LIST_SIGNATURES, "list"},
+	{FLAG_LIST_END, NULL},
+};
+
+static void
+print_flag_name(FILE *f, int flag)
+{
+	for (int i = 0; flag_names[i].flag != FLAG_LIST_END; i++) {
+		if (flag_names[i].flag == flag)
+			fprintf(f, "%s ", flag_names[i].name);
+	}
+}
+
+static void
+open_input(pesign_context *ctx)
+{
+	if (!ctx->infile) {
+		fprintf(stderr, "pesign: No input file specified.\n");
+		exit(1);
+	}
+
+	struct stat statbuf;
+	ctx->infd = open(ctx->infile, O_RDONLY|O_CLOEXEC);
+	stat(ctx->infile, &statbuf); 
+	ctx->outmode = statbuf.st_mode;
+
+	if (ctx->infd < 0) {
+		fprintf(stderr, "pesign: Error opening input: %m\n");
+		exit(1);
+	}
+
+	Pe_Cmd cmd = ctx->infd == STDIN_FILENO ? PE_C_READ : PE_C_READ_MMAP;
+	ctx->inpe = pe_begin(ctx->infd, cmd, NULL);
+	if (!ctx->inpe) {
+		fprintf(stderr, "pesign: could not load input file: %s\n",
+			pe_errmsg(pe_errno()));
+		exit(1);
+	}
+}
+
+static void
+open_output(pesign_context *ctx)
+{
+	if (!ctx->outfile) {
+		fprintf(stderr, "pesign: No output file specified.\n");
+		exit(1);
+	}
+
+	if (access(ctx->outfile, F_OK) == 0 && ctx->force == 0) {
+		fprintf(stderr, "pesign: \"%s\" exists and --force was "
+				"not given.\n", ctx->outfile);
+		exit(1);
+	}
+
+	ctx->outfd = open(ctx->outfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
+			ctx->outmode);
+	if (ctx->outfd < 0) {
+		fprintf(stderr, "pesign: Error opening output: %m\n");
+		exit(1);
+	}
+
+	Pe_Cmd cmd = ctx->outfd == STDOUT_FILENO ? PE_C_WRITE : PE_C_WRITE_MMAP;
+	ctx->outpe = pe_begin(ctx->outfd, cmd, ctx->inpe);
+	if (!ctx->outpe) {
+		fprintf(stderr, "pesign: could not load output file: %s\n",
+			pe_errmsg(pe_errno()));
+		exit(1);
+	}
+}
+
+static void
+open_sig_input(pesign_context *ctx)
+{
+	if (!ctx->outsig) {
+		fprintf(stderr, "pesign: No input file specified.\n");
+		exit(1);
+	}
+
+	ctx->insigfd = open(ctx->insig, O_RDONLY|O_CLOEXEC);
+	if (ctx->insigfd < 0) {
+		fprintf(stderr, "pesign: Error opening signature for input: "
+				"%m\n");
+		exit(1);
+	}
+}
+
+static void
+open_sig_output(pesign_context *ctx)
+{
+	if (!ctx->outsig) {
+		fprintf(stderr, "pesign: No output file specified.\n");
+		exit(1);
+	}
+
+	if (access(ctx->outsig, F_OK) == 0 && ctx->force == 0) {
+		fprintf(stderr, "pesign: \"%s\" exists and --force "
+				"was not given.\n", ctx->outsig);
+		exit(1);
+	}
+
+	ctx->outsigfd = open(ctx->outsig, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
+				ctx->outmode);
+	if (ctx->outsigfd < 0) {
+		fprintf(stderr, "pesign: Error opening signature for output: "
+				"%m\n");
+		exit(1);
+	}
+}
+
+static void
+open_certificate(pesign_context *ctx)
 {
 	int rc;
 
-	pesign_context ctx;
+	if (!ctx->certfile) {
+		fprintf(stderr, "pesign: No signing certificate specified.\n");
+		exit(1);
+	}
 
-	int force = 0;
+	int certfd = open(ctx->certfile, O_RDONLY|O_CLOEXEC);
+
+	if (certfd < 0) {
+		fprintf(stderr, "pesign: could not open certificate "
+				"\"%s\": %m\n", ctx->certfile);
+		exit(1);
+	}
+
+	rc = read_cert(certfd, &ctx->cert);
+	if (rc < 0) {
+		fprintf(stderr, "pesign: could not read certificate\n");
+		exit(1);
+	}
+
+	close(certfd);
+}
+
+int
+main(int argc, char *argv[])
+{
+	int rc;
+
+	pesign_context ctx, *ctxp = &ctx;
+
 	int list = 0;
 	int remove = -1;
 
@@ -50,7 +202,7 @@ int main(int argc, char *argv[])
 			"specify output file", "<outfile>" },
 		{"certficate", 'c', POPT_ARG_STRING, &ctx.certfile, 0,
 			"specify certificate file", "<certificate>" },
-		{"force", 'f', POPT_ARG_NONE|POPT_ARG_VAL, &force,  1,
+		{"force", 'f', POPT_ARG_NONE|POPT_ARG_VAL, &ctx.force,  1,
 			"force overwriting of output file", NULL },
 		{"nogaps", 'n', POPT_ARG_NONE|POPT_ARG_VAL, &ctx.hashgaps, 0,
 			"skip gaps between sections when signing", NULL },
@@ -58,8 +210,10 @@ int main(int argc, char *argv[])
 			"create a new signature", NULL },
 		{"import-signature", 'm', POPT_ARG_STRING, &ctx.insig, 0,
 			"import signature from file", "<insig>" },
+#if 0 /* there's not concensus that this is really a thing... */
 		{"signature-number", 'u', POPT_ARG_INT, &ctx.signum, -1,
 			"specify which signature to operate on","<sig-number>"},
+#endif
 		{"list-signatures", 'l', POPT_ARG_NONE|POPT_ARG_VAL, &list, 1,
 			"list signatures", NULL },
 		{"export-signature", 'e', POPT_ARG_STRING, &ctx.outsig, 0,
@@ -71,10 +225,8 @@ int main(int argc, char *argv[])
 		POPT_AUTOHELP
 		POPT_TABLEEND
 	};
-	mode_t outmode = 0644;
-	struct stat statbuf;
 
-	pesign_context_init(&ctx);
+	pesign_context_init(ctxp);
 
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
@@ -95,31 +247,21 @@ int main(int argc, char *argv[])
 
 	poptFreeContext(optCon);
 
-	if (!ctx.infile) {
-		fprintf(stderr, "No input file specified.\n");
-		exit(1);
-	}
+	int action = 0;
+	if (ctx.insig)
+		action |= IMPORT_SIGNATURE;
 
-	if (!strcmp(ctx.infile, "-")) {
-		ctx.infd = STDIN_FILENO;
-	} else {
-		ctx.infd = open(ctx.infile, O_RDONLY|O_CLOEXEC);
-		stat(ctx.infile, &statbuf); 
-		outmode = statbuf.st_mode;
-	}
+	if (ctx.outsig)
+		action |= EXPORT_SIGNATURE;
 
-	if (ctx.infd < 0) {
-		fprintf(stderr, "Error opening input: %m\n");
-		exit(1);
-	}
+	if (remove != -1)
+		action |= REMOVE_SIGNATURE;
 
-	Pe_Cmd cmd = ctx.infd == STDIN_FILENO ? PE_C_READ : PE_C_READ_MMAP;
-	ctx.inpe = pe_begin(ctx.infd, cmd, NULL);
-	if (!ctx.inpe) {
-		fprintf(stderr, "pesign: could not load input file: %s\n",
-			pe_errmsg(pe_errno()));
-		exit(1);
-	}
+	if (list != 0)
+		action |= LIST_SIGNATURES;
+
+	if (ctx.sign)
+		action |= GENERATE_SIGNATURE|IMPORT_SIGNATURE;
 
 	rc = crypto_init();
 	if (rc < 0) {
@@ -127,100 +269,73 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (list) {
-		rc = list_signatures(&ctx);
-		exit(1);
-	}
-
-	if (ctx.outsig) {
-		if (!strcmp(ctx.outsig, "-")) {
-			ctx.outsigfd = STDOUT_FILENO;
-		} else {
-			if (access(ctx.outsig, F_OK) == 0 && force == 0) {
-				fprintf(stderr, "pesign: \"%s\" exists and "
-					"--force was not given.\n",
-					ctx.outsig);
+	switch (action) {
+		case NO_FLAGS:
+			fprintf(stderr, "pesign: Nothing to do.\n");
+			exit(0);
+			break;
+		/* add a signature from a file */
+		case IMPORT_SIGNATURE:
+			if (!strcmp(ctx.infile, ctx.outfile)) {
+				fprintf(stderr, "pesign: in-place file editing "
+					"is not yet supported\n");
 				exit(1);
 			}
-			ctx.outsigfd = open(ctx.outsig,
-				O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC, outmode);
-		}
-		if (ctx.outsigfd < 0) {
-			fprintf(stderr, "Error opening signature output: %m\n");
+
+			open_input(ctxp);
+			open_output(ctxp);
+			open_sig_input(ctxp);
+			break;
+		/* find a signature in the binary and save it to a file */
+		case EXPORT_SIGNATURE:
+			open_input(ctxp);
+			open_sig_output(ctxp);
+			break;
+		/* remove a signature from the binary */
+		case REMOVE_SIGNATURE:
+			if (!strcmp(ctx.infile, ctx.outfile)) {
+				fprintf(stderr, "pesign: in-place file editing "
+					"is not yet supported\n");
+				exit(1);
+			}
+
+			open_input(ctxp);
+			open_output(ctxp);
+			rc = remove_signature(&ctx, remove);
+			break;
+		/* list signatures in the binary */
+		case LIST_SIGNATURES:
+			open_input(ctxp);
+			list_signatures(ctxp);
+			break;
+		/* generate a signature and save it in a separate file */
+		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:
+			open_certificate(ctxp);
+			open_input(ctxp);
+			open_sig_output(ctxp);
+			break;
+		/* generate a signature and embed it in the binary */
+		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
+			if (!strcmp(ctx.infile, ctx.outfile)) {
+				fprintf(stderr, "pesign: in-place file editing "
+					"is not yet supported\n");
+				exit(1);
+			}
+
+			open_certificate(ctxp);
+			open_input(ctxp);
+			open_output(ctxp);
+			break;
+		default:
+			fprintf(stderr, "Incompatible flags (0x%08x): ", action);
+			for (int i = 1; i < FLAG_LIST_END; i <<= 1) {
+				if (action & i)
+					print_flag_name(stderr, i);
+			}
+			fprintf(stderr, "\n");
 			exit(1);
-		}
-
-		rc = export_signature(&ctx);
-		if (rc < 0) {
-			fprintf(stderr, "Could not extract signature.\n");
-			exit(1);
-		}
-
-		pesign_context_fini(&ctx);
-		crypto_fini();
-		exit(0);
 	}
-
-	if (!ctx.outfile) {
-		fprintf(stderr, "No output file specified.\n");
-		exit(1);
-	}
-
-	if (!strcmp(ctx.infile, ctx.outfile) && strcmp(ctx.infile,"-")) {
-		fprintf(stderr, "pesign: in-place file editing is not yet "
-				"supported\n");
-		exit(1);
-	}
-
-	if (!strcmp(ctx.outfile, "-")) {
-		ctx.outfd = STDOUT_FILENO;
-	} else {
-		if (access(ctx.outfile, F_OK) == 0 && force == 0) {
-			fprintf(stderr, "pesign: \"%s\" exists and --force was "
-					"not given.\n", ctx.outfile);
-			exit(1);
-		}
-		ctx.outfd = open(ctx.outfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
-				 outmode);
-	}
-	if (ctx.outfd < 0) {
-		fprintf(stderr, "Error opening output: %m\n");
-		exit(1);
-	}
-
-	if (remove) {
-		rc = remove_signature(&ctx, remove);
-		exit(1);
-	}
-
-	if (ctx.certfile) {
-		int certfd = open(ctx.certfile, O_RDONLY|O_CLOEXEC);
-
-		if (certfd < 0) {
-			fprintf(stderr, "pesign: could not open certificate "
-					"\"%s\": %m\n", ctx.certfile);
-			exit(1);
-		}
-
-		rc = read_cert(certfd, &ctx.cert);
-		if (rc < 0) {
-			fprintf(stderr, "pesign: could not read certificate\n");
-			exit(1);
-		}
-	}
-
-	cmd = ctx.outfd == STDOUT_FILENO ? PE_C_WRITE : PE_C_WRITE_MMAP;
-	ctx.outpe = pe_begin(ctx.outfd, cmd, ctx.inpe);
-	if (!ctx.outpe) {
-		fprintf(stderr, "pesign: could not load output file: %s\n",
-			pe_errmsg(pe_errno()));
-		exit(1);
-	}
-
-	if (ctx.cert)
-		pe_sign(&ctx);
-
 	pesign_context_fini(&ctx);
 	crypto_fini();
-	return 0;
+	return (rc < 0);
 }

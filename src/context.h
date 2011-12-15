@@ -20,6 +20,7 @@
 #define PESIGN_CONTEXT_H 1
 
 #include <nss3/cert.h>
+#include <nss3/secpkcs7.h>
 
 enum {
 	PESIGN_C_ALLOCATED = 1,
@@ -30,9 +31,13 @@ typedef struct {
 	int outfd;
 	char *infile;
 	char *outfile;
+	mode_t outmode;
+
+	int force;
 
 	char *insig;
 	int insigfd;
+	SEC_PKCS7ContentInfo *cinfo;
 	char *outsig;
 	int outsigfd;
 

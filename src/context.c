@@ -50,6 +50,7 @@ pesign_context_init(pesign_context *ctx)
 
 	ctx->infd = -1;
 	ctx->outfd = -1;
+	ctx->outmode = 0644;
 
 	ctx->insigfd = -1;
 	ctx->outsigfd = -1;
@@ -99,6 +100,11 @@ pesign_context_fini(pesign_context *ctx)
 	if (ctx->outsigfd >= 0) {
 		close(ctx->outsigfd);
 		ctx->outsigfd = -1;
+	}
+
+	if (ctx->cinfo) {
+		SEC_PKCS7DestroyContentInfo(ctx->cinfo);
+		ctx->cinfo = NULL;
 	}
 
 	if (ctx->outfd >= 0) {
