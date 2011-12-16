@@ -38,10 +38,19 @@
 
 static inline void *
 __attribute__ ((unused))
-compute_address(Pe *pe, off_t offset)
+compute_mem_addr(Pe *pe, off_t offset)
 {
 	/* XXX this might not work when we're not mmapped */
-	return (char *)pe->map_address + pe->start_offset + offset;
+	return (char *)pe->map_address + pe->start_offset + le32_to_cpu(offset);
+}
+
+static inline uint32_t
+__attribute__ ((unused))
+compute_file_addr(Pe *pe, void *addr)
+{
+	/* XXX this might not work when we're not mmapped */
+	return cpu_to_le32((char *)addr
+		- ((char *)pe->map_address + pe->start_offset));
 }
 
 static inline Pe_Kind

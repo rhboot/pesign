@@ -19,7 +19,8 @@
 
 #include "libdpe.h"
 
-int pe_getdatadir(Pe *pe, Pe_DataDir_Type ddt, void **addr, size_t *size)
+static data_dirent *
+find_dd_entry(Pe *pe, Pe_DataDir_Type ddt)
 {
 	struct data_directory *dd = NULL;
 
@@ -28,7 +29,7 @@ int pe_getdatadir(Pe *pe, Pe_DataDir_Type ddt, void **addr, size_t *size)
 		struct pe32_opt_hdr *opthdr = pe->state.pe32_exe.opthdr;
 		if (ddt > le32_to_cpu(opthdr->data_dirs)) {
 			__libpe_seterrno(PE_E_INVALID_INDEX);
-			return -1;
+			return NULL;
 		}
 		dd = pe->state.pe32_exe.datadir;
 		break;
@@ -37,7 +38,7 @@ int pe_getdatadir(Pe *pe, Pe_DataDir_Type ddt, void **addr, size_t *size)
 		struct pe32plus_opt_hdr *opthdr = pe->state.pe32plus_exe.opthdr;
 		if (ddt > le32_to_cpu(opthdr->data_dirs)) {
 			__libpe_seterrno(PE_E_INVALID_INDEX);
-			return -1;
+			return NULL;
 		}
 		dd = pe->state.pe32plus_exe.datadir;
 		break;
@@ -49,88 +50,147 @@ int pe_getdatadir(Pe *pe, Pe_DataDir_Type ddt, void **addr, size_t *size)
 		break;
 	}
 
-	if (!dd) {
-		/* FIXME: is this the right error code? */
-		__libpe_seterrno(PE_E_INVALID_FILE);
-		return -1;
-	}
+	if (!dd)
+		return NULL;
 
-	if (addr == NULL || size == NULL) {
-		/* FIXME: is this the right error code? */
-		__libpe_seterrno(PE_E_INVALID_OP);
-		return -1;
-	}
-	
 	switch (ddt) {
 	case PE_DATA_DIR_EXPORTS:
-		*addr = compute_address(pe, dd->exports.virtual_address);
-		*size = le32_to_cpu(dd->exports.size);
-		return 0;
+		return &dd->exports;
 	case PE_DATA_DIR_IMPORTS:
-		*addr = compute_address(pe, dd->imports.virtual_address);
-		*size = le32_to_cpu(dd->imports.size);
-		return 0;
+		return &dd->imports;
 	case PE_DATA_DIR_RESOURCES:
-		*addr = compute_address(pe, dd->resources.virtual_address);
-		*size = le32_to_cpu(dd->resources.size);
-		return 0;
+		return &dd->resources;
 	case PE_DATA_DIR_EXCEPTIONS:
-		*addr = compute_address(pe, dd->exceptions.virtual_address);
-		*size = le32_to_cpu(dd->exceptions.size);
-		return 0;
+		return &dd->exceptions;
 	case PE_DATA_DIR_CERTIFICATES:
-		*addr = compute_address(pe, dd->certs.virtual_address);
-		*size = le32_to_cpu(dd->certs.size);
-		return 0;
+		return &dd->certs;
 	case PE_DATA_DIR_BASE_RELOCATIONS:
-		*addr = compute_address(pe, dd->base_relocations.virtual_address);
-		*size = le32_to_cpu(dd->base_relocations.size);
-		return 0;
+		return &dd->base_relocations;
 	case PE_DATA_DIR_DEBUG:
-		*addr = compute_address(pe, dd->debug.virtual_address);
-		*size = le32_to_cpu(dd->debug.size);
-		return 0;
+		return &dd->debug;
 	case PE_DATA_DIR_ARCH:
-		*addr = compute_address(pe, dd->arch.virtual_address);
-		*size = le32_to_cpu(dd->arch.size);
-		return 0;
+		return &dd->arch;
 	case PE_DATA_DIR_GLOBAL_POINTER:
-		*addr = compute_address(pe, dd->global_ptr.virtual_address);
-		*size = le32_to_cpu(dd->global_ptr.size);
-		return 0;
+		return &dd->global_ptr;
 	case PE_DATA_TLS:
-		*addr = compute_address(pe, dd->tls.virtual_address);
-		*size = le32_to_cpu(dd->tls.size);
-		return 0;
+		return &dd->tls;
 	case PE_DATA_LOAD_CONFIG:
-		*addr = compute_address(pe, dd->load_config.virtual_address);
-		*size = le32_to_cpu(dd->load_config.size);
-		return 0;
+		return &dd->load_config;
 	case PE_DATA_BOUND_IMPORT:
-		*addr = compute_address(pe, dd->bound_imports.virtual_address);
-		*size = le32_to_cpu(dd->bound_imports.size);
-		return 0;
+		return &dd->bound_imports;
 	case PE_DATA_IMPORT_ADDRESS:
-		*addr = compute_address(pe, dd->import_addrs.virtual_address);
-		*size = le32_to_cpu(dd->import_addrs.size);
-		return 0;
+		return &dd->import_addrs;
 	case PE_DATA_DELAY_IMPORTS:
-		*addr = compute_address(pe, dd->delay_imports.virtual_address);
-		*size = le32_to_cpu(dd->delay_imports.size);
-		return 0;
+		return &dd->delay_imports;
 	case PE_DATA_CLR_RUNTIME_HEADER:
-		*addr = compute_address(pe, dd->clr_runtime_hdr.virtual_address);
-		*size = le32_to_cpu(dd->clr_runtime_hdr.size);
-		return 0;
+		return &dd->clr_runtime_hdr;
 	case PE_DATA_RESERVED:
-		*addr = compute_address(pe, dd->reserved.virtual_address);
-		*size = le32_to_cpu(dd->reserved.size);
-		return 0;
+		return &dd->reserved;
 	case PE_DATA_NUM:
 	default:
 		break;
 	}
 
-	__libpe_seterrno(PE_E_INVALID_INDEX);
-	return -1;
+	return NULL; 
+}
+
+int
+pe_getdatadir(Pe *pe, Pe_DataDir_Type ddt, void **addr, size_t *size)
+{
+	data_dirent *dde = NULL;
+
+	if (addr == NULL || size == 0) {
+		/* FIXME: is this the right error code? */
+		__libpe_seterrno(PE_E_INVALID_OP);
+		return -1;
+	}
+
+	dde = find_dd_entry(pe, ddt);
+	if (!dde) {
+		__libpe_seterrno(PE_E_INVALID_INDEX);
+		return -1;
+	}
+
+	*addr = compute_mem_addr(pe, dde->virtual_address);
+	*size = le32_to_cpu(dde->size);
+	return 0;
+}
+
+#if 0
+struct mem_data_directory {
+	
+}
+
+static int
+sort_datadir_by_location(Pe *pe, struct mem_data_directory **mdd)
+{
+
+}
+#endif
+
+static int
+set_datadir_ptr(Pe *pe, Pe_DataDir_Type ddt, void *addr, size_t size)
+{
+	data_dirent *dde = find_dd_entry(pe, ddt);
+	if (!dde) {
+		__libpe_seterrno(PE_E_INVALID_INDEX);
+		return -1;
+	}
+
+	dde->virtual_address = compute_file_addr(pe, addr);
+	dde->size = cpu_to_le32(size);
+	return 0;
+}
+
+static void *
+allocate_space(Pe *pe, size_t size)
+{
+	return NULL;
+}
+
+int
+pe_setdatadir(Pe *pe, Pe_DataDir_Type ddt, void *addr, size_t size)
+{
+	void *oldaddr;
+	size_t oldsize;
+
+	int rc = pe_getdatadir(pe, ddt, &oldaddr, &oldsize);
+	if (rc < 0)
+		return rc;
+	if (addr == oldaddr) {
+		if (size == oldsize) {
+			return 0;
+		} else if (size <= oldsize) {
+			/* XXX FIXME try to reclaim unused space... */
+			return 0;
+		} else {
+			/* you've done something seriously stupid here.*/
+			/* XXX FIXME wrong error number */
+			__libpe_seterrno(PE_E_NOMEM);
+			return -1;
+		}
+	} else if (addr > oldaddr && (char *)addr < (char *)oldaddr + oldsize) {
+		/* you've done something seriously stupid here.*/
+		/* XXX FIXME wrong error number */
+		__libpe_seterrno(PE_E_NOMEM);
+		return -1;
+	} else {
+		/* XXX FIXME try to reclaim unused space... */
+		char *dd_space = NULL;
+		if (size && addr) {
+			dd_space = allocate_space(pe, size);
+			if (!dd_space) {
+				__libpe_seterrno(PE_E_NOMEM);
+				return -1;
+			}
+			
+			memmove(dd_space, addr, size);
+		}
+
+		memset(oldaddr, '\0', oldsize);
+		int rc = set_datadir_ptr(pe, ddt, dd_space, size);
+		/* XXX FIXME if set_datadir_ptr didn't work, we should maybe
+		 * try to free the space we allocated...*/
+		return rc;
+	}
 }
