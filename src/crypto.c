@@ -442,5 +442,7 @@ import_signature(pesign_context *ctx)
 int
 remove_signature(pesign_context *ctx, int signum)
 {
+	/* XXX FIXME: right now we clear them all... */
+	pe_setdatadir(ctx->outpe, PE_DATA_DIR_CERTIFICATES, NULL, 0);
 	return 0;
 }
