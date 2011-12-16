@@ -31,11 +31,6 @@ Pe *pe_memory(char *image, size_t size)
 	return NULL;
 }
 
-loff_t pe_update(Pe *pe, Pe_Cmd cmd)
-{
-	return 0;
-}
-
 Pe_Kind pe_kind(Pe *pe)
 {
 	return pe == NULL ? PE_K_NONE : pe->kind;
