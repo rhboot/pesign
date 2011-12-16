@@ -54,8 +54,12 @@ static const char msgstr[] =
 	(PE_E_NOMEM_IDX + sizeof "out of memory")
 	"invalid file descriptor"
 	"\0"
-#define PE_E_INVALID_INDEX_IDX \
+#define PE_E_WRITE_ERROR_IDX \
 	(PE_E_INVALID_FILE_IDX + sizeof "invalid file descriptor")
+	"cannot write data to file"
+	"\0"
+#define PE_E_INVALID_INDEX_IDX \
+	(PE_E_WRITE_ERROR_IDX + sizeof "cannot write data to file")
 	"invalid section index"
 	"\0"
 #define PE_E_INVALID_OP_IDX \
@@ -66,9 +70,17 @@ static const char msgstr[] =
 	(PE_E_INVALID_OP_IDX + sizeof "invalid operation")
 	"invalid command"
 	"\0"
-#define PE_E_FD_MISMATCH_IDX \
+#define PE_E_FD_DISABLED_IDX \
 	(PE_E_INVALID_CMD_IDX + sizeof "invalid command")
+	"file descriptor disabled"
+	"\0"
+#define PE_E_FD_MISMATCH_IDX \
+	(PE_E_FD_DISABLED_IDX + sizeof "file descriptor disabled")
 	"file descriptor mismatch"
+	"\0"
+#define PE_E_UPDATE_RO_IDX \
+	(PE_E_FD_MISMATCH_IDX + sizeof "file descriptor mismatch")
+	"update() for write on read-only file"
 };
 
 static const uint16_t msgidx[PE_E_NUM] =
@@ -78,10 +90,13 @@ static const uint16_t msgidx[PE_E_NUM] =
 	[PE_E_INVALID_HANDLE] = PE_E_INVALID_HANDLE_IDX,
 	[PE_E_NOMEM] = PE_E_NOMEM_IDX,
 	[PE_E_INVALID_FILE] = PE_E_INVALID_FILE_IDX,
+	[PE_E_WRITE_ERROR] = PE_E_WRITE_ERROR_IDX,
 	[PE_E_INVALID_INDEX] = PE_E_INVALID_INDEX_IDX,
 	[PE_E_INVALID_OP] = PE_E_INVALID_OP_IDX,
 	[PE_E_INVALID_CMD] = PE_E_INVALID_CMD_IDX,
+	[PE_E_FD_DISABLED] = PE_E_FD_DISABLED_IDX,
 	[PE_E_FD_MISMATCH] = PE_E_FD_MISMATCH_IDX,
+	[PE_E_UPDATE_RO] = PE_E_UPDATE_RO_IDX,
 };
 #define nmsgidx ((int) (sizeof (msgidx) / sizeof (msgidx[0])))
 
