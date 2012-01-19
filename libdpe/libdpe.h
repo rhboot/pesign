@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2012 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -171,6 +171,22 @@ struct Pe {
 	} state;
 };
 
+/* We often have to update a flag iff a value changed.  Make this
+ * convenient.  */
+#define update_if_changed(var, exp, flag)				\
+	({								\
+		__typeof__ (var) *_var = &(var);			\
+		__typeof__ (exp) _exp = (exp);				\
+		if (*_var != _exp) {					\
+			*_var = _exp;					\
+			(flag) |= PE_F_DIRTY;				\
+		}							\
+	})
+
 #include "common.h"
+
+extern off_t __pe_updatemmap(Pe *pe, int change_bo, size_t shnum);
+extern int __pe_updatefile(Pe *pe, int change_bo, size_t shnum);
+extern off_t __pe_updatenull_wrlock(Pe *pe, int *change_bop, size_t shnum);
 
 #endif /* LIBDPE_PRIV_H */
