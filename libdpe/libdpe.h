@@ -170,18 +170,6 @@ struct Pe {
 	} state;
 };
 
-/* We often have to update a flag iff a value changed.  Make this
- * convenient.  */
-#define update_if_changed(var, exp, flag)				\
-	({								\
-		__typeof__ (var) *_var = &(var);			\
-		__typeof__ (exp) _exp = (exp);				\
-		if (*_var != _exp) {					\
-			*_var = _exp;					\
-			(flag) |= PE_F_DIRTY;				\
-		}							\
-	})
-
 #include "common.h"
 
 extern off_t __pe_updatemmap(Pe *pe, size_t shnum);
