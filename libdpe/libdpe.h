@@ -185,8 +185,8 @@ struct Pe {
 
 #include "common.h"
 
-extern off_t __pe_updatemmap(Pe *pe, int change_bo, size_t shnum);
-extern int __pe_updatefile(Pe *pe, int change_bo, size_t shnum);
-extern off_t __pe_updatenull_wrlock(Pe *pe, int *change_bop, size_t shnum);
+extern off_t __pe_updatemmap(Pe *pe, size_t shnum);
+extern int __pe_updatefile(Pe *pe, size_t shnum);
+extern off_t __pe_updatenull_wrlock(Pe *pe, size_t shnum);
 
 #endif /* LIBDPE_PRIV_H */

@@ -113,7 +113,7 @@ sort_sections (Pe_Scn **scns, Pe_ScnList *list)
 }
 
 off_t
-__pe_updatemmap(Pe *pe, int change_bo, size_t shnum)
+__pe_updatemmap(Pe *pe, size_t shnum)
 {
 	
 	
@@ -145,7 +145,7 @@ __pe_updatemmap(Pe *pe, int change_bo, size_t shnum)
 }
 
 int
-__pe_updatefile(Pe *pe, int change_bo, size_t shnum)
+__pe_updatefile(Pe *pe, size_t shnum)
 {
 	__libpe_seterrno(PE_E_UNKNOWN_ERROR);
 	return 1;

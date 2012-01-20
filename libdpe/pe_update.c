@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 
 static off_t
-write_file(Pe *pe, off_t size, int change_bo, size_t shnum)
+write_file(Pe *pe, off_t size, size_t shnum)
 {
 	
 	struct stat st;
@@ -48,10 +48,10 @@ write_file(Pe *pe, off_t size, int change_bo, size_t shnum)
 	}
 
 	if (pe->map_address != NULL) {
-		if (__pe_updatemmap(pe, change_bo, shnum) != 0)
+		if (__pe_updatemmap(pe, shnum) != 0)
 			size = -1;
 	} else {
-		if (__pe_updatefile(pe, change_bo, shnum) != 0)
+		if (__pe_updatefile(pe, shnum) != 0)
 			size = -1;
 	}
 
@@ -100,8 +100,7 @@ pe_update(Pe *pe, Pe_Cmd cmd)
 		: 1 + pe->state.pe.scns_last->data[
 					pe->state.pe.scns_last->cnt - 1].index);
 	
-	int change_bo = 0;
-	off_t size = __pe_updatenull_wrlock(pe, &change_bo, shnum);
+	off_t size = __pe_updatenull_wrlock(pe, shnum);
 
 	if (size != -1 && (cmd == PE_C_WRITE || PE_C_WRITE_MMAP)) {
 		if (pe->cmd != PE_C_RDWR && pe->cmd != PE_C_RDWR_MMAP &&
@@ -113,7 +112,7 @@ pe_update(Pe *pe, Pe_Cmd cmd)
 			__libpe_seterrno(PE_E_FD_DISABLED);
 			size = -1;
 		} else {
-			size = write_file(pe, size, change_bo, shnum);
+			size = write_file(pe, size, shnum);
 		}
 	}
 

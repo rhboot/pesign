@@ -20,7 +20,7 @@
 #include "libdpe.h"
 
 off_t
-__pe_updatenull_wrlock(Pe *pe, int *change_bop, size_t shnum)
+__pe_updatenull_wrlock(Pe *pe, size_t shnum)
 {
 	return 0;	
 }
