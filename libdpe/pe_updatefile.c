@@ -131,7 +131,7 @@ __pe_updatemmap(Pe *pe, size_t shnum)
 
 	/* flush back to disk */
 	char *msync_start = ((char *) pe->map_address
-		+ (pe->start_offset & ~(sysconf(_SC_PAGESIZE) -1 )));
+		+ (~(sysconf(_SC_PAGESIZE) -1 )));
 
 	data_dirent dd = {0, 0};
 	__get_last_datadir(pe, &dd);
@@ -139,7 +139,7 @@ __pe_updatemmap(Pe *pe, size_t shnum)
 	struct section_header *sh = __get_last_section(pe);
 	assert(dd.virtual_address && sh);
 
-	char *msync_end = (char *) pe->map_address + pe->start_offset;
+	char *msync_end = (char *) pe->map_address;
 
 	if (sh->virtual_address > dd.virtual_address) {
 		msync_end += sh->virtual_address + sh->raw_data_size;

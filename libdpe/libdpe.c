@@ -38,5 +38,5 @@ Pe_Kind pe_kind(Pe *pe)
 
 off_t pe_getbase(Pe *pe)
 {
-	return pe == NULL ? (off_t)-1 : pe->start_offset;
+	return pe == NULL ? (off_t)-1 : 0;
 }

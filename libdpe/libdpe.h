@@ -82,7 +82,6 @@ struct Pe {
 	Pe_Kind kind;
 
 	int fildes;
-	off_t start_offset;
 	size_t maximum_size;
 
 	int flags;

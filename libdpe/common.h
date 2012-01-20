@@ -41,7 +41,7 @@ __attribute__ ((unused))
 compute_mem_addr(Pe *pe, off_t offset)
 {
 	/* XXX this might not work when we're not mmapped */
-	return (char *)pe->map_address + pe->start_offset + le32_to_cpu(offset);
+	return (char *)pe->map_address + le32_to_cpu(offset);
 }
 
 static inline uint32_t
@@ -49,8 +49,7 @@ __attribute__ ((unused))
 compute_file_addr(Pe *pe, void *addr)
 {
 	/* XXX this might not work when we're not mmapped */
-	return cpu_to_le32((char *)addr
-		- ((char *)pe->map_address + pe->start_offset));
+	return cpu_to_le32((char *)addr - ((char *)pe->map_address));
 }
 
 static inline Pe_Kind
@@ -114,7 +113,7 @@ determine_kind(void *buf, size_t len)
 
 static inline Pe *
 __attribute__ ((unused))
-allocate_pe(int fildes, void *map_address, off_t offset, size_t maxsize,
+allocate_pe(int fildes, void *map_address, size_t maxsize,
 	Pe_Cmd cmd, Pe *parent, Pe_Kind kind, size_t extra)
 {
 	Pe *result = (Pe *) calloc(1, sizeof (Pe) + extra);
@@ -125,7 +124,6 @@ allocate_pe(int fildes, void *map_address, off_t offset, size_t maxsize,
 		result->ref_count = 1;
 		result->cmd = cmd;
 		result->fildes = fildes;
-		result->start_offset = offset;
 		result->maximum_size = maxsize;
 		result->map_address = map_address;
 		result->parent = parent;
