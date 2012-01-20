@@ -72,7 +72,7 @@ typedef struct Pe_ScnList
 
 struct Pe {
 	/* Address to which the file was mapped.  NULL if not mapped. */
-	void *map_address;
+	char *map_address;
 
 	Pe *parent;
 	Pe *next;
