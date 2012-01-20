@@ -115,6 +115,14 @@ sort_sections (Pe_Scn **scns, Pe_ScnList *list)
 off_t
 __pe_updatemmap(Pe *pe, size_t shnum)
 {
+	/* This needs to write back the whole file:
+	 * 1) mz/pe/pe-o headers
+	 * 2) section headers and sections
+	 * 3) data directory table and data directories
+	 *
+	 * We also need to check if the signature is valid and if not,
+	 * make sure it's not in the data directory.
+	 */
 	
 	
 
