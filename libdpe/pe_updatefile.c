@@ -73,29 +73,29 @@ compare_sections (const void *a, const void *b)
 	const Pe_Scn **scnb = (const Pe_Scn **)b;
 	int rc;
 
+	if ((*scna)->shdr->virtual_address > (*scnb)->shdr->virtual_address)
+		return 1;
+	if ((*scnb)->shdr->virtual_address > (*scna)->shdr->virtual_address)
+		return -1;
+
+	if ((*scna)->shdr->data_addr > (*scnb)->shdr->data_addr)
+		return 1;
+	if ((*scnb)->shdr->data_addr > (*scna)->shdr->data_addr)
+		return -1;
+
 	rc = strcmp((*scna)->shdr->name, (*scnb)->shdr->name);
 	if (rc != 0)
 		return rc;
 
-	if ((*scna)->shdr->virtual_address > (*scnb)->shdr->virtual_address)
-		return -1;
-	if ((*scnb)->shdr->virtual_address > (*scna)->shdr->virtual_address)
-		return 1;
-
-	if ((*scna)->shdr->data_addr > (*scnb)->shdr->data_addr)
-		return -1;
-	if ((*scnb)->shdr->data_addr > (*scna)->shdr->data_addr)
-		return 1;
-
 	if ((*scna)->shdr->virtual_size > (*scnb)->shdr->virtual_size)
-		return -1;
-	if ((*scnb)->shdr->virtual_size > (*scna)->shdr->virtual_size)
 		return 1;
+	if ((*scnb)->shdr->virtual_size > (*scna)->shdr->virtual_size)
+		return -1;
 
 	if ((*scna)->shdr->raw_data_size > (*scnb)->shdr->raw_data_size)
-		return -1;
-	if ((*scnb)->shdr->raw_data_size > (*scna)->shdr->raw_data_size)
 		return 1;
+	if ((*scnb)->shdr->raw_data_size > (*scna)->shdr->raw_data_size)
+		return -1;
 
 	return 0;
 }
