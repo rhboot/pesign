@@ -211,7 +211,7 @@ typedef struct _data_dirent {
 	uint32_t size;
 } data_dirent;
 
-struct data_directory {
+typedef struct _data_directory {
 	data_dirent exports;		/* .edata */
 	data_dirent imports;		/* .idata */
 	data_dirent resources;		/* .rsrc */
@@ -228,7 +228,7 @@ struct data_directory {
 	data_dirent delay_imports;	/* delay-load import table */
 	data_dirent clr_runtime_hdr;	/* .cor (object only) */
 	data_dirent reserved;
-};
+} data_directory;
 
 struct section_header {
 	char name[8];			/* name or "/12\0" string tbl offset */
