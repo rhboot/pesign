@@ -82,6 +82,7 @@ extern loff_t pe_update(Pe *pe, Pe_Cmd cmd);
 extern Pe_Kind pe_kind(Pe *Pe) __attribute__ ((__pure__));
 extern Pe_Scn *pe_nextscn(Pe *pe, Pe_Scn *scn);
 extern Pe_Scn *pe_getscn(Pe *pe, size_t idx);
+extern struct section_header *pe_getshdr(Pe_Scn *scn, struct section_header *dst);
 extern char *pe_rawfile(Pe *pe, size_t *ptr);
 extern int pe_getdatadir(Pe *pe, data_directory **dd);
 extern void *pe_getopthdr(Pe *pe);
