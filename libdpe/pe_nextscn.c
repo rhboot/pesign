@@ -30,8 +30,8 @@ pe_nextscn(Pe *pe, Pe_Scn *scn)
 	rwlock_rdlock(pe->lock);
 
 	if (scn == NULL) {
-		if (pe->state.pe.scns.cnt > 1)
-			result = &pe->state.pe.scns.data[1];
+		if (pe->state.pe.scns.cnt > 0)
+			result = &pe->state.pe.scns.data[0];
 	} else {
 		Pe_ScnList *list = scn->list;
 
