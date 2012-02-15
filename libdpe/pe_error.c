@@ -70,8 +70,16 @@ static const char msgstr[] =
 	(PE_E_INVALID_OP_IDX + sizeof "invalid operation")
 	"invalid command"
 	"\0"
-#define PE_E_FD_DISABLED_IDX \
+#define PE_E_INVALID_OPERAND_IDX \
 	(PE_E_INVALID_CMD_IDX + sizeof "invalid command")
+	"invalid operand"
+	"\0"
+#define PE_E_WRONG_ORDER_PEHDR_IDX \
+	(PE_E_INVALID_OPERAND_IDX + sizeof "invalid operand")
+	"executable header not created first"
+	"\0"
+#define PE_E_FD_DISABLED_IDX \
+	(PE_E_WRONG_ORDER_PEHDR_IDX + sizeof "executable header not created first")
 	"file descriptor disabled"
 	"\0"
 #define PE_E_FD_MISMATCH_IDX \
@@ -94,6 +102,8 @@ static const uint16_t msgidx[PE_E_NUM] =
 	[PE_E_INVALID_INDEX] = PE_E_INVALID_INDEX_IDX,
 	[PE_E_INVALID_OP] = PE_E_INVALID_OP_IDX,
 	[PE_E_INVALID_CMD] = PE_E_INVALID_CMD_IDX,
+	[PE_E_INVALID_OPERAND] = PE_E_INVALID_OPERAND_IDX,
+	[PE_E_WRONG_ORDER_PEHDR] = PE_E_WRONG_ORDER_PEHDR_IDX,
 	[PE_E_FD_DISABLED] = PE_E_FD_DISABLED_IDX,
 	[PE_E_FD_MISMATCH] = PE_E_FD_MISMATCH_IDX,
 	[PE_E_UPDATE_RO] = PE_E_UPDATE_RO_IDX,

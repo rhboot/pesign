@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Red Hat, Inc.
+ * Copyright 2011-2012 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -40,6 +40,8 @@ enum {
 	PE_E_INVALID_INDEX,
 	PE_E_INVALID_OP,
 	PE_E_INVALID_CMD,
+	PE_E_INVALID_OPERAND,
+	PE_E_WRONG_ORDER_PEHDR,
 	PE_E_FD_DISABLED,
 	PE_E_FD_MISMATCH,
 	PE_E_UPDATE_RO,
