@@ -84,6 +84,7 @@ extern Pe_Scn *pe_nextscn(Pe *pe, Pe_Scn *scn);
 extern Pe_Scn *pe_getscn(Pe *pe, size_t idx);
 extern char *pe_rawfile(Pe *pe, size_t *ptr);
 extern int pe_getdatadir(Pe *pe, data_directory **dd);
+extern void *pe_getopthdr(Pe *pe);
 
 extern int pe_errno(void);
 extern const char *pe_errmsg(int error);
