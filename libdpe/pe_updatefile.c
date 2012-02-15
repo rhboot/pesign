@@ -101,8 +101,17 @@ __pe_updatemmap(Pe *pe, size_t shnum)
 	 * We also need to check if the signature is valid and if not,
 	 * make sure it's not in the data directory.
 	 */
-	
-	
+
+	struct mz_hdr *mzhdr = pe->state.pe.mzhdr;
+	struct pe_hdr *pehdr = pe->state.pe.pehdr;
+
+	if (pe->flags & PE_F_DIRTY) {
+		off_t offset = 0;
+		memcpy(pe->map_address + offset, mzhdr, sizeof(*mzhdr));
+
+		offset += le32_to_cpu(mzhdr->peaddr);
+		memcpy(pe->map_address + offset, pehdr, sizeof(*pehdr));
+	}
 
 	/* it's not dirty any more, so clear the flag. */
 	pe->flags &= ~PE_F_DIRTY;
@@ -120,6 +129,9 @@ __pe_updatemmap(Pe *pe, size_t shnum)
 
 	char *msync_end = (char *)dd + sizeof(*dd);
 	msync(msync_start, msync_end - msync_start, MS_SYNC);
+
+	#warning this is not done yet.
+	struct section_header *sh = __get_last_section(pe);
 
 	return 0;
 }
