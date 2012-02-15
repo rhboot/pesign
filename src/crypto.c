@@ -29,6 +29,7 @@
 #include <nss3/secpkcs7.h>
 #include <nss3/secder.h>
 #include <nss3/base64.h>
+#include <nss3/pk11pub.h>
 
 int crypto_init(void)
 {
@@ -441,10 +442,147 @@ decoder_error:
 	PORT_Free(der);
 }
 
+#define SHA1_DIGEST_SIZE	20
+#define SHA256_DIGEST_SIZE	32
+#define MAX_DIGEST_SIZE		SHA1_DIGEST_SIZE
+#define HASH_TYPE		SEC_OID_SHA1
+
 void
 generate_signature(pesign_context *ctx)
 {
 	return;
+}
+
+int
+generate_digest(pesign_context *ctx)
+{
+	unsigned char digest[MAX_DIGEST_SIZE];
+	unsigned int digest_size = 0;
+	void *hash_base;
+	size_t hash_size;
+	struct pe32_opt_hdr *pe32opthdr = NULL;
+	struct pe32plus_opt_hdr *pe64opthdr = NULL;
+	PK11Context *pk11ctx;
+	uint64_t hashed_bytes = 0;
+	int rc = -1;
+
+	Pe *pe = ctx->inpe;
+	if (!pe)
+		return -1;
+
+	struct pe_hdr pehdr;
+	if (pe_getpehdr(pe, &pehdr) == NULL)
+		return -1;
+
+	void *map = NULL;
+	size_t map_size = 0;
+
+	/* 1. Load the image header into memory - should be done
+	 * 2. Initialize SHA hash context. */
+	map = pe_rawfile(pe, &map_size);
+	if (!map)
+		return -1;
+
+	pk11ctx = PK11_CreateDigestContext(HASH_TYPE);
+	if (!pk11ctx)
+		return -1;
+	PK11_DigestBegin(pk11ctx);
+
+	/* 3. Calculate the distance from the base of the image header to the
+	 * image checksum.
+	 * 4. Hash the image header from start to the beginning of the
+	 * checksum. */
+	hash_base = map;
+	switch (pe_kind(pe)) {
+	case PE_K_PE_EXE: {
+		void *opthdr = pe_getopthdr(pe);
+		pe32opthdr = opthdr;
+		hash_size = (uint64_t)&pe32opthdr->csum - (uint64_t)hash_base;
+		break;
+	}
+	case PE_K_PE64_EXE: {
+		void *opthdr = pe_getopthdr(pe);
+		pe64opthdr = opthdr;
+		hash_size = (uint64_t)&pe64opthdr->csum - (uint64_t)hash_base;
+		break;
+	}
+	default:
+		goto error;
+	}
+	PK11_DigestOp(pk11ctx, hash_base, hash_size);
+
+	/* 5. Skip over the image checksum
+	 * 6. Get the address of the beginning of the cert dir entry
+	 * 7. Hash from the end of the csum to the start of the cert dirent. */
+	hash_base += hash_size;
+	hash_base += pe32opthdr ? sizeof(pe32opthdr->csum)
+				: sizeof(pe64opthdr->csum);
+	data_directory *dd;
+
+	rc = pe_getdatadir(pe, &dd);
+	if (rc < 0 || !dd)
+		goto error;
+
+	hash_size = (uint64_t)&dd->certs - (uint64_t)hash_base;
+	PK11_DigestOp(pk11ctx, hash_base, hash_size);
+
+	/* 8. Skip over the crt dir
+	 * 9. Hash everything up to the end of the image header. */
+	hash_base = &dd->base_relocations;
+	hash_size = (pe32opthdr ? pe32opthdr->header_size
+				: pe64opthdr->header_size) -
+		((uint64_t)&dd->base_relocations - (uint64_t)map);
+	PK11_DigestOp(pk11ctx, hash_base, hash_size);
+
+	/* 10. Set SUM_OF_BYTES_HASHED to the size of the header. */
+	hashed_bytes = pe32opthdr ? pe32opthdr->header_size
+				: pe64opthdr->header_size;
+
+	struct section_header *shdrs = calloc(pehdr.sections, sizeof (*shdrs));
+	if (!shdrs)
+		goto error;
+	Pe_Scn *scn = NULL;
+	for (int i = 0; i < pehdr.sections; i++) {
+		scn = pe_nextscn(pe, scn);
+		if (scn == NULL)
+			break;
+		pe_getshdr(scn, &shdrs[i]);
+	}
+	sort_shdrs(shdrs, pehdr.sections - 1);
+
+	for (int i = 0; i < pehdr.sections; i++) {
+		hash_base = (void *)((uint64_t)map + shdrs[i].data_addr);
+		hash_size = shdrs[i].raw_data_size;
+		PK11_DigestOp(pk11ctx, hash_base, hash_size);
+
+		hashed_bytes += hash_size;
+	}
+
+	if (map_size > hashed_bytes) {
+		hash_base = (void *)((uint64_t)map + hashed_bytes);
+		hash_size = map_size - dd->certs.size - hashed_bytes;
+		PK11_DigestOp(pk11ctx, hash_base, hash_size);
+	}
+
+	PK11_DigestFinal(pk11ctx, digest, &digest_size, MAX_DIGEST_SIZE);
+
+	unsigned char *tmp = malloc(digest_size);
+	if (!tmp)
+		goto error_shdrs;
+
+	if (ctx->digest)
+		free(ctx->digest);
+	ctx->digest = tmp;
+	ctx->digest_size = digest_size;
+	memcpy(ctx->digest, digest, digest_size);
+
+	rc = 0;
+error_shdrs:
+	if (shdrs)
+		free(shdrs);
+error:
+	PK11_DestroyContext(pk11ctx, PR_TRUE);
+	return rc;
 }
 
 int

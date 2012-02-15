@@ -86,6 +86,9 @@ pesign_context_fini(pesign_context *ctx)
 		ctx->inpe = NULL;
 	}
 
+	xfree(ctx->digest);
+	ctx->digest_size = 0;
+
 	xfree(ctx->outfile);
 	xfree(ctx->infile);
 
