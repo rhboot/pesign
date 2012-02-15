@@ -176,5 +176,6 @@ struct Pe {
 extern off_t __pe_updatemmap(Pe *pe, size_t shnum);
 extern int __pe_updatefile(Pe *pe, size_t shnum);
 extern off_t __pe_updatenull_wrlock(Pe *pe, size_t shnum);
+extern char *__libpe_readall(Pe *pe);
 
 #endif /* LIBDPE_PRIV_H */
