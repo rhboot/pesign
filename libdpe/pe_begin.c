@@ -96,7 +96,7 @@ file_read_pe_exe(int fildes, void *map_address, unsigned char *p_ident,
 			pe->state.pe32_exe.opthdr = (struct pe32_opt_hdr *)
 				((char *)pe->state.pe32_exe.pehdr +
 				sizeof (struct pe_hdr));
-			pe->state.pe32_exe.datadir = (struct data_directory *)
+			pe->state.pe32_exe.datadir = (data_directory *)
 				((char *)pe->state.pe32_exe.opthdr +
 				sizeof (struct pe32_opt_hdr));
 			ddsize = le32_to_cpu(
@@ -116,7 +116,7 @@ file_read_pe_exe(int fildes, void *map_address, unsigned char *p_ident,
 					((char *)pe->state.pe32plus_exe.pehdr +
 					sizeof (struct pe_hdr));
 			pe->state.pe32plus_exe.datadir = 
-				(struct data_directory *)
+				(data_directory *)
 					((char *)pe->state.pe32plus_exe.opthdr +
 					sizeof (struct pe32plus_opt_hdr));
 			ddsize = le32_to_cpu(

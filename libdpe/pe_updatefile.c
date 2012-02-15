@@ -23,28 +23,6 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
-static int
-__get_last_datadir(Pe *pe, data_dirent *last_dd)
-{
-	if (!last_dd)
-		return -1;
-
-	for (int x = 0; x < PE_DATA_NUM; x++) {
-		void *ddstart;
-		size_t ddsize;
-
-		int rc = pe_getdatadir(pe, x, &ddstart, &ddsize);
-		if (rc < 0)
-			continue;
-
-		if ((uint64_t)ddstart > last_dd->virtual_address) {
-			last_dd->virtual_address = (uint64_t)ddstart;
-			last_dd->size = ddsize;
-		}
-	}
-	return 0;
-}
-
 static struct section_header *
 __get_last_section(Pe *pe)
 {
@@ -133,20 +111,14 @@ __pe_updatemmap(Pe *pe, size_t shnum)
 	char *msync_start = ((char *) pe->map_address
 		+ (~(sysconf(_SC_PAGESIZE) -1 )));
 
-	data_dirent dd = {0, 0};
-	__get_last_datadir(pe, &dd);
-
-	struct section_header *sh = __get_last_section(pe);
-	assert(dd.virtual_address && sh);
-
-	char *msync_end = (char *) pe->map_address;
-
-	if (sh->virtual_address > dd.virtual_address) {
-		msync_end += sh->virtual_address + sh->raw_data_size;
-	} else {
-		msync_end += dd.virtual_address + dd.size;
+	data_directory *dd = NULL;
+	int rc = pe_getdatadir(pe, &dd);
+	if (rc < 0) {
+		/* XXX set an error here */
+		return -1;
 	}
 
+	char *msync_end = (char *)dd + sizeof(*dd);
 	msync(msync_start, msync_end - msync_start, MS_SYNC);
 
 	return 0;

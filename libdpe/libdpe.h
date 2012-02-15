@@ -134,7 +134,7 @@ struct Pe {
 			struct mz_hdr *mzhdr;
 			struct pe_hdr *pehdr;
 			struct pe32_opt_hdr *opthdr;
-			struct data_directory *datadir;
+			data_directory *datadir;
 			struct section_header *shdr;
 
 			Pe_ScnList *scns_last;
@@ -160,7 +160,7 @@ struct Pe {
 			struct mz_hdr *mzhdr;
 			struct pe_hdr *pehdr;
 			struct pe32plus_opt_hdr *opthdr;
-			struct data_directory *datadir;
+			data_directory *datadir;
 			struct section_header *shdr;
 
 			Pe_ScnList *scns_last;

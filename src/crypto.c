@@ -105,8 +105,22 @@ cert_iter_init(cert_iter *iter, Pe *pe)
 	iter->pe = pe;
 	iter->n = 0;
 
-	int rc = pe_getdatadir(pe, PE_DATA_DIR_CERTIFICATES, &iter->certs,
-				&iter->size);
+	data_directory *dd;
+
+	int rc = pe_getdatadir(pe, &dd);
+	if (rc < 0)
+		return -1;
+
+	void *map;
+	size_t map_size;
+
+	map = pe_rawfile(pe, &map_size);
+	if (!map)
+		return -1;
+
+	iter->certs = map + dd->certs.virtual_address;
+	iter->size = dd->certs.size;
+
 	return rc;
 }
 
@@ -443,6 +457,13 @@ int
 remove_signature(pesign_context *ctx, int signum)
 {
 	/* XXX FIXME: right now we clear them all... */
-	pe_setdatadir(ctx->outpe, PE_DATA_DIR_CERTIFICATES, NULL, 0);
+	data_directory *dd;
+
+	int rc = pe_getdatadir(ctx->inpe, &dd);
+	if (rc < 0 || !dd)
+		return -1;
+
+	dd->certs.virtual_address = 0;
+	dd->certs.size = 0;
 	return 0;
 }
