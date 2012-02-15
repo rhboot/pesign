@@ -35,8 +35,3 @@ Pe_Kind pe_kind(Pe *pe)
 {
 	return pe == NULL ? PE_K_NONE : pe->kind;
 }
-
-off_t pe_getbase(Pe *pe)
-{
-	return pe == NULL ? (off_t)-1 : 0;
-}
