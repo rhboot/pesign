@@ -60,6 +60,8 @@ pesign_context_init(pesign_context *ctx)
 	ctx->ascii = 0;
 	ctx->hashgaps = 1;
 	ctx->sign = 0;
+	ctx->hash = 0;
+
 	return 0;
 }
 

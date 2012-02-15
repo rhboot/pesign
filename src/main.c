@@ -33,17 +33,20 @@
 #include "pesign.h"
 
 #define NO_FLAGS		0x00
-#define GENERATE_SIGNATURE	0x01
-#define IMPORT_SIGNATURE	0x02
-#define EXPORT_SIGNATURE	0x04
-#define REMOVE_SIGNATURE	0x08
-#define LIST_SIGNATURES		0x10
-#define FLAG_LIST_END		0x20
+#define GENERATE_DIGEST		0x01
+#define GENERATE_SIGNATURE	0x02
+#define IMPORT_SIGNATURE	0x04
+#define EXPORT_SIGNATURE	0x08
+#define REMOVE_SIGNATURE	0x10
+#define LIST_SIGNATURES		0x20
+#define PRINT_DIGEST		0x40
+#define FLAG_LIST_END		0x80
 
 static struct {
 	int flag;
 	const char *name;
 } flag_names[] = {
+	{GENERATE_DIGEST, "hash"},
 	{GENERATE_SIGNATURE, "sign"},
 	{IMPORT_SIGNATURE, "import"},
 	{EXPORT_SIGNATURE, "export"},
@@ -204,6 +207,18 @@ check_inputs(pesign_context *ctx)
 	}
 }
 
+static void
+print_digest(pesign_context *ctx)
+{
+	if (!ctx || !ctx->digest)
+		return;
+
+	printf("hash: ");
+	for (int i = 0; i < ctx->digest_size; i++)
+		printf("%02x", (unsigned char)ctx->digest[i]);
+	printf("\n");
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -228,6 +243,7 @@ main(int argc, char *argv[])
 			"skip gaps between sections when signing", NULL },
 		{"sign", 's', POPT_ARG_VAL, &ctx.sign, 1,
 			"create a new signature", NULL },
+		{"hash", 'h', POPT_ARG_VAL, &ctx.hash, 1, "hash binary", NULL },
 		{"import-signature", 'm', POPT_ARG_STRING, &ctx.insig, 0,
 			"import signature from file", "<insig>" },
 #if 0 /* there's not concensus that this is really a thing... */
@@ -286,6 +302,9 @@ main(int argc, char *argv[])
 			action |= IMPORT_SIGNATURE;
 	}
 
+	if (ctx.hash)
+		action |= GENERATE_DIGEST|PRINT_DIGEST;
+
 	rc = crypto_init();
 	if (rc < 0) {
 		fprintf(stderr, "Could not initialize cryptographic library\n");
@@ -323,6 +342,11 @@ main(int argc, char *argv[])
 		case LIST_SIGNATURES:
 			open_input(ctxp);
 			list_signatures(ctxp);
+			break;
+		case GENERATE_DIGEST|PRINT_DIGEST:
+			open_input(ctxp);
+			generate_digest(ctxp);
+			print_digest(ctxp);
 			break;
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:

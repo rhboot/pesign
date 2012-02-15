@@ -54,6 +54,7 @@ typedef struct {
 	int ascii;
 	int hashgaps;
 	int sign;
+	int hash;
 
 	unsigned char *digest;
 	size_t digest_size;
