@@ -21,6 +21,8 @@
 
 #include <sys/types.h>
 
+#include <libdpe/pe.h>
+
 typedef enum {
 	PE_K_NONE,
 	PE_K_MZ,

@@ -20,7 +20,6 @@
 #define LIBDPE_PRIV_H 1
 
 #include <libdpe/libdpe.h>
-#include <libdpe/pe.h>
 #include "endian.h"
 #include "lock.h"
 
