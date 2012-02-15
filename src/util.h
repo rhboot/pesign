@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2011-2012 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -18,6 +18,9 @@
  */
 #ifndef PESIGN_UTIL_H
 #define PESIGN_UTIL_H 1
+
+#include <string.h>
+#include <stdio.h>
 
 static inline int
 __attribute__ ((unused))
@@ -42,6 +45,47 @@ read_file(int fd, char **bufp, size_t *lenptr) {
     *lenptr = size;
 
     return 0;
+}
+
+static int
+compare_shdrs (const void *a, const void *b)
+{
+	const struct section_header *shdra = (const struct section_header *)a;
+	const struct section_header *shdrb = (const struct section_header *)b;
+	int rc;
+
+	if (shdra->data_addr > shdrb->data_addr)
+		return 1;
+	if (shdrb->data_addr > shdra->data_addr)
+		return -1;
+
+	if (shdra->virtual_address > shdrb->virtual_address)
+		return 1;
+	if (shdrb->virtual_address > shdra->virtual_address)
+		return -1;
+
+	rc = strcmp(shdra->name, shdrb->name);
+	if (rc != 0)
+		return rc;
+
+	if (shdra->virtual_size > shdrb->virtual_size)
+		return 1;
+	if (shdrb->virtual_size > shdra->virtual_size)
+		return -1;
+
+	if (shdra->raw_data_size > shdrb->raw_data_size)
+		return 1;
+	if (shdrb->raw_data_size > shdra->raw_data_size)
+		return -1;
+
+	return 0;
+}
+
+static void
+__attribute__ ((unused))
+sort_shdrs (struct section_header *shdrs, size_t sections)
+{
+	qsort(shdrs, sections, sizeof(*shdrs), compare_shdrs);
 }
 
 #endif /* PESIGN_UTIL_H */
