@@ -46,8 +46,10 @@ void crypto_fini(void)
 }
 
 /* read a cert generated with:
+ * $ openssl genrsa -out privkey.pem 1024
  * $ openssl req -new -key privkey.pem -out cert.csr
  * $ openssl req -new -x509 -key privkey.pem -out cacert.pem -days 1095
+ * See also: http://www.openssl.org/docs/HOWTO/keys.txt
  */
 int read_cert(int certfd, CERTCertificate **cert)
 {
