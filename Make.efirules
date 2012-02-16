@@ -1,0 +1,15 @@
+%.efi : %.so
+	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
+		   -j .rela -j .reloc --target=$(FORMAT) $*.so $@
+
+%.so: %.o
+	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+%.o: %.c
+	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -D__UEFI__ -c $< -o $@
+
+%.S: %.c
+	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -D__UEFI__ -S $< -o $@
+
+%.E: %.c
+	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -D__UEFI__ -E $< -o $@

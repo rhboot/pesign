@@ -1,33 +1,17 @@
 %.a :
 	$(AR) -cvq $@ $^
 
-%.efi : %_pe.so
-	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
-		   -j .rela -j .reloc --target=$(FORMAT) $*.so $@
-
 % : %.o
 	$(CC) $(CCLDFLAGS) -o $@ $^ $(foreach lib,$(LIBS),-l$(lib))
-
-%_pe.so: %_pe.o
-	$(LD) $(LDFLAGS) -o $@ $^
 
 %.so : 
 	$(CC) $(INCDIR) $(CFLAGS) -Wl,-soname,$(SONAME) $(CCLDFLAGS) $^ -o $@
 
-%_pe.o: %.c
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -D__UEFI__ -c $< -o $@
-
 %.o: %.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
-%_pe.S: %.c
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -D__UEFI__ -S $< -o $@
-
 %.S: %.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -S $< -o $@
-
-%_pe.E: %.c
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -D__UEFI__ -E $< -o $@
 
 %.E: %.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -E $< -o $@
