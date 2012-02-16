@@ -16,7 +16,7 @@ prefix     = /usr/bin/
 
 CC            = $(prefix)gcc
 AS            = $(prefix)as
-LD            = $(prefix)ld
+LD            = $(prefix)ld.bfd
 AR            = $(prefix)ar
 RANLIB        = $(prefix)ranlib
 OBJCOPY       = $(prefix)objcopy
