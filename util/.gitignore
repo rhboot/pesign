@@ -1,0 +1,8 @@
+*~
+*.o
+*.so
+*.a
+*.efi
+pesign
+*.sw?
+core.*

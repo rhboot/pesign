@@ -2,7 +2,7 @@ TOPDIR = $(shell echo $$PWD)
 
 include $(TOPDIR)/Make.defaults
 
-SUBDIRS := include libdpe src
+SUBDIRS := include libdpe src util
 
 all : $(SUBDIRS)
 
