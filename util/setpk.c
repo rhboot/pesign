@@ -19,44 +19,59 @@ static void dumphex(UINT8 *data, UINTN data_size)
 		Print(L"\n");
 }
 
-static void set_pk(EFI_SYSTEM_TABLE *systab)
+static void dumpvar(EFI_SYSTEM_TABLE *systab, EFI_GUID *guid, CHAR16 *name)
+{
+	char *data = NULL;
+	UINTN data_size = 16384;
+
+	data = AllocatePool(17384);
+
+	Print(L"Dumping ");
+	Print(name);
+	Print(L"\n");
+	uefi_call_wrapper(systab->RuntimeServices->GetVariable, 5,
+			name, guid, 0, &data_size, data);
+	dumphex(data, data_size);
+	FreePool(data);
+}
+
+static EFI_STATUS set_pk(EFI_SYSTEM_TABLE *systab)
 {
 	struct {
 		EFI_SIGNATURE_LIST sl;
 		EFI_SIGNATURE_DATA sd;
 		UINT8 cert[cert_size];
 	} __attribute__((aligned (1))) __attribute__((packed)) data;
-	Print(L"c\r\n");
 
 	data.sl.SignatureType = gEfiCertX509Guid;
 	data.sl.SignatureListSize = sizeof(data);
 	data.sl.SignatureHeaderSize = 0;
 	data.sl.SignatureSize = sizeof(EFI_SIGNATURE_DATA) + cert_size;
-	Print(L"sizeof(data): %d\n", sizeof(data));
 
 	data.sd.SignatureOwner = gEfiImageSecurityDatabaseGuid; // random number
 	CopyMem(data.cert, cert, cert_size);
-	dumphex((UINT8 *)&data, sizeof(data));
 	
 	EFI_STATUS rc;
-	Print(L"c\r\n");
+	Print(L"Clearing " EFI_PLATFORM_KEY_NAME);
 	rc = uefi_call_wrapper(systab->RuntimeServices->SetVariable, 5,
 				EFI_PLATFORM_KEY_NAME,
 				&EfiGlobalVariable,
 				EFI_VARIABLE_NON_VOLATILE|EFI_VARIABLE_RUNTIME_ACCESS|EFI_VARIABLE_BOOTSERVICE_ACCESS,
 				0, NULL);
-	Print(L"rc: %d\n", rc);
-	Print(L"c\r\n");
+	Print(L"(%d)\n", rc);
+	Print(L"Setting " EFI_PLATFORM_KEY_NAME);
 	rc = uefi_call_wrapper(systab->RuntimeServices->SetVariable, 5,
 				EFI_PLATFORM_KEY_NAME,
 				&EfiGlobalVariable,
 				EFI_VARIABLE_NON_VOLATILE|EFI_VARIABLE_RUNTIME_ACCESS|EFI_VARIABLE_BOOTSERVICE_ACCESS,
 				sizeof(data), &data);
-	Print(L"rc: %d\n", rc);
-	Print(L"c\r\n");
+	Print(L"(%d)\n", rc);
+	if (rc == EFI_SUCCESS)
+		dumpvar(systab, &EfiGlobalVariable, EFI_PLATFORM_KEY_NAME);
+	return rc;
 }
 
-static void set_db(EFI_SYSTEM_TABLE *systab)
+static EFI_STATUS set_db(EFI_SYSTEM_TABLE *systab)
 {
 	// eddie:~/devel/github.com/pesign/src$ ./pesign -i clearpk.efi --hash
 	// hash: 457d1d6e25d33b7fc5b0f51efeb14319ed438709
@@ -73,7 +88,6 @@ static void set_db(EFI_SYSTEM_TABLE *systab)
 		EFI_SIGNATURE_DATA sd1;
 		UINT8 sig1[hash_size];
 	} __attribute__((aligned (1))) __attribute__((packed)) data;
-	Print(L"b\r\n");
 
 	data.sl.SignatureType = gEfiCertSha1Guid;
 	data.sl.SignatureListSize = sizeof(data);
@@ -86,22 +100,24 @@ static void set_db(EFI_SYSTEM_TABLE *systab)
 	CopyMem(data.sig1, hash1, hash_size);
 	
 	EFI_STATUS rc;
-	Print(L"b\r\n");
+	Print(L"Clearing " EFI_IMAGE_SECURITY_DATABASE);
 	rc = uefi_call_wrapper(systab->RuntimeServices->SetVariable, 5,
 				EFI_IMAGE_SECURITY_DATABASE,
 				&gEfiImageSecurityDatabaseGuid,
 				EFI_VARIABLE_NON_VOLATILE|EFI_VARIABLE_RUNTIME_ACCESS|EFI_VARIABLE_BOOTSERVICE_ACCESS,
 				0, NULL);
-	Print(L"rc: %d\n", rc);
-
-	Print(L"b\r\n");
+	Print(L"(%d)\n", rc);
+	Print(L"Setting " EFI_IMAGE_SECURITY_DATABASE);
 	rc = uefi_call_wrapper(systab->RuntimeServices->SetVariable, 5,
 				EFI_IMAGE_SECURITY_DATABASE,
 				&gEfiImageSecurityDatabaseGuid,
 				EFI_VARIABLE_NON_VOLATILE|EFI_VARIABLE_RUNTIME_ACCESS|EFI_VARIABLE_BOOTSERVICE_ACCESS,
 				sizeof(data), &data);
-	Print(L"rc: %d\n", rc);
-	Print(L"b\r\n");
+	Print(L"(%d)\n", rc);
+	if (rc == EFI_SUCCESS)
+		dumpvar(systab, &gEfiImageSecurityDatabaseGuid,
+				EFI_IMAGE_SECURITY_DATABASE);
+	return rc;
 }
 
 
@@ -112,23 +128,11 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	int i;
 
 	InitializeLib(image, systab);
-	Print(L"a\r\n");
 
-	set_db(systab);
-	Print(L"a\r\n");
-
-	UINT8 *data = AllocatePool(16384);
-	UINTN data_size = 16384;
-	rc = uefi_call_wrapper(systab->RuntimeServices->GetVariable, 5,
-		EFI_IMAGE_SECURITY_DATABASE,
-		&gEfiImageSecurityDatabaseGuid,
-		0, &data_size, data);
-	if (rc == EFI_SUCCESS) {
-		dumphex(data, data_size);
-		set_pk(systab);
-		Print(L"a\r\n");
-	}
-
+	rc = set_db(systab);
+	if (rc != EFI_SUCCESS)
+		return rc;
+	rc = set_pk(systab);
 	return rc;
 }
 
