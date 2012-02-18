@@ -32,6 +32,42 @@ static void dumpvar(EFI_SYSTEM_TABLE *systab, EFI_GUID *guid, CHAR16 *name)
 	FreePool(data);
 }
 
+static EFI_STATUS set_kek(EFI_SYSTEM_TABLE *systab)
+{
+	struct {
+		EFI_SIGNATURE_LIST sl;
+		EFI_SIGNATURE_DATA sd;
+		UINT8 cert[cert_size];
+	} __attribute__((aligned (1))) __attribute__((packed)) data;
+
+	data.sl.SignatureType = gEfiCertX509Guid;
+	data.sl.SignatureListSize = sizeof(data);
+	data.sl.SignatureHeaderSize = 0;
+	data.sl.SignatureSize = sizeof(EFI_SIGNATURE_DATA) + cert_size;
+
+	data.sd.SignatureOwner = gEfiImageSecurityDatabaseGuid; // random number
+	CopyMem(data.cert, cert, cert_size);
+	
+	EFI_STATUS rc;
+	Print(L"Clearing " EFI_PLATFORM_KEY_NAME);
+	rc = uefi_call_wrapper(systab->RuntimeServices->SetVariable, 5,
+				EFI_KEY_EXCHANGE_KEY_NAME,
+				&EfiGlobalVariable,
+				EFI_VARIABLE_NON_VOLATILE|EFI_VARIABLE_RUNTIME_ACCESS|EFI_VARIABLE_BOOTSERVICE_ACCESS,
+				0, NULL);
+	Print(L"(%d)\n", rc);
+	Print(L"Setting " EFI_PLATFORM_KEY_NAME);
+	rc = uefi_call_wrapper(systab->RuntimeServices->SetVariable, 5,
+				EFI_KEY_EXCHANGE_KEY_NAME,
+				&EfiGlobalVariable,
+				EFI_VARIABLE_NON_VOLATILE|EFI_VARIABLE_RUNTIME_ACCESS|EFI_VARIABLE_BOOTSERVICE_ACCESS,
+				sizeof(data), &data);
+	Print(L"(%d)\n", rc);
+	if (rc == EFI_SUCCESS)
+		dumpvar(systab, &EfiGlobalVariable, EFI_KEY_EXCHANGE_KEY_NAME);
+	return rc;
+}
+
 static EFI_STATUS set_pk(EFI_SYSTEM_TABLE *systab)
 {
 	struct {
@@ -129,6 +165,11 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	rc = set_db(systab);
 	if (rc != EFI_SUCCESS)
 		return rc;
+
+	rc = set_kek(systab);
+	if (rc != EFI_SUCCESS)
+		return rc;
+
 	rc = set_pk(systab);
 	return rc;
 }
