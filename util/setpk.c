@@ -22,15 +22,12 @@ static void dumphex(UINT8 *data, UINTN data_size)
 static void dumpvar(EFI_SYSTEM_TABLE *systab, EFI_GUID *guid, CHAR16 *name)
 {
 	char *data = NULL;
-	UINTN data_size = 16384;
-
-	data = AllocatePool(17384);
+	UINTN data_size = 0;
 
 	Print(L"Dumping ");
 	Print(name);
 	Print(L"\n");
-	uefi_call_wrapper(systab->RuntimeServices->GetVariable, 5,
-			name, guid, 0, &data_size, data);
+	data = LibGetVariableAndSize(name, guid, &data_size);
 	dumphex(data, data_size);
 	FreePool(data);
 }
