@@ -153,6 +153,45 @@ static EFI_STATUS set_db(EFI_SYSTEM_TABLE *systab)
 	return rc;
 }
 
+EFI_STATUS
+show_signature_support(EFI_SYSTEM_TABLE *systab)
+{
+	EFI_STATUS rc = EFI_SUCCESS;
+	char *data = NULL;
+	UINTN data_size = 0;
+	EFI_GUID *guid;
+	int i, j;
+
+	struct {
+		EFI_GUID *guid;
+		CHAR16 *name;
+	} hashes[] = {
+		{ &gEfiCertSha256Guid, L"\tSHA-256\n" },
+		{ &gEfiCertRsa2048Guid, L"\tRSA-2048\n" },
+		{ &gEfiCertRsa2048Sha256Guid, L"\tRSA-2048 + SHA-256\n" },
+		{ &gEfiCertSha1Guid, L"\tSHA-1\n" },
+		{ &gEfiCertRsa2048Sha1Guid, L"\tRSA-2048 + SHA-1\n" },
+		{ &gEfiCertX509Guid, L"\tX509\n" },
+		{ &gEfiCertPkcs7Guid, L"\tPKCS-7\n" },
+		{ NULL, L"" }
+	};
+
+	data = LibGetVariableAndSize(L"SignatureSupport", &EfiGlobalVariable,
+				&data_size);
+	guid = (EFI_GUID *)data;
+	Print(L"Supported hashes: \n");
+	for (i = 0; i < data_size / sizeof(*guid); i++, guid++) {
+		for (j = 0; hashes[j].guid != NULL; j++) {
+			if (!CompareMem(hashes[j].guid, guid, sizeof(*guid))) {
+				Print(hashes[j].name);
+				continue;
+			}
+		}
+	}
+
+	FreePool(data);
+	return rc;
+}
 
 EFI_STATUS
 efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
@@ -161,6 +200,10 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	int i;
 
 	InitializeLib(image, systab);
+
+	rc = show_signature_support(systab);
+	if (rc != EFI_SUCCESS)
+		return rc;
 
 	rc = set_db(systab);
 	if (rc != EFI_SUCCESS)
