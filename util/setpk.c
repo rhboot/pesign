@@ -5,6 +5,8 @@
 #include "sb.h"
 #include "cert.h"
 
+EFI_GUID rh_guid = {0xade9e48f, 0x9cb8, 0x98e6, {0x31,0xaf,0xb4,0xe6,0x00,0x9e,0x2f,0xe3}};
+
 static void dumphex(UINT8 *data, UINTN data_size)
 {
 	int i, j;
@@ -127,9 +129,9 @@ static EFI_STATUS set_db(EFI_SYSTEM_TABLE *systab)
 	data.sl.SignatureHeaderSize = 0;
 	data.sl.SignatureSize = sizeof(EFI_SIGNATURE_DATA) + hash_size;
 
-	data.sd0.SignatureOwner = gEfiImageSecurityDatabaseGuid; // bullshit
+	data.sd0.SignatureOwner = rh_guid;
 	CopyMem(data.sig0, hash0, hash_size);
-	data.sd1.SignatureOwner = gEfiImageSecurityDatabaseGuid; // bullshit
+	data.sd1.SignatureOwner = rh_guid;
 	CopyMem(data.sig1, hash1, hash_size);
 	
 	EFI_STATUS rc;
