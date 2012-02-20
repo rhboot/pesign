@@ -167,14 +167,15 @@ show_signature_support(EFI_SYSTEM_TABLE *systab)
 	struct {
 		EFI_GUID *guid;
 		CHAR16 *name;
+		int required;
 	} hashes[] = {
-		{ &gEfiCertSha256Guid, L"\tSHA-256\n" },
-		{ &gEfiCertRsa2048Guid, L"\tRSA-2048\n" },
-		{ &gEfiCertRsa2048Sha256Guid, L"\tRSA-2048 + SHA-256\n" },
-		{ &gEfiCertSha1Guid, L"\tSHA-1\n" },
-		{ &gEfiCertRsa2048Sha1Guid, L"\tRSA-2048 + SHA-1\n" },
-		{ &gEfiCertX509Guid, L"\tX509\n" },
-		{ &gEfiCertPkcs7Guid, L"\tPKCS-7\n" },
+		{ &gEfiCertSha256Guid, L"SHA-256", 0 },
+		{ &gEfiCertRsa2048Guid, L"RSA-2048", 0 },
+		{ &gEfiCertRsa2048Sha256Guid, L"RSA-2048 + SHA-256", 0 },
+		{ &gEfiCertSha1Guid, L"SHA-1", 1 },
+		{ &gEfiCertRsa2048Sha1Guid, L"RSA-2048 + SHA-1", 0 },
+		{ &gEfiCertX509Guid, L"X509", 1 },
+		{ &gEfiCertPkcs7Guid, L"PKCS-7", 0 },
 		{ NULL, L"" }
 	};
 
@@ -185,9 +186,19 @@ show_signature_support(EFI_SYSTEM_TABLE *systab)
 	for (i = 0; i < data_size / sizeof(*guid); i++, guid++) {
 		for (j = 0; hashes[j].guid != NULL; j++) {
 			if (!CompareMem(hashes[j].guid, guid, sizeof(*guid))) {
-				Print(hashes[j].name);
+				Print(L"        %s\n", hashes[j].name);
+				hashes[j].required = 0;
 				continue;
 			}
+		}
+	}
+
+	for (j = 0; hashes[j].guid != NULL; j++) {
+		if (hashes[j].required) {
+			Print(L"Did not find required hash \"%s\"\n",
+				hashes[j].name);
+			Print(L"Not continuing.\n");
+			rc = EFI_NOT_FOUND;
 		}
 	}
 
