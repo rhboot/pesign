@@ -1,6 +1,46 @@
 #ifndef SB_H
 #define SB_H 1
 
+struct _WIN_CERTIFICATE {
+	UINT32	dwLength;
+	UINT16	wRevision;
+	UINT16	wCertificateType;
+	//UINT8	bCertficate[];
+} __attribute__((aligned (1)));
+
+typedef struct _WIN_CERTIFICATE WIN_CERTIFICATE;
+
+#define EFI_CERT_TYPE_RSA2048_SHA256_GUID \
+  { 0xa7717414, 0xc616, 0x4977, {0x94,0x20,0x84,0x47,0x12,0xa7,0x35,0xbf }}
+
+typedef struct {
+	EFI_GUID	HashType;
+	UINT8		PublicKey[256];
+	UINT8		Signature[256];
+} EFI_CERT_BLOCK_RSA_2048_SHA256;
+
+struct _WIN_CERTIFICATE_UEFI_GUID {
+	WIN_CERTIFICATE	Hdr;
+	EFI_GUID	CertType;
+	//UINT8		CertData[];
+} __attribute__((aligned (1)));
+
+typedef struct _WIN_CERTIFICATE_UEFI_GUID WIN_CERTIFICATE_UEFI_GUID;
+
+struct _EFI_VARIABLE_AUTHENTICATION {
+	UINT64				MonotonicCount;
+	WIN_CERTIFICATE_UEFI_GUID	AuthInfo;
+} __attribute__((aligned (1)));
+
+typedef struct _EFI_VARIABLE_AUTHENTICATION EFI_VARIABLE_AUTHENTICATION;
+
+struct _EFI_VARIABLE_AUTHENTICATION_2 {
+	EFI_TIME			TimeStamp;
+	WIN_CERTIFICATE_UEFI_GUID	AuthInfo;
+} __attribute__((aligned (1)));
+
+typedef struct _EFI_VARIABLE_AUTHENTICATION_2 EFI_VARIABLE_AUTHENTICATION_2;
+
 struct _EFI_SIGNATURE_DATA {
 	EFI_GUID	SignatureOwner; /* 16 */
 //	UINT8		SignatureData[];
