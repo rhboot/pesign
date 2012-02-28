@@ -34,6 +34,7 @@ static void dumpvar(EFI_SYSTEM_TABLE *systab, EFI_GUID *guid, CHAR16 *name)
 	FreePool(data);
 }
 
+#if 0
 static EFI_STATUS set_kek(EFI_SYSTEM_TABLE *systab)
 {
 	struct {
@@ -69,6 +70,7 @@ static EFI_STATUS set_kek(EFI_SYSTEM_TABLE *systab)
 		dumpvar(systab, &EfiGlobalVariable, EFI_KEY_EXCHANGE_KEY_NAME);
 	return rc;
 }
+#endif
 
 /* PK is actually just the openssl bignum of M= from the pubkey, raw there
  * in the file, no DER or anything like that.  So you can get it from:
@@ -226,9 +228,11 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
 	if (rc != EFI_SUCCESS)
 		return rc;
 
+#if 0
 	rc = set_kek(systab);
 	if (rc != EFI_SUCCESS)
 		return rc;
+#endif
 
 	rc = set_pk(systab);
 	return rc;
