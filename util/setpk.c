@@ -3,7 +3,7 @@
 #include <efilib.h>
 
 #include "sb.h"
-#include "cert.h"
+#include "pk.h"
 
 EFI_GUID rh_guid = {0xade9e48f, 0x9cb8, 0x98e6, {0x31,0xaf,0xb4,0xe6,0x00,0x9e,0x2f,0xe3}};
 
@@ -70,21 +70,25 @@ static EFI_STATUS set_kek(EFI_SYSTEM_TABLE *systab)
 	return rc;
 }
 
+/* PK is actually just the openssl bignum of M= from the pubkey, raw there
+ * in the file, no DER or anything like that.  So you can get it from:
+ * $ openssl rsa -inform PEM -in privkey.pem -modulus | grep Modulus | sed -e 's/Modulus=//' -e 's,..,\\x&,g' -e 's/$/"/' -e 's/^/char *pubkey="/'
+ */
 static EFI_STATUS set_pk(EFI_SYSTEM_TABLE *systab)
 {
 	struct {
 		EFI_SIGNATURE_LIST sl;
 		EFI_SIGNATURE_DATA sd;
-		UINT8 cert[cert_size];
+		UINT8 cert[pk_size];
 	} __attribute__((aligned (1))) __attribute__((packed)) data;
 
 	data.sl.SignatureType = gEfiCertX509Guid;
 	data.sl.SignatureListSize = sizeof(data);
 	data.sl.SignatureHeaderSize = 0;
-	data.sl.SignatureSize = sizeof(EFI_SIGNATURE_DATA) + cert_size;
+	data.sl.SignatureSize = sizeof(EFI_SIGNATURE_DATA) + pk_size;
 
 	data.sd.SignatureOwner = gEfiImageSecurityDatabaseGuid; // random number
-	CopyMem(data.cert, cert, cert_size);
+	CopyMem(data.cert, pk, pk_size);
 	
 	EFI_STATUS rc;
 	Print(L"Clearing " EFI_PLATFORM_KEY_NAME);

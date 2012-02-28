@@ -20,7 +20,7 @@ install :
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/boot/efi/EFI/redhat/
 	$(INSTALL) -m 755 *.efi $(INSTALLROOT)$(PREFIX)/boot/efi/EFI/redhat/
 
-setpk.o : setpk.c cert.h
+setpk.o : setpk.c pk.h
 setpk.so : $(OBJECTS)
 
 .PHONY: all clean install

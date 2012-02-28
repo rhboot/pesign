@@ -49,7 +49,6 @@ void crypto_fini(void)
  * $ openssl genrsa -out privkey.pem 2048
  * $ openssl req -new -key privkey.pem -out cert.csr
  * $ openssl req -new -x509 -key privkey.pem -out cacert.pem -days 1095
- * $ openssl rsa -in privkey.pem -pubout -outform DER -out pubkey.cer
  * See also: http://www.openssl.org/docs/HOWTO/keys.txt
  */
 int read_cert(int certfd, CERTCertificate **cert)
