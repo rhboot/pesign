@@ -9,7 +9,7 @@ LIBS=-lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name)
 CCLDFLAGS =
 CFLAGS = -I/usr/include/efi/ -I/usr/include/efi/x86_64/ -I/usr/include/efi/protocol -fpic -fshort-wchar -fno-reorder-functions -fno-strict-aliasing -fno-merge-constants -mno-red-zone 
 
-TARGETS = setpk.efi clearpk.efi
+TARGETS = dumpsb.efi setpk.efi clearpk.efi
 
 all : $(TARGETS)
 
