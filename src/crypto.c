@@ -446,8 +446,8 @@ decoder_error:
 
 #define SHA1_DIGEST_SIZE	20
 #define SHA256_DIGEST_SIZE	32
-#define MAX_DIGEST_SIZE		SHA1_DIGEST_SIZE
-#define HASH_TYPE		SEC_OID_SHA1
+#define MAX_DIGEST_SIZE		SHA256_DIGEST_SIZE
+#define HASH_TYPE		SEC_OID_SHA256
 
 void
 generate_signature(pesign_context *ctx)
