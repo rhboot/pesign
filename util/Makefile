@@ -7,9 +7,9 @@ FORMAT=efi-app-x86_64
 LDFLAGS = -nostdlib -T /usr/lib64/gnuefi/elf_x86_64_efi.lds -shared -Bsymbolic /usr/lib64/gnuefi/crt0-efi-x86_64.o -L/usr/lib64/
 LIBS=-lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name)
 CCLDFLAGS =
-CFLAGS = -I/usr/include/efi/ -I/usr/include/efi/x86_64/ -I/usr/include/efi/protocol -fpic -fshort-wchar -fno-reorder-functions -fno-strict-aliasing -fno-merge-constants -mno-red-zone 
+CFLAGS = -I/usr/include/efi/ -I/usr/include/efi/x86_64/ -I/usr/include/efi/protocol -fpic -fshort-wchar -fno-reorder-functions -fno-strict-aliasing -fno-merge-constants -mno-red-zone -Wimplicit-function-declaration
 
-TARGETS = dumpsb.efi setpk.efi clearpk.efi
+TARGETS = setupsb.efi dumpsb.efi clearpk.efi
 
 all : $(TARGETS)
 
@@ -19,9 +19,6 @@ clean :
 install :
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/boot/efi/EFI/redhat/
 	$(INSTALL) -m 755 *.efi $(INSTALLROOT)$(PREFIX)/boot/efi/EFI/redhat/
-
-setpk.o : setpk.c pk.h
-setpk.so : $(OBJECTS)
 
 .PHONY: all clean install
 
