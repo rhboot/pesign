@@ -28,5 +28,6 @@
 #include "context.h"
 #include "crypto.h"
 #include "endian.h"
+#include "oid.h"
 
 #endif /* PESIGN_H */
