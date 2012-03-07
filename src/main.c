@@ -188,6 +188,36 @@ open_certificate(pesign_context *ctx)
 }
 
 static void
+open_privkey(pesign_context *ctx)
+{
+	if (!ctx->privkeyfile) {
+		fprintf(stderr, "pesign: No signing private key specified.\n");
+		exit(1);
+	}
+
+	int pkfd = open(ctx->privkeyfile, O_RDONLY|O_CLOEXEC);
+
+	if (pkfd < 0) {
+		fprintf(stderr, "pesign: could not open private key "
+				"\"%s\": %m\n", ctx->privkeyfile);
+		exit(1);
+	}
+
+#if 0
+	int rc;
+
+	rc = read_privkey(pkfd, &ctx->privkey);
+	if (rc < 0) {
+		fprintf(stderr, "pesign: could not read private key\n");
+		exit(1);
+	}
+#endif
+
+	close(pkfd);
+}
+
+
+static void
 check_inputs(pesign_context *ctx)
 {
 	if (!ctx->infile) {
@@ -237,6 +267,8 @@ main(int argc, char *argv[])
 			"specify output file", "<outfile>" },
 		{"certficate", 'c', POPT_ARG_STRING, &ctx.certfile, 0,
 			"specify certificate file", "<certificate>" },
+		{"privkey", 'p', POPT_ARG_STRING, &ctx.privkeyfile, 0,
+			"specify private key file", "<privkey>" },
 		{"force", 'f', POPT_ARG_NONE|POPT_ARG_VAL, &ctx.force,  1,
 			"force overwriting of output file", NULL },
 		{"nogaps", 'n', POPT_ARG_NONE|POPT_ARG_VAL, &ctx.hashgaps, 0,

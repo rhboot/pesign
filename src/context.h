@@ -44,6 +44,9 @@ typedef struct {
 	Pe *inpe;
 	Pe *outpe;
 
+	char *privkeyfile;
+	void *privkey;
+
 	char *certfile;
 	CERTCertificate *cert;
 
@@ -56,7 +59,7 @@ typedef struct {
 	int sign;
 	int hash;
 
-	unsigned char *digest;
+	char *digest;
 	size_t digest_size;
 } pesign_context;
 

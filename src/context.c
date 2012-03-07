@@ -77,6 +77,7 @@ pesign_context_fini(pesign_context *ctx)
 	}
 
 	xfree(ctx->certfile);
+	xfree(ctx->privkeyfile);
 
 	if (ctx->outpe) {
 		pe_end(ctx->outpe);
