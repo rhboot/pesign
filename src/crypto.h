@@ -28,7 +28,6 @@ extern int crypto_init(void);
 extern void crypto_fini(void);
 
 extern int read_cert(int certfd, CERTCertificate **cert);
-extern int pe_sign(pesign_context *ctx);
 
 extern int has_signatures(pesign_context *ctx);
 extern int list_signatures(pesign_context *ctx);
@@ -36,7 +35,7 @@ extern void export_signature(pesign_context *ctx);
 extern void parse_signature(pesign_context *ctx);
 extern int import_signature(pesign_context *ctx);
 extern int remove_signature(pesign_context *ctx, int signum);
-extern void generate_signature(pesign_context *ctx);
+extern int generate_signature(pesign_context *ctx);
 extern int generate_digest(pesign_context *ctx);
 
 #endif /* PESIGN_CRYPTO_H */

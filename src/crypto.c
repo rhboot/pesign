@@ -25,7 +25,10 @@
 
 #include "pesign.h"
 
+#include <nspr4/prerror.h>
+
 #include <nss3/nss.h>
+#include <nss3/secport.h>
 #include <nss3/secpkcs7.h>
 #include <nss3/secder.h>
 #include <nss3/base64.h>
@@ -71,19 +74,6 @@ int read_cert(int certfd, CERTCertificate **cert)
 	free(certstr);
 	if (!*cert)
 		return -1;
-	return 0;
-}
-
-int pe_sign(pesign_context *ctx)
-{
-	//SEC_PKCS7ContentInfo *ci = NULL;
-
-	Pe_Scn *scn = NULL;
-
-	for (int i = 0 ; (scn = pe_getscn(ctx->inpe, i)) != NULL; i++) {
-		printf("got section %d\n", i);
-	}
-
 	return 0;
 }
 
@@ -455,10 +445,83 @@ decoder_error:
 #define MAX_DIGEST_SIZE		SHA256_DIGEST_SIZE
 #define HASH_TYPE		SEC_OID_SHA256
 
-void
+typedef struct {
+	enum {
+		PW_NONE = 0,
+		PW_FROMFILE = 1,
+		PW_PLAINTEXT = 2,
+		PW_EXTERNAL = 3
+		} source;
+	char *data;
+} secuPWData;
+
+static void
+SignOut(void *arg, const char *buf, unsigned long len)
+{
+	FILE *out;
+
+	out = (FILE *)arg;
+	fwrite(buf, len, 1, out);
+}
+
+/* before you run this, you'll need to enroll your CA with:
+ * certutil -A -n 'my CA' -d /etc/pki/pesign -t CT,CT,CT -i ca.crt
+ */
+int
 generate_signature(pesign_context *ctx)
 {
-	return;
+	SEC_PKCS7ContentInfo *ci = NULL;
+	SECItem digest;
+
+	digest.data = (unsigned char *)ctx->digest;
+	digest.len = ctx->digest_size;
+
+	PORT_SetError(0);
+	ci = SEC_PKCS7CreateSignedData(ctx->cert, certUsageObjectSigner,
+		NULL, HASH_TYPE, &digest, NULL, NULL);
+	if (!ci) {
+		fprintf(stderr, "Could not create signed data: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	int rc = 0;
+	SECStatus status;
+
+#if 0
+	status = SEC_PKCS7SetContent(ci, ctx->digest, ctx->digest_size);
+	if (status != SECSuccess) {
+		fprintf(stderr, "Could not set content info: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		rc = -1;
+	}
+#endif
+
+	status = SEC_PKCS7AddSigningTime(ci);
+	if (status != SECSuccess) {
+		fprintf(stderr, "Could not add signing time: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		rc = -1;
+	}
+
+	status = SEC_PKCS7IncludeCertChain(ci, NULL);
+	if (status != SECSuccess) {
+		fprintf(stderr, "Could not include cert chain: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		rc = -1;
+	}
+
+	static secuPWData  pwdata          = { 0, 0 };
+	status = SEC_PKCS7Encode(ci, SignOut, stdout, NULL, NULL, &pwdata);
+	if (status != SECSuccess) {
+		fprintf(stderr, "Could not encode content: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		rc = -1;
+	}
+
+	if (ci)
+		SEC_PKCS7DestroyContentInfo(ci);
+	return rc;
 }
 
 int
@@ -574,7 +637,7 @@ generate_digest(pesign_context *ctx)
 
 	PK11_DigestFinal(pk11ctx, digest, &digest_size, MAX_DIGEST_SIZE);
 
-	unsigned char *tmp = malloc(digest_size);
+	char *tmp = malloc(digest_size);
 	if (!tmp)
 		goto error_shdrs;
 

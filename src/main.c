@@ -353,7 +353,9 @@ main(int argc, char *argv[])
 			open_certificate(ctxp);
 			open_input(ctxp);
 			open_sig_output(ctxp);
+			generate_digest(ctxp);
 			generate_signature(ctxp);
+			break; /* XXX temporary */
 			export_signature(ctxp);
 			break;
 		/* generate a signature and embed it in the binary */
