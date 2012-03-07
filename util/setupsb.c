@@ -16,6 +16,11 @@ EFI_GUID gEfiShellInterfaceGuid = EFI_SHELL_INTERFACE_GUID;
 #define EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS	0x00000020
 #define EFI_VARIABLE_APPEND_WRITE				0x00000040
 
+/* XXX this needs to be moved into gnu-efi */
+#define EFI_SHELL_DEVICE_PATH_MAP \
+ {0x47c7b225, 0xc42a, 0x11d2, {0x8e,0x57,0x0,0xa0,0xc9,0x69,0x72,0x3b}}
+EFI_GUID gEfiShellDevPathMap = EFI_SHELL_DEVICE_PATH_MAP;
+
 static void
 __attribute__((unused))
 dumphex(UINT8 *data, UINTN data_size)
