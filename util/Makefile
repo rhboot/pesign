@@ -18,7 +18,7 @@ clean :
 
 install :
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/boot/efi/EFI/redhat/
-	$(INSTALL) -m 755 *.efi $(INSTALLROOT)$(PREFIX)/boot/efi/EFI/redhat/
+	$(INSTALL) -m 755 *.efi $(INSTALLROOT)/boot/efi/EFI/redhat/
 
 .PHONY: all clean install
 
