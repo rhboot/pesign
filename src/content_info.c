@@ -52,10 +52,7 @@ generate_spc_string_der(PRArenaPool *arena, SECItem *der)
 	memcpy(notder.obsolete.data, "\x00\x3c\x00\x3c\x00\x3c\x00\x4f\x00\x62\x00\x73\x00\x6f\x00\x6c\x00\x65\x00\x74\x00\x65\x00\x3e\x00\x3e\x00\x3e", 28);
 	notder.obsolete.type = siBMPString;
 
-	SECStatus rv;
-
-	rv = DER_Encode(arena, der, LettersTemplate, &notder);
-	if (rv != SECSuccess)
+	if (DER_Encode(arena, der, LettersTemplate, &notder) != SECSuccess)
 		return -1;
 	return 0;
 }
@@ -76,20 +73,16 @@ DERTemplate SpcLinkTemplate[] = {
 static int
 generate_spc_link_der(PRArenaPool *arena, SECItem *der)
 {
-	int rc;
-	SECItem SpcStringDer;
-
 	if (!arena || !der)
 		return -1;
 
-	rc = generate_spc_string_der(arena, &SpcStringDer);
+	SECItem SpcStringDer;
+	int rc = generate_spc_string_der(arena, &SpcStringDer);
 	if (rc < 0)
 		return rc;
 	
-	SECStatus rv;
-
-	rv = DER_Encode(arena, der, SpcLinkTemplate, &SpcStringDer);
-	if (rv != SECSuccess)
+	if (DER_Encode(arena, der, SpcLinkTemplate, &SpcStringDer) !=
+								SECSuccess)
 		return -1;
 	return 0;
 }
@@ -137,26 +130,21 @@ DERTemplate SpcPeImageDataTemplate[] = {
 static int
 generate_spc_pe_image_data_der(PRArenaPool *arena, SECItem *der)
 {
-	int rc;
-	SpcPeImageData spid;
-
 	if (!arena || !der)
 		return -1;
 
+	SpcPeImageData spid;
 	SECITEM_AllocItem(NULL, &spid.flags, 1);
 	if (!spid.flags.data)
 		return -1;
 
-	rc = generate_spc_link_der(arena, &spid.link.string);
+	int rc = generate_spc_link_der(arena, &spid.link.string);
 	if (rc < 0) {
 		SECITEM_FreeItem(&spid.flags, PR_FALSE);
 		return rc;
 	}
 	
-	SECStatus rv;
-
-	rv = DER_Encode(arena, der, SpcPeImageDataTemplate, &spid);
-	if (rv != SECSuccess)
+	if (DER_Encode(arena, der, SpcPeImageDataTemplate, &spid) != SECSuccess)
 		return -1;
 	/* XXX OMG FIX THIS */
 	/* manually bang it from NULL to BIT STRING because I can't figure out
@@ -187,22 +175,20 @@ DERTemplate SpcAttributeTypeAndOptionalValueTemplate[] = {
 static int
 generate_attrib_type_der(PRArenaPool *arena, SECItem *der)
 {
-	int rc;
-	SpcAttributeTypeAndOptionalValue sataov;
-
 	if (!arena || !der)
 		return -1;
 
-	rc = get_ms_oid_secitem(SPC_PE_IMAGE_DATA_OBJID, &sataov.type);
+	SpcAttributeTypeAndOptionalValue sataov;
+	int rc = get_ms_oid_secitem(SPC_PE_IMAGE_DATA_OBJID, &sataov.type);
 	if (rc < 0)
 		return rc;
+
 	rc = generate_spc_pe_image_data_der(arena, &sataov.value);
 	if (rc < 0)
 		return rc;
 
-	SECStatus rv;
-	rv = DER_Encode(arena, der, SpcAttributeTypeAndOptionalValueTemplate, &sataov);
-	if (rv != SECSuccess)
+	if (DER_Encode(arena, der, SpcAttributeTypeAndOptionalValueTemplate,
+			&sataov) != SECSuccess)
 		return -1;
 	return 0;
 }
@@ -244,9 +230,7 @@ generate_digest_info_der(PRArenaPool *arena, SECAlgorithmID *hashtype,
 	memcpy(&di.digestAlgorithm, hashtype,sizeof(*hashtype));
 	memcpy(&di.digest, hash, sizeof(*hash));
 
-	SECStatus rv;
-	rv = DER_Encode(arena, der, DigestInfoTemplate, &di);
-	if (rv != SECSuccess)
+	if (DER_Encode(arena, der, DigestInfoTemplate, &di) != SECSuccess)
 		return -1;
 	return 0;
 }
@@ -293,42 +277,46 @@ int
 generate_spc_content_info(SECItem *cip,
 			SECAlgorithmID *hashtype, SECItem *hash)
 {
-	SpcContentInfo ci;
-	int rc = 0;
-
 	if (!cip)
 		return -1;
 
-	PRArenaPool *arena = NULL;
-
-	arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	PRArenaPool *arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
 	if (!arena)
 		return -1;
 
 	SpcIndirectDataContent idc;
-	rc = generate_attrib_type_der(arena, &idc.data);
-	rc = generate_digest_info_der(arena, hashtype, hash, &idc.messageDigest);
+	int rc = generate_attrib_type_der(arena, &idc.data);
+	if (rc < 0)
+		goto err;
 
-	SECStatus rv;
+	rc = generate_digest_info_der(arena, hashtype, hash,&idc.messageDigest);
+	if (rc < 0)
+		goto err;
+
+	SpcContentInfo ci;
 	rc = get_ms_oid_secitem(SPC_INDIRECT_DATA_OBJID, &ci.contentType);
 	if (rc < 0)
 		goto err;
 
-	rv = DER_Encode(arena, &ci.content, SpcIndirectDataContentTemplate,
-			&idc);
-	if (rv != SECSuccess)
+	if (DER_Encode(arena, &ci.content, SpcIndirectDataContentTemplate,
+			&idc) != SECSuccess)
 		goto err;
 
 	SECItem der = { 0, };
-	rv = DER_Encode(arena, &der, SpcContentInfoTemplate, &ci);
-
-	cip->type = der.type;
-	cip->len = der.len;
-	cip->data = malloc(der.len);
-	if (!cip->data)
+	if (DER_Encode(arena, &der, SpcContentInfoTemplate, &ci) != SECSuccess)
 		goto err;
 
-	memcpy(cip->data, der.data, der.len);
+	void *data = malloc(der.len);
+	if (!data)
+		goto err;
+
+	memcpy(data, der.data, der.len);
+	cip->type = der.type;
+	cip->len = der.len;
+	cip->data = data;
+
+	/* this will clean up the whole of the allocations in this call chain
+	 * except for the malloc we're returning through cip */
 	PORT_FreeArena(arena, PR_TRUE);
 	return 0;
 err:
