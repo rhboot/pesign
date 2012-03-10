@@ -1,21 +1,21 @@
 /*
-* Copyright 2011 Red Hat, Inc.
-* All rights reserved.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; version 2 of the License.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-* Author(s): Peter Jones <pjones@redhat.com>
-*/
+ * Copyright 2011-2012 Red Hat, Inc.
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author(s): Peter Jones <pjones@redhat.com>
+ */
 
 #include <nss3/seccomon.h>
 #include <nss3/secitem.h>
@@ -80,8 +80,17 @@ register_oids(void)
 SECOidTag
 find_ms_oid_tag(ms_oid_t moid)
 {
-	if (moid >= END_OID_LIST)
+	if (moid >= END_OID_LIST || moid < 0)
 		return SEC_OID_UNKNOWN;
 
 	return oids[moid].sod.offset;
+}
+
+int get_ms_oid_secitem(ms_oid_t moid, SECItem *si)
+{
+	if (moid >= END_OID_LIST || moid < 0)
+		return -1;
+	memcpy(si, &oids[moid].sod.oid, sizeof (*si));
+
+	return 0;
 }

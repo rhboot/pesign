@@ -21,6 +21,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 
 static inline int
 __attribute__ ((unused))

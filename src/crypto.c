@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2011-2012 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -33,6 +33,7 @@
 #include <nss3/secder.h>
 #include <nss3/base64.h>
 #include <nss3/pk11pub.h>
+#include <nss3/secerr.h>
 
 int crypto_init(void)
 {
@@ -472,6 +473,40 @@ SignOut(void *arg, const char *buf, unsigned long len)
 int
 generate_signature(pesign_context *ctx)
 {
+	int rc = 0;
+
+	SECAlgorithmID id;
+	SECOidData *oiddata;
+
+	oiddata = SECOID_FindOIDByTag(SEC_OID_SHA256);
+	if (!oiddata) {
+		PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+		return -1;
+	}
+	if (SECITEM_CopyItem(NULL, &id.algorithm, &oiddata->oid))
+		return -1;
+
+	SECITEM_AllocItem(NULL, &id.parameters, 2);
+	if (id.parameters.data == NULL)
+		return -1;
+	id.parameters.data[0] = SEC_ASN1_NULL;
+	id.parameters.data[1] = 0;
+	id.parameters.type = siBuffer;
+
+	SECItem digest = { siBuffer, (unsigned char *)ctx->digest, ctx->digest_size };
+
+	SECItem cip = { 0, };
+	rc = generate_spc_content_info(&cip, &id, &digest);
+	if (rc < 0) {
+		fprintf(stderr, "Could not create signed data: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+	SignOut(stdout, (char *)cip.data, cip.len);
+
+	return 0;
+#if 0
+	SECStatus status;
 	SEC_PKCS7ContentInfo *ci = NULL;
 	SECItem digest;
 
@@ -480,24 +515,20 @@ generate_signature(pesign_context *ctx)
 
 	PORT_SetError(0);
 	ci = SEC_PKCS7CreateSignedData(ctx->cert, certUsageObjectSigner,
-		NULL, HASH_TYPE, &digest, NULL, NULL);
+		NULL, HASH_TYPE, NULL, NULL, NULL);
 	if (!ci) {
 		fprintf(stderr, "Could not create signed data: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
 
-	int rc = 0;
-	SECStatus status;
 
-#if 0
 	status = SEC_PKCS7SetContent(ci, ctx->digest, ctx->digest_size);
 	if (status != SECSuccess) {
 		fprintf(stderr, "Could not set content info: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		rc = -1;
 	}
-#endif
 
 	status = SEC_PKCS7AddSigningTime(ci);
 	if (status != SECSuccess) {
@@ -523,6 +554,7 @@ generate_signature(pesign_context *ctx)
 
 	if (ci)
 		SEC_PKCS7DestroyContentInfo(ci);
+#endif
 	return rc;
 }
 

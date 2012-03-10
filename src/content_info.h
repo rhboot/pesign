@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2012 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,19 +16,15 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_H
-#define PESIGN_H 1
+#ifndef CONTENT_INFO_H
+#define CONTENT_INFO_H 1
 
-#include <stdlib.h>
-#define xfree(x) ({if (x) { free(x); x = NULL; }})
+#include <nss3/secder.h>
+#include <nss3/secoid.h>
 
-#include <libdpe/libdpe.h>
-#include <libdpe/pe.h>
-#include "util.h"
-#include "context.h"
-#include "crypto.h"
-#include "endian.h"
-#include "oid.h"
-#include "content_info.h"
+#include <stdint.h>
 
-#endif /* PESIGN_H */
+extern int generate_spc_content_info(SECItem *der,
+			SECAlgorithmID *hashtype, SECItem *hash);
+
+#endif /* CONTENT_INFO_H */
