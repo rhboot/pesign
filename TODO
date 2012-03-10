@@ -6,12 +6,14 @@ In no particular order, this stuff still needs to be done (or is in progress):
  a) get an in-memory representation via mmap *done*
  b) render in-memory representation back to disk also via mmap
 2) signatures
- a) read signature from stand-alone file
- b) write signature to stand-alone file *done*
- c) verify signature from stand-alone file
+ a) read hash from stand-alone file
+ b) write hash to stand-alone file *done*
+ c) verify hash from stand-alone file
  d) read cert from file *done*
  e) create hash/digest of file *done*
  f) create new signature (aka "sign the hash")
+  i) generate SpcContentInfo
+  ii) sign it
  g) create cert table
  h) find cert table
  i) implant cert in table
