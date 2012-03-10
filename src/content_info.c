@@ -20,111 +20,21 @@
 #include "pesign.h"
 #include <stddef.h>
 
-typedef SECItem SpcPeImageFlags;
 
+/* Generate DER for SpcString, which is always "<<<Obsolete>>>" in UCS-2.
+ * Irony abounds. Needs to decode like this:
+ *        [0]  (28)
+ *           00 3c 00 3c 00 3c 00 4f 00 62 00 73 00 6f 00 
+ *           6c 00 65 00 74 00 65 00 3e 00 3e 00 3e 
+ */
 typedef struct {
 	SECItem obsolete;
 } SpcString;
 
-typedef struct {
-	SECItem string;
-} SpcLink;
-
-typedef struct {
-	SpcPeImageFlags flags;
-	SpcLink link;
-} SpcPeImageData;
-
-typedef struct {
-	SECItem type;
-	SECItem value;
-} SpcAttributeTypeAndOptionalValue;
-
-typedef struct {
-	SECAlgorithmID digestAlgorithm;
-	SECItem digest;
-} DigestInfo;
-
-typedef struct {
-	SECItem data;
-	SECItem messageDigest;
-} SpcIndirectDataContent;
-
-typedef struct {
-	SECItem contentType;
-	SECItem content;
-} SpcContentInfo;
-
 DERTemplate LettersTemplate[] = {
-	{ (DER_CONTEXT_SPECIFIC | 0), offsetof(SpcString,obsolete), NULL, sizeof(SECItem) },
-	{ 0, }
-};
-
-DERTemplate SpcLinkTemplate[] = {
-	{ DER_CONSTRUCTED | (DER_CONTEXT_SPECIFIC | 2), 0, NULL, sizeof(SpcString) },
-	{ 0, }
-};
-
-DERTemplate SpcPeImageFlagsTemplate[] = {
-	{ DER_NULL, 0, NULL, 1},
-	{ 0, }
-};
-
-DERTemplate SpcPeImageDataTemplate[] = {
-	{ DER_SEQUENCE, 0, NULL, 0 },
-	{ DER_NULL, offsetof(SpcPeImageData,flags),
-		NULL, 1 },
-	{ DER_CONSTRUCTED | (DER_CONTEXT_SPECIFIC | 0),
-		offsetof(SpcPeImageData,link), NULL, sizeof(SpcLink) },
-	{ 0, }
-};
-
-DERTemplate SpcAttributeTypeAndOptionalValueTemplate[] = {
-	{ DER_SEQUENCE, 0, NULL, 0 },
-	{ DER_OBJECT_ID, offsetof(SpcAttributeTypeAndOptionalValue,type) },
-	{ DER_OPTIONAL | DER_CONSTRUCTED | (DER_CONTEXT_SPECIFIC | 0),
-		offsetof(SpcAttributeTypeAndOptionalValue,value),
+	{ (DER_CONTEXT_SPECIFIC | 0), offsetof(SpcString,obsolete),
 		NULL, sizeof(SECItem) },
 	{ 0, }
-};
-
-DERTemplate AlgorithmIdentifierTemplate[] = {
-	{ DER_SEQUENCE, 0, NULL, sizeof(SECAlgorithmID) },
-	{ DER_OBJECT_ID, offsetof(SECAlgorithmID,algorithm), },
-	{ DER_OPTIONAL | DER_ANY, offsetof(SECAlgorithmID,parameters), },
-	{ 0, }
-};
-
-DERTemplate DigestInfoTemplate[] = {
-	{ DER_SEQUENCE, 0, NULL, 0 },
-	{ DER_INLINE, offsetof(DigestInfo,digestAlgorithm),
-		AlgorithmIdentifierTemplate },
-	{ DER_OCTET_STRING, offsetof(DigestInfo,digest), },
-	{ 0, }
-};
-
-DERTemplate SpcIndirectDataContentTemplate[] = {
-	{ DER_SEQUENCE, 0, NULL, 0 },
-	{ DER_ANY,
-		offsetof(SpcIndirectDataContent,data),
-		NULL, sizeof(SECItem) },
-	{ DER_ANY,
-		offsetof(SpcIndirectDataContent,messageDigest),
-		NULL, sizeof(SECItem)},
-	{ 0, }
-};
-
-DERTemplate SpcContentInfoTemplate[] = {
-	{ DER_SEQUENCE, 0, NULL, 0 },
-	{ DER_OBJECT_ID, offsetof(SpcContentInfo,contentType), },
-	{ DER_OPTIONAL | DER_CONSTRUCTED | (DER_CONTEXT_SPECIFIC | 0),
-		offsetof(SpcContentInfo,content), NULL, sizeof(SECItem) },
-	{ 0, }
-};
-
-SECAlgorithmID ai = {
-	.algorithm = { siDEROID, NULL, 0 },
-	.parameters = { siBuffer, NULL, 0 },
 };
 
 static int
@@ -150,6 +60,19 @@ generate_spc_string_der(PRArenaPool *arena, SECItem *der)
 	return 0;
 }
 
+/* Generate the SpcLink DER. Awesomely, this needs to decode as:
+ *                      C-[2]  (30)
+ * That is all.
+ */
+typedef struct {
+	SECItem string;
+} SpcLink;
+
+DERTemplate SpcLinkTemplate[] = {
+	{ DER_CONSTRUCTED | (DER_CONTEXT_SPECIFIC | 2), 0, NULL, sizeof(SpcString) },
+	{ 0, }
+};
+
 static int
 generate_spc_link_der(PRArenaPool *arena, SECItem *der)
 {
@@ -170,6 +93,46 @@ generate_spc_link_der(PRArenaPool *arena, SECItem *der)
 		return -1;
 	return 0;
 }
+
+/* This generates to the DER for a SpcPeImageData, which includes the two
+ * DER chunks generated above.  Output is basically:
+ *
+ *       C-Sequence  (37)
+ *          Bit String  (1)
+ *            00
+ *          C-[0]  (32)
+ *             C-[2]  (30)
+ *                [0]  (28)
+ *                   00 3c 00 3c 00 3c 00 4f 00 62 00 73 00
+ *                   6f 00 6c 00 65 00 74 00 65 00 3e 00 3e
+ *                   00 3e
+ * The Bit String output is a cheap hack; I can't figure out how to get the
+ * length right using DER_BIT_STRING in the template; it always comes out as
+ * 07 00 instead of just 00.  So instead, since it's /effectively/ constant,
+ * I just picked DER_NULL since it'll always come out to the right size, and
+ * then manually bang DER_BIT_STRING into the type in the encoded output.
+ * I'm so sorry.  -- pjones
+ */
+typedef SECItem SpcPeImageFlags;
+
+DERTemplate SpcPeImageFlagsTemplate[] = {
+	{ DER_NULL, 0, NULL, 1},
+	{ 0, }
+};
+
+typedef struct {
+	SpcPeImageFlags flags;
+	SpcLink link;
+} SpcPeImageData;
+
+DERTemplate SpcPeImageDataTemplate[] = {
+	{ DER_SEQUENCE, 0, NULL, 0 },
+	{ DER_NULL, offsetof(SpcPeImageData,flags),
+		NULL, 1 },
+	{ DER_CONSTRUCTED | (DER_CONTEXT_SPECIFIC | 0),
+		offsetof(SpcPeImageData,link), NULL, sizeof(SpcLink) },
+	{ 0, }
+};
 
 static int
 generate_spc_pe_image_data_der(PRArenaPool *arena, SECItem *der)
@@ -203,6 +166,24 @@ generate_spc_pe_image_data_der(PRArenaPool *arena, SECItem *der)
 	return 0;
 }
 
+/* Generate DER for SpcAttributeTypeAndValue, which is basically just
+ * a DER_SEQUENCE containing the OID 1.3.6.1.4.1.311.2.1.15
+ * (SPC_PE_IMAGE_DATA_OBJID) and the SpcPeImageData.
+ */
+typedef struct {
+	SECItem type;
+	SECItem value;
+} SpcAttributeTypeAndOptionalValue;
+
+DERTemplate SpcAttributeTypeAndOptionalValueTemplate[] = {
+	{ DER_SEQUENCE, 0, NULL, 0 },
+	{ DER_OBJECT_ID, offsetof(SpcAttributeTypeAndOptionalValue,type) },
+	{ DER_OPTIONAL | DER_CONSTRUCTED | (DER_CONTEXT_SPECIFIC | 0),
+		offsetof(SpcAttributeTypeAndOptionalValue,value),
+		NULL, sizeof(SECItem) },
+	{ 0, }
+};
+
 static int
 generate_attrib_type_der(PRArenaPool *arena, SECItem *der)
 {
@@ -226,6 +207,31 @@ generate_attrib_type_der(PRArenaPool *arena, SECItem *der)
 	return 0;
 }
 
+/* Generate the DigestInfo, which is a sequence containing a AlgorithmID
+ * and an Octet String of the binary's hash in that algorithm.  For some
+ * reason this is the only place I could really get template chaining to
+ * work right.  It's probably my on defficiency.
+ */
+typedef struct {
+	SECAlgorithmID digestAlgorithm;
+	SECItem digest;
+} DigestInfo;
+
+DERTemplate AlgorithmIdentifierTemplate[] = {
+	{ DER_SEQUENCE, 0, NULL, sizeof(SECAlgorithmID) },
+	{ DER_OBJECT_ID, offsetof(SECAlgorithmID,algorithm), },
+	{ DER_OPTIONAL | DER_ANY, offsetof(SECAlgorithmID,parameters), },
+	{ 0, }
+};
+
+DERTemplate DigestInfoTemplate[] = {
+	{ DER_SEQUENCE, 0, NULL, 0 },
+	{ DER_INLINE, offsetof(DigestInfo,digestAlgorithm),
+		AlgorithmIdentifierTemplate },
+	{ DER_OCTET_STRING, offsetof(DigestInfo,digest), },
+	{ 0, }
+};
+
 static int
 generate_digest_info_der(PRArenaPool *arena, SECAlgorithmID *hashtype,
 			SECItem *hash, SECItem *der)
@@ -244,6 +250,44 @@ generate_digest_info_der(PRArenaPool *arena, SECAlgorithmID *hashtype,
 		return -1;
 	return 0;
 }
+
+/* Generate DER for SpcIndirectDataContent.  It's just a DER_SEQUENCE that
+ * holds the digestInfo above and the SpcAttributeTypeAndValue, also above.
+ * Sequences, all the way down.
+ *
+ * This also generates the actual DER for SpcContentInfo, and is a public
+ * function. SpcContentInfo is another sequence that holds a OID,
+ * 1.3.6.1.4.1.311.2.1.4 (SPC_INDIRECT_DATA_OBJID) and then a reference to
+ * the generated SpcIndirectDataContent structure.
+ */
+typedef struct {
+	SECItem data;
+	SECItem messageDigest;
+} SpcIndirectDataContent;
+
+DERTemplate SpcIndirectDataContentTemplate[] = {
+	{ DER_SEQUENCE, 0, NULL, 0 },
+	{ DER_ANY,
+		offsetof(SpcIndirectDataContent,data),
+		NULL, sizeof(SECItem) },
+	{ DER_ANY,
+		offsetof(SpcIndirectDataContent,messageDigest),
+		NULL, sizeof(SECItem)},
+	{ 0, }
+};
+
+typedef struct {
+	SECItem contentType;
+	SECItem content;
+} SpcContentInfo;
+
+DERTemplate SpcContentInfoTemplate[] = {
+	{ DER_SEQUENCE, 0, NULL, 0 },
+	{ DER_OBJECT_ID, offsetof(SpcContentInfo,contentType), },
+	{ DER_OPTIONAL | DER_CONSTRUCTED | (DER_CONTEXT_SPECIFIC | 0),
+		offsetof(SpcContentInfo,content), NULL, sizeof(SECItem) },
+	{ 0, }
+};
 
 int
 generate_spc_content_info(SECItem *cip,
@@ -291,3 +335,5 @@ err:
 	PORT_FreeArena(arena, PR_TRUE);
 	return -1;
 }
+
+/* There's nothing else here. */
