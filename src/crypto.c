@@ -40,14 +40,14 @@ int crypto_init(void)
 	SECStatus status;
 	
 	status = NSS_InitReadWrite("/etc/pki/pesign");
-	if (status == SECSuccess)
-		return 0;
+	if (status != SECSuccess)
+		return -1;
 
 	status = register_oids();
-	if (status == SECSuccess)
-		return 0;
+	if (status != SECSuccess)
+		return -1;
 
-	return -1;
+	return 0;
 }
 
 void crypto_fini(void)
