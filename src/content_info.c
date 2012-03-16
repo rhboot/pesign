@@ -18,7 +18,11 @@
  */
 
 #include "pesign.h"
+
 #include <stddef.h>
+
+#include <nspr4/prerror.h>
+#include <nss3/cms.h>
 
 
 /* Generate DER for SpcString, which is always "<<<Obsolete>>>" in UCS-2.
@@ -244,10 +248,6 @@ generate_digest_info_der(PRArenaPool *arena, SECAlgorithmID *hashtype,
  * 1.3.6.1.4.1.311.2.1.4 (SPC_INDIRECT_DATA_OBJID) and then a reference to
  * the generated SpcIndirectDataContent structure.
  */
-typedef struct {
-	SECItem data;
-	SECItem messageDigest;
-} SpcIndirectDataContent;
 
 DERTemplate SpcIndirectDataContentTemplate[] = {
 	{ DER_SEQUENCE, 0, NULL, 0 },
@@ -260,11 +260,6 @@ DERTemplate SpcIndirectDataContentTemplate[] = {
 	{ 0, }
 };
 
-typedef struct {
-	SECItem contentType;
-	SECItem content;
-} SpcContentInfo;
-
 DERTemplate SpcContentInfoTemplate[] = {
 	{ DER_SEQUENCE, 0, NULL, 0 },
 	{ DER_OBJECT_ID, offsetof(SpcContentInfo,contentType), },
@@ -274,7 +269,7 @@ DERTemplate SpcContentInfoTemplate[] = {
 };
 
 int
-generate_spc_content_info(SECItem *cip,
+generate_spc_content_info(SpcContentInfo *cip,
 			SECAlgorithmID *hashtype, SECItem *hash)
 {
 	if (!cip)
@@ -306,14 +301,11 @@ generate_spc_content_info(SECItem *cip,
 	if (DER_Encode(arena, &der, SpcContentInfoTemplate, &ci) != SECSuccess)
 		goto err;
 
-	void *data = malloc(der.len);
+	void *data = malloc(sizeof (*cip));
 	if (!data)
 		goto err;
 
-	memcpy(data, der.data, der.len);
-	cip->type = der.type;
-	cip->len = der.len;
-	cip->data = data;
+	memcpy(cip, &ci, sizeof(ci));
 
 	/* this will clean up the whole of the allocations in this call chain
 	 * except for the malloc we're returning through cip */
@@ -322,6 +314,100 @@ generate_spc_content_info(SECItem *cip,
 err:
 	PORT_FreeArena(arena, PR_TRUE);
 	return -1;
+}
+
+/* Now we have to make this work as a CMS ContentType... */
+#define USE_CALLBACKS 0
+
+#if USE_CALLBACKS
+static void SPCIndirectData_Destroy(NSSCMSGenericWrapperData *gwd)
+{
+	return;
+}
+
+static SECStatus SPCIndirectData_DecodeBefore(NSSCMSGenericWrapperData *gwd)
+{
+	return SECSuccess;
+}
+
+static SECStatus SPCIndirectData_DecodeAfter(NSSCMSGenericWrapperData *gwd)
+{
+	return SECSuccess;
+}
+
+static SECStatus SPCIndirectData_DecodeEnd(NSSCMSGenericWrapperData *gwd)
+{
+	return SECSuccess;
+}
+
+static SECStatus SPCIndirectData_EncodeStart(NSSCMSGenericWrapperData *gwd)
+{
+	return SECSuccess;
+}
+
+static SECStatus SPCIndirectData_EncodeBefore(NSSCMSGenericWrapperData *gwd)
+{
+	return SECSuccess;
+}
+
+static SECStatus SPCIndirectData_EncodeAfter(NSSCMSGenericWrapperData *gwd)
+{
+	return SECSuccess;
+}
+#endif
+
+#if 1
+SEC_ASN1Template SECOID_SPC_IndirectDataTemplate[] = {
+	{ SEC_ASN1_SEQUENCE | SEC_ASN1_MAY_STREAM, 0, NULL,
+		sizeof(SpcContentInfo)},
+	{ SEC_ASN1_OBJECT_ID, offsetof(SpcContentInfo,contentType)},
+	{ SEC_ASN1_OPTIONAL | SEC_ASN1_EXPLICIT | SEC_ASN1_MAY_STREAM |
+		SEC_ASN1_CONSTRUCTED | SEC_ASN1_XTRN |
+		(SEC_ASN1_CONTEXT_SPECIFIC | 0),
+		offsetof(SpcContentInfo,content),
+		SEC_ASN1_SUB(SEC_PointerToOctetStringTemplate)},
+	{ 0, }
+};
+#else
+SEC_ASN1Template SECOID_SPC_IndirectDataTemplate[] = {
+	{ SEC_ASN1_SEQUENCE | SEC_ASN1_MAY_STREAM, 0, NULL,
+		sizeof(NSSCMSContentInfo)},
+	{ SEC_ASN1_OBJECT_ID, offsetof(NSSCMSContentInfo,contentType)},
+	{ SEC_ASN1_OPTIONAL | SEC_ASN1_EXPLICIT | SEC_ASN1_MAY_STREAM |
+		SEC_ASN1_CONSTRUCTED | SEC_ASN1_XTRN |
+		(SEC_ASN1_CONTEXT_SPECIFIC | 0),
+		offsetof(NSSCMSContentInfo,rawContent),
+		SEC_ASN1_SUB(SEC_PointerToOctetStringTemplate)},
+	{ 0, }
+};
+#endif
+
+int register_content_info(void)
+{
+	SECStatus rv;
+	SECOidTag tag = find_ms_oid_tag(SPC_INDIRECT_DATA_OBJID);
+
+	rv = NSS_CMSType_RegisterContentType(tag, SECOID_SPC_IndirectDataTemplate, sizeof(SpcContentInfo),
+#if USE_CALLBACKS
+				SPCIndirectData_Destroy,
+				SPCIndirectData_DecodeBefore,
+				SPCIndirectData_DecodeAfter,
+				SPCIndirectData_DecodeEnd,
+				SPCIndirectData_EncodeStart,
+				SPCIndirectData_EncodeBefore,
+				SPCIndirectData_EncodeAfter,
+#else
+				NULL,
+				NULL, NULL, NULL,
+				NULL, NULL, NULL,
+#endif
+				PR_FALSE);
+	if (rv != SECSuccess) {
+		fprintf(stderr, "Could not register OID: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		return rv;
+	}
+	return SECSuccess;
 }
 
 /* There's nothing else here. */

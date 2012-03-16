@@ -30,5 +30,6 @@
 #include "endian.h"
 #include "oid.h"
 #include "content_info.h"
+#include "signed_data.h"
 
 #endif /* PESIGN_H */

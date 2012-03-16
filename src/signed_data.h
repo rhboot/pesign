@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Red Hat, Inc.
+ * Copyright 2011-2012 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,26 +16,11 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef CONTENT_INFO_H
-#define CONTENT_INFO_H 1
+#ifndef SIGNED_DATA_H
+#define SIGNED_DATA_H 1
 
-#include <nss3/secder.h>
-#include <nss3/secoid.h>
+extern int generate_spc_signed_data(SECItem *sd_der,
+					SpcContentInfo *cip,
+					SECOidTag hashalg);
 
-#include <stdint.h>
-
-typedef struct {
-	SECItem data;
-	SECItem messageDigest;
-} SpcIndirectDataContent;
-
-typedef struct {
-	SECItem contentType;
-	SECItem content;
-} SpcContentInfo;
-
-extern int generate_spc_content_info(SpcContentInfo *cip,
-			SECAlgorithmID *hashtype, SECItem *hash);
-extern int register_content_info(void);
-
-#endif /* CONTENT_INFO_H */
+#endif /* SIGNED_DATA_H */

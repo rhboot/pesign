@@ -17,12 +17,14 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <stdint.h>
+
+#include <nspr4/prerror.h>
 #include <nss3/seccomon.h>
 #include <nss3/secitem.h>
 #include <nss3/secoid.h>
-#include <nss3/cms.h>
 
-#include "oid.h"
+#include "pesign.h"
 
 static uint8_t oiddata[] = {
 	0x2b, 0x06, 0x01, 0x04, 0x01, 0x82, 0x37, 0x02, 0x01, 0x04,
@@ -70,10 +72,20 @@ register_oids(void)
 		rc = SECOID_AddEntry(&oids[i].sod);
 		oids[i].sod.offset = rc;
 		if (rc == SEC_OID_UNKNOWN) {
-			printf("SECOid_AddEntry() failed\n");
+			fprintf(stderr, "SECOid_AddEntry() failed: %s\n",
+				PORT_ErrorToString(PORT_GetError()));
 			return SECFailure;
 		}
 	}
+
+	int rc;
+	rc = register_content_info();
+	if (rc < 0) {
+		fprintf(stderr, "Could not register ContentInfo handler: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		return SECFailure;
+	}
+
 	return SECSuccess;
 }
 

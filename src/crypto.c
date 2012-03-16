@@ -446,16 +446,6 @@ decoder_error:
 #define MAX_DIGEST_SIZE		SHA256_DIGEST_SIZE
 #define HASH_TYPE		SEC_OID_SHA256
 
-typedef struct {
-	enum {
-		PW_NONE = 0,
-		PW_FROMFILE = 1,
-		PW_PLAINTEXT = 2,
-		PW_EXTERNAL = 3
-		} source;
-	char *data;
-} secuPWData;
-
 static void
 SignOut(void *arg, const char *buf, unsigned long len)
 {
@@ -495,14 +485,22 @@ generate_signature(pesign_context *ctx)
 
 	SECItem digest = { siBuffer, (unsigned char *)ctx->digest, ctx->digest_size };
 
-	SECItem cip = { 0, };
-	rc = generate_spc_content_info(&cip, &id, &digest);
+	SpcContentInfo ci;
+	rc = generate_spc_content_info(&ci, &id, &digest);
 	if (rc < 0) {
 		fprintf(stderr, "Could not create signed data: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
-	SignOut(stdout, (char *)cip.data, cip.len);
+#if 0
+	SignOut(stdout, (char *)ci_der.data, ci_der.len);
+	exit(1);
+#endif
+
+	SECItem sd_der = { 0, };
+	rc = generate_spc_signed_data(&sd_der, &ci, HASH_TYPE);
+
+	SignOut(stdout, (char *)sd_der.data, sd_der.len);
 
 	return 0;
 #if 0
@@ -544,7 +542,6 @@ generate_signature(pesign_context *ctx)
 		rc = -1;
 	}
 
-	static secuPWData  pwdata          = { 0, 0 };
 	status = SEC_PKCS7Encode(ci, SignOut, stdout, NULL, NULL, &pwdata);
 	if (status != SECSuccess) {
 		fprintf(stderr, "Could not encode content: %s\n",
