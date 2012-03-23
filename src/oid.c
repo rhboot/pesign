@@ -48,14 +48,14 @@ static struct {
 	ms_oid_t oid;
 	SECOidData sod;
 } oids[] = {
-	OID(SPC_INDIRECT_DATA_OBJID, "Indirect Data", siBuffer, 10,
+	OID(SPC_INDIRECT_DATA_OBJID, "Indirect Data", siDEROID, 10,
 		&oiddata[0]),
-	OID(SPC_STATEMENT_TYPE_OBJID, "Statement Type", siBuffer, 10,
+	OID(SPC_STATEMENT_TYPE_OBJID, "Statement Type", siDEROID, 10,
 		&oiddata[10]),
-	OID(SPC_SP_OPUS_INFO_OBJID, "Opus Info", siBuffer, 10, &oiddata[20]),
-	OID(SPC_PE_IMAGE_DATA_OBJID, "PE Image Data", siBuffer, 10,
+	OID(SPC_SP_OPUS_INFO_OBJID, "Opus Info", siDEROID, 10, &oiddata[20]),
+	OID(SPC_PE_IMAGE_DATA_OBJID, "PE Image Data", siDEROID, 10,
 		&oiddata[30]),
-	OID(SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID, "Individual Key", siBuffer,
+	OID(SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID, "Individual Key", siDEROID,
 		10, &oiddata[40]),
 	OID(szOID_CERTSRV_CA_VERSION, "Certification server CA version",
 		siAsciiString, 9, &oiddata[50]),
@@ -76,14 +76,6 @@ register_oids(void)
 				PORT_ErrorToString(PORT_GetError()));
 			return SECFailure;
 		}
-	}
-
-	int rc;
-	rc = register_content_info();
-	if (rc < 0) {
-		fprintf(stderr, "Could not register ContentInfo handler: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		return SECFailure;
 	}
 
 	return SECSuccess;
