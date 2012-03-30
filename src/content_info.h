@@ -21,20 +21,53 @@
 
 #include <nss3/secder.h>
 #include <nss3/secoid.h>
+#include <nss3/secasn1.h>
 
 #include <stdint.h>
+
+typedef struct {
+	SECItem flags;
+} SpcPeImageFlags;
+extern SEC_ASN1Template SpcAttributeTypeAndOptionalValueTemplate[];
+
+typedef struct {
+	/* L"<<<Obsolete>>>" no nul */
+	SECItem unicode;
+} SpcString;
+
+typedef struct {
+	SECItem file;
+} SpcLink;
+
+typedef struct {
+	SECItem flags;
+	SECItem link;
+} SpcPeImageData;
+
+typedef struct _SpcAttributeTypeAndOptionalValue {
+	SECItem contentType;
+	SECItem value;
+} SpcAttributeTypeAndOptionalValue;
+
+typedef struct {
+	SECAlgorithmID digestAlgorithm;
+	SECItem digest;
+} DigestInfo;
+extern SEC_ASN1Template DigestInfoTemplate[];
 
 typedef struct {
 	SECItem data;
 	SECItem messageDigest;
 } SpcIndirectDataContent;
+extern SEC_ASN1Template SpcIndirectDataContentTemplate[];
 
 typedef struct {
 	SECItem contentType;
 	SECItem content;
 } SpcContentInfo;
+extern const SEC_ASN1Template SpcContentInfoTemplate[];
 
-extern int generate_spc_content_info(SpcContentInfo *cip,
+extern int generate_spc_content_info(SECItem *cip,
 			SECAlgorithmID *hashtype, SECItem *hash);
 extern int register_content_info(void);
 

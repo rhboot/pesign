@@ -485,23 +485,23 @@ generate_signature(pesign_context *ctx)
 
 	SECItem digest = { siBuffer, (unsigned char *)ctx->digest, ctx->digest_size };
 
-	SpcContentInfo ci;
-	rc = generate_spc_content_info(&ci, &id, &digest);
+	SECItem ci_der;
+	rc = generate_spc_content_info(&ci_der, &id, &digest);
 	if (rc < 0) {
-		fprintf(stderr, "Could not create signed data: %s\n",
+		fprintf(stderr, "Could not create content info: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
-#if 0
 	SignOut(stdout, (char *)ci_der.data, ci_der.len);
 	exit(1);
-#endif
 
+#if 0
 	SECItem sd_der = { 0, };
 	rc = generate_spc_signed_data(&sd_der, &ci, HASH_TYPE);
 
 	SignOut(stdout, (char *)sd_der.data, sd_der.len);
 
+#endif
 	return 0;
 #if 0
 	SECStatus status;
