@@ -178,7 +178,7 @@ open_certificate(pesign_context *ctx)
 		exit(1);
 	}
 
-	rc = read_cert(certfd, &ctx->cert);
+	rc = read_cert(certfd, &ctx->cms_ctx.cert);
 	if (rc < 0) {
 		fprintf(stderr, "pesign: could not read certificate\n");
 		exit(1);
@@ -238,14 +238,18 @@ check_inputs(pesign_context *ctx)
 }
 
 static void
-print_digest(pesign_context *ctx)
+print_digest(pesign_context *pctx)
 {
-	if (!ctx || !ctx->digest)
+	if (!pctx)
+		return;
+
+	cms_context *ctx = &pctx->cms_ctx;
+	if (!ctx)
 		return;
 
 	printf("hash: ");
-	for (int i = 0; i < ctx->digest_size; i++)
-		printf("%02x", (unsigned char)ctx->digest[i]);
+	for (int i = 0; i < ctx->digest->len; i++)
+		printf("%02x", (unsigned char)ctx->digest->data[i]);
 	printf("\n");
 }
 
@@ -337,7 +341,7 @@ main(int argc, char *argv[])
 	if (ctx.hash)
 		action |= GENERATE_DIGEST|PRINT_DIGEST;
 
-	rc = crypto_init();
+	rc = crypto_init(&ctx);
 	if (rc < 0) {
 		fprintf(stderr, "Could not initialize cryptographic library\n");
 		exit(1);
@@ -409,6 +413,6 @@ main(int argc, char *argv[])
 			exit(1);
 	}
 	pesign_context_fini(&ctx);
-	crypto_fini();
+	crypto_fini(&ctx);
 	return (rc < 0);
 }

@@ -24,8 +24,8 @@
 
 #include "wincert.h"
 
-extern int crypto_init(void);
-extern void crypto_fini(void);
+extern int crypto_init(pesign_context *ctx);
+extern void crypto_fini(pesign_context *ctx);
 
 extern int read_cert(int certfd, CERTCertificate **cert);
 

@@ -21,6 +21,9 @@
 
 #include "pesign.h"
 
+#include <nss3/nss.h>
+#include <nss3/secitem.h>
+
 int
 pesign_context_new(pesign_context **ctx)
 {
@@ -66,15 +69,50 @@ pesign_context_init(pesign_context *ctx)
 }
 
 void
+cms_context_fini(cms_context *ctx)
+{
+	if (ctx->cert) {
+		CERT_DestroyCertificate(ctx->cert);
+		ctx->cert = NULL;
+	}
+
+	if (ctx->privkey) {
+		free(ctx->privkey);
+		ctx->privkey = NULL;
+	}
+
+	if (ctx->algorithm_id) {
+		free_poison(ctx->algorithm_id->algorithm.data,
+			ctx->algorithm_id->algorithm.len);
+		SECITEM_FreeItem(&ctx->algorithm_id->algorithm, PR_FALSE);
+		free_poison(ctx->algorithm_id->parameters.data,
+			ctx->algorithm_id->parameters.len);
+		SECITEM_FreeItem(&ctx->algorithm_id->parameters, PR_FALSE);
+		free_poison(ctx->algorithm_id, sizeof (*ctx->algorithm_id));
+		free(ctx->algorithm_id);
+		ctx->algorithm_id = NULL;
+	}
+
+	if (ctx->digest) {
+		free_poison(ctx->digest->data, ctx->digest->len);
+		free(ctx->digest->data);
+		free_poison(ctx->digest, sizeof (*ctx->digest));
+		free(ctx->digest);
+		ctx->digest = NULL;
+	}
+
+	PORT_FreeArena(ctx->arena, PR_TRUE);
+
+	memset(ctx, '\0', sizeof(*ctx));
+}
+
+void
 pesign_context_fini(pesign_context *ctx)
 {
 	if (!ctx)
 		return;
 
-	if (ctx->cert) {
-		CERT_DestroyCertificate(ctx->cert);
-		ctx->cert = NULL;
-	}
+	cms_context_fini(&ctx->cms_ctx);
 
 	xfree(ctx->certfile);
 	xfree(ctx->privkeyfile);
@@ -88,9 +126,6 @@ pesign_context_fini(pesign_context *ctx)
 		pe_end(ctx->inpe);
 		ctx->inpe = NULL;
 	}
-
-	xfree(ctx->digest);
-	ctx->digest_size = 0;
 
 	xfree(ctx->outfile);
 	xfree(ctx->infile);

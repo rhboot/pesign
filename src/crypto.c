@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -35,7 +36,7 @@
 #include <nss3/pk11pub.h>
 #include <nss3/secerr.h>
 
-int crypto_init(void)
+int crypto_init(pesign_context *ctx)
 {
 	SECStatus status;
 	
@@ -47,11 +48,21 @@ int crypto_init(void)
 	if (status != SECSuccess)
 		return -1;
 
+	ctx->cms_ctx.arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	if (!ctx->cms_ctx.arena) {
+		fprintf(stderr, "Could not create cryptographic arena: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+
+
 	return 0;
 }
 
-void crypto_fini(void)
+void crypto_fini(pesign_context *ctx)
 {
+	PORT_FreeArena(ctx->cms_ctx.arena, PR_TRUE);
 	NSS_Shutdown();
 }
 
@@ -446,6 +457,42 @@ decoder_error:
 #define MAX_DIGEST_SIZE		SHA256_DIGEST_SIZE
 #define HASH_TYPE		SEC_OID_SHA256
 
+static int
+setup_algorithm_id(cms_context *ctx)
+{
+	SECAlgorithmID *id;
+
+	id = malloc(sizeof (*id));
+	if (!id)
+		return -1;
+
+	SECOidData *oiddata;
+
+	oiddata = SECOID_FindOIDByTag(SEC_OID_SHA256);
+	if (!oiddata) {
+		PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+		goto err;
+	}
+	if (SECITEM_CopyItem(ctx->arena, &id->algorithm, &oiddata->oid))
+		goto err;
+
+	SECITEM_AllocItem(ctx->arena, &id->parameters, 2);
+	if (id->parameters.data == NULL)
+		goto err_copy;
+	id->parameters.data[0] = SEC_ASN1_NULL;
+	id->parameters.data[1] = 0;
+	id->parameters.type = siBuffer;
+
+	ctx->algorithm_id = id;
+	return 0;
+err_copy:
+	SECITEM_FreeItem(&id->algorithm, PR_FALSE);
+err:
+	free_poison(id, sizeof(*id));
+	free(id);
+	return -1;
+}
+
 static void
 SignOut(void *arg, const char *buf, unsigned long len)
 {
@@ -461,29 +508,18 @@ SignOut(void *arg, const char *buf, unsigned long len)
  * pk12util -d /etc/pki/pesign/ -i Peter\ Jones.p12 
  */
 int
-generate_signature(pesign_context *ctx)
+generate_signature(pesign_context *p_ctx)
 {
 	int rc = 0;
+	cms_context *ctx = &p_ctx->cms_ctx;
 
-	SECAlgorithmID id;
-	SECOidData *oiddata;
-
-	oiddata = SECOID_FindOIDByTag(SEC_OID_SHA256);
-	if (!oiddata) {
-		PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+	if (setup_algorithm_id(ctx) < 0) {
+		fprintf(stderr, "Could not set up algorithm ID: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
-	if (SECITEM_CopyItem(NULL, &id.algorithm, &oiddata->oid))
-		return -1;
 
-	SECITEM_AllocItem(NULL, &id.parameters, 2);
-	if (id.parameters.data == NULL)
-		return -1;
-	id.parameters.data[0] = SEC_ASN1_NULL;
-	id.parameters.data[1] = 0;
-	id.parameters.type = siBuffer;
-
-	SECItem digest = { siBuffer, (unsigned char *)ctx->digest, ctx->digest_size };
+	assert(ctx->digest != NULL);
 
 	SECItem ci_der;
 	rc = generate_spc_content_info(&ci_der, &id, &digest);
@@ -668,15 +704,11 @@ generate_digest(pesign_context *ctx)
 
 	PK11_DigestFinal(pk11ctx, digest, &digest_size, MAX_DIGEST_SIZE);
 
-	char *tmp = malloc(digest_size);
-	if (!tmp)
+	if ((ctx->cms_ctx.digest = SECITEM_AllocItem(ctx->cms_ctx.arena,
+			NULL, digest_size)) == NULL)
 		goto error_shdrs;
 
-	if (ctx->digest)
-		free(ctx->digest);
-	ctx->digest = tmp;
-	ctx->digest_size = digest_size;
-	memcpy(ctx->digest, digest, digest_size);
+	memcpy(ctx->cms_ctx.digest->data, digest, digest_size);
 
 	rc = 0;
 error_shdrs:

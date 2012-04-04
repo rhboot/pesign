@@ -89,4 +89,14 @@ sort_shdrs (struct section_header *shdrs, size_t sections)
 	qsort(shdrs, sections, sizeof(*shdrs), compare_shdrs);
 }
 
+static void
+__attribute__ ((unused))
+free_poison(void  *addrv, ssize_t len)
+{
+	uint8_t *addr = addrv;
+	char poison_pills[] = "\xa5\x5a";
+	for (int x = 0; x < len; x++)
+		addr[x] = poison_pills[x % 2];
+}
+
 #endif /* PESIGN_UTIL_H */

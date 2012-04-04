@@ -27,6 +27,14 @@ enum {
 };
 
 typedef struct {
+	PRArenaPool *arena;
+	void *privkey;
+	CERTCertificate *cert;
+	SECAlgorithmID *algorithm_id;
+	SECItem *digest;
+} cms_context;
+
+typedef struct {
 	int infd;
 	int outfd;
 	char *infile;
@@ -45,10 +53,8 @@ typedef struct {
 	Pe *outpe;
 
 	char *privkeyfile;
-	void *privkey;
-
 	char *certfile;
-	CERTCertificate *cert;
+	cms_context cms_ctx;
 
 	int flags;
 
@@ -58,9 +64,6 @@ typedef struct {
 	int hashgaps;
 	int sign;
 	int hash;
-
-	char *digest;
-	size_t digest_size;
 } pesign_context;
 
 extern int pesign_context_new(pesign_context **ctx);
