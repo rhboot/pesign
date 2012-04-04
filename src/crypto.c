@@ -528,7 +528,16 @@ generate_signature(pesign_context *p_ctx)
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
-	SignOut(stdout, (char *)ci_der.data, ci_der.len);
+
+	SECItem si_der;
+	rc = generate_spc_signer_info(&si_der, ctx);
+	if (rc < 0) {
+		fprintf(stderr, "Could not create signer info: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+	
+	SignOut(stdout, (char *)si_der.data, si_der.len);
 	exit(1);
 
 #if 0
