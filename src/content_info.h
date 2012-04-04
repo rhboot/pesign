@@ -53,6 +53,7 @@ typedef struct {
 	SECAlgorithmID digestAlgorithm;
 	SECItem digest;
 } DigestInfo;
+extern SEC_ASN1Template AlgorithmIDTemplate[];
 extern SEC_ASN1Template DigestInfoTemplate[];
 
 typedef struct {
@@ -67,8 +68,7 @@ typedef struct {
 } SpcContentInfo;
 extern const SEC_ASN1Template SpcContentInfoTemplate[];
 
-extern int generate_spc_content_info(SECItem *cip,
-			SECAlgorithmID *hashtype, SECItem *hash);
+extern int generate_spc_content_info(SECItem *cip, cms_context *ctx);
 extern int register_content_info(void);
 
 #endif /* CONTENT_INFO_H */

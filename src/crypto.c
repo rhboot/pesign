@@ -522,7 +522,7 @@ generate_signature(pesign_context *p_ctx)
 	assert(ctx->digest != NULL);
 
 	SECItem ci_der;
-	rc = generate_spc_content_info(&ci_der, &id, &digest);
+	rc = generate_spc_content_info(&ci_der, ctx);
 	if (rc < 0) {
 		fprintf(stderr, "Could not create content info: %s\n",
 			PORT_ErrorToString(PORT_GetError()));

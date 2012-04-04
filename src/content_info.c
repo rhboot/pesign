@@ -381,8 +381,7 @@ const SEC_ASN1Template SpcContentInfoTemplate[] = {
 };
 
 int
-generate_spc_content_info(SECItem *cip,
-			SECAlgorithmID *hashtype, SECItem *hash)
+generate_spc_content_info(SECItem *cip, cms_context *ctx)
 {
 	if (!cip)
 		return -1;
@@ -397,8 +396,8 @@ generate_spc_content_info(SECItem *cip,
 		goto err;
 	}
 
-	if (generate_spc_indirect_data_content(arena, &ci.content, hashtype,
-			hash) < 0) {
+	if (generate_spc_indirect_data_content(arena, &ci.content,
+			ctx->algorithm_id, ctx->digest) < 0) {
 		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
 		return -1;
 	}
