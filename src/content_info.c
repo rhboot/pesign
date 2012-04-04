@@ -31,10 +31,11 @@
  *           6c 00 65 00 74 00 65 00 3e 00 3e 00 3e
  */
 SEC_ASN1Template SpcStringTemplate[] = {
-	{ .kind = SEC_ASN1_CONTEXT_SPECIFIC | 0,
-	  .offset = offsetof(SpcString, unicode),
-	  .sub = &SEC_BMPStringTemplate,
-	  .size = sizeof(SECItem),
+	{
+	.kind = SEC_ASN1_CONTEXT_SPECIFIC | 0,
+	.offset = offsetof(SpcString, unicode),
+	.sub = &SEC_BMPStringTemplate,
+	.size = sizeof (SECItem),
 	},
 	{ 0, }
 };
@@ -43,7 +44,7 @@ static int
 generate_spc_string(PRArenaPool *arena, SECItem *ssp, char *str, int len)
 {
 	SpcString ss;
-	memset(&ss, '\0', sizeof(ss));
+	memset(&ss, '\0', sizeof (ss));
 
 	SECITEM_AllocItem(arena, &ss.unicode, len);
 	if (!ss.unicode.data)
@@ -66,12 +67,13 @@ generate_spc_string(PRArenaPool *arena, SECItem *ssp, char *str, int len)
  * That is all.
  */
 SEC_ASN1Template SpcLinkTemplate[] = {
-	{ .kind = SEC_ASN1_CONSTRUCTED |
-		  SEC_ASN1_CONTEXT_SPECIFIC | 2
-		  | SEC_ASN1_INLINE,
-	  .offset = offsetof(SpcLink, file),
-	  &SpcStringTemplate,
-	  sizeof (SECItem),
+	{
+	.kind = SEC_ASN1_CONSTRUCTED |
+		SEC_ASN1_CONTEXT_SPECIFIC | 2 |
+		SEC_ASN1_INLINE,
+	.offset = offsetof(SpcLink, file),
+	.sub = &SpcStringTemplate,
+	.size = sizeof (SECItem),
 	},
 	{ 0, }
 };
@@ -80,7 +82,7 @@ static int
 generate_spc_link(PRArenaPool *arena, SECItem *slp)
 {
 	SpcLink sl;
-	memset(&sl, '\0', sizeof(sl));
+	memset(&sl, '\0', sizeof (sl));
 
 	if (generate_spc_string(arena, &sl.file,
 			"\0<\0<\0<\0O\0b\0s\0o\0l\0e\0t\0e\0>\0>\0>", 28) < 0) {
@@ -117,21 +119,24 @@ generate_spc_link(PRArenaPool *arena, SECItem *slp)
  * I'm so sorry. -- pjones
  */
 SEC_ASN1Template SpcPeImageDataTemplate[] = {
-	{ .kind = SEC_ASN1_SEQUENCE,
-	  .offset = 0,
-	  .sub = NULL,
-	  .size = sizeof(SpcPeImageData),
+	{
+	.kind = SEC_ASN1_SEQUENCE,
+	.offset = 0,
+	.sub = NULL,
+	.size = sizeof (SpcPeImageData),
 	},
-	{ .kind = SEC_ASN1_NULL,
-	  .offset = offsetof(SpcPeImageData, flags),
-	  .sub = NULL,
-	  .size = 1
+	{
+	.kind = SEC_ASN1_NULL,
+	.offset = offsetof(SpcPeImageData, flags),
+	.sub = NULL,
+	.size = 1
 	},
-	{ .kind = SEC_ASN1_CONSTRUCTED |
-		  SEC_ASN1_CONTEXT_SPECIFIC | 0,
-	  .offset = offsetof(SpcPeImageData, link),
-	  &SpcLinkTemplate,
-	  sizeof(SpcLink),
+	{
+	.kind = SEC_ASN1_CONSTRUCTED |
+		SEC_ASN1_CONTEXT_SPECIFIC | 0,
+	.offset = offsetof(SpcPeImageData, link),
+	.sub = &SpcLinkTemplate,
+	.size = sizeof (SpcLink),
 	},
 	{ 0, }
 };
@@ -167,21 +172,24 @@ generate_spc_pe_image_data(PRArenaPool *arena, SECItem *spidp)
 }
 
 SEC_ASN1Template SpcAttributeTypeAndOptionalValueTemplate[] = {
-	{ .kind = SEC_ASN1_SEQUENCE,
-	  .offset = 0,
-	  .sub = NULL,
-	  .size = sizeof(SpcAttributeTypeAndOptionalValue)
+	{
+	.kind = SEC_ASN1_SEQUENCE,
+	.offset = 0,
+	.sub = NULL,
+	.size = sizeof (SpcAttributeTypeAndOptionalValue)
 	},
-	{ .kind = SEC_ASN1_OBJECT_ID,
-	  .offset = offsetof(SpcAttributeTypeAndOptionalValue, contentType),
-	  .sub = &SEC_ObjectIDTemplate,
-	  .size = sizeof(SECItem)
+	{
+	.kind = SEC_ASN1_OBJECT_ID,
+	.offset = offsetof(SpcAttributeTypeAndOptionalValue, contentType),
+	.sub = &SEC_ObjectIDTemplate,
+	.size = sizeof (SECItem)
 	},
-	{ .kind = SEC_ASN1_OPTIONAL |
-		  SEC_ASN1_ANY,
-	  .offset = offsetof(SpcAttributeTypeAndOptionalValue, value),
-	  .sub = &SEC_AnyTemplate,
-	  .size = sizeof(SECItem),
+	{
+	.kind = SEC_ASN1_OPTIONAL |
+		SEC_ASN1_ANY,
+	.offset = offsetof(SpcAttributeTypeAndOptionalValue, value),
+	.sub = &SEC_AnyTemplate,
+	.size = sizeof (SECItem),
 	},
 	{ 0, }
 };
@@ -194,7 +202,7 @@ static int
 generate_spc_attribute_yadda_yadda(PRArenaPool *arena, SECItem *ataovp)
 {
 	SpcAttributeTypeAndOptionalValue ataov;
-	memset(&ataov, '\0', sizeof(ataov));
+	memset(&ataov, '\0', sizeof (ataov));
 
 	if (get_ms_oid_secitem(SPC_PE_IMAGE_DATA_OBJID, &ataov.contentType) < 0){
 		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
@@ -223,40 +231,46 @@ generate_spc_attribute_yadda_yadda(PRArenaPool *arena, SECItem *ataovp)
  * work right. It's probably my on defficiency.
  */
 SEC_ASN1Template AlgorithmIDTemplate[] = {
-	{ .kind = SEC_ASN1_SEQUENCE,
-	  .offset = 0,
-	  .sub = NULL,
-	  .size = sizeof(SECAlgorithmID),
+	{
+	.kind = SEC_ASN1_SEQUENCE,
+	.offset = 0,
+	.sub = NULL,
+	.size = sizeof (SECAlgorithmID),
 	},
-	{ .kind = SEC_ASN1_OBJECT_ID,
-	  .offset = offsetof(SECAlgorithmID, algorithm),
-	  .sub = NULL,
-	  .size = 0,
+	{
+	.kind = SEC_ASN1_OBJECT_ID,
+	.offset = offsetof(SECAlgorithmID, algorithm),
+	.sub = NULL,
+	.size = 0,
 	},
-	{ .kind = SEC_ASN1_OPTIONAL |
-		  SEC_ASN1_ANY,
-	  .offset = offsetof(SECAlgorithmID, parameters),
-	  .sub = NULL,
-	  .size = 0,
+	{
+	.kind = SEC_ASN1_OPTIONAL |
+		SEC_ASN1_ANY,
+	.offset = offsetof(SECAlgorithmID, parameters),
+	.sub = NULL,
+	.size = 0,
 	},
 	{ 0, }
 };
 
 SEC_ASN1Template DigestInfoTemplate[] = {
-	{ .kind = SEC_ASN1_SEQUENCE,
-	  .offset = 0,
-	  .sub = NULL,
-	  .size = 0
+	{
+	.kind = SEC_ASN1_SEQUENCE,
+	.offset = 0,
+	.sub = NULL,
+	.size = 0
 	},
-	{ .kind = SEC_ASN1_INLINE,
-	  .offset = offsetof(DigestInfo, digestAlgorithm),
-	  .sub = AlgorithmIDTemplate,
-	  .size = sizeof(SECAlgorithmID),
+	{
+	.kind = SEC_ASN1_INLINE,
+	.offset = offsetof(DigestInfo, digestAlgorithm),
+	.sub = AlgorithmIDTemplate,
+	.size = sizeof (SECAlgorithmID),
 	},
-	{ .kind = SEC_ASN1_OCTET_STRING,
-	  .offset = offsetof(DigestInfo, digest),
-	  .sub = NULL,
-	  .size = sizeof(SECItem)
+	{
+	.kind = SEC_ASN1_OCTET_STRING,
+	.offset = offsetof(DigestInfo, digest),
+	.sub = NULL,
+	.size = sizeof (SECItem)
 	},
 	{ 0, }
 };
@@ -266,10 +280,10 @@ generate_spc_digest_info(PRArenaPool *arena, SECItem *dip,
 				SECAlgorithmID *hashtype, SECItem *hash)
 {
 	DigestInfo di;
-	memset(&di, '\0', sizeof(di));
+	memset(&di, '\0', sizeof (di));
 
-	memcpy(&di.digestAlgorithm, hashtype, sizeof(di.digestAlgorithm));
-	memcpy(&di.digest, hash, sizeof(di.digest));
+	memcpy(&di.digestAlgorithm, hashtype, sizeof (di.digestAlgorithm));
+	memcpy(&di.digest, hash, sizeof (di.digest));
 
 	if (SEC_ASN1EncodeItem(arena, dip, &di, DigestInfoTemplate) == NULL) {
 		fprintf(stderr, "Could not encode DigestInfo: %s\n",
@@ -289,22 +303,25 @@ generate_spc_digest_info(PRArenaPool *arena, SECItem *dip,
  * the generated SpcIndirectDataContent structure.
  */
 SEC_ASN1Template SpcIndirectDataContentTemplate[] = {
-	{ .kind = SEC_ASN1_SEQUENCE,
-	  .offset = 0,
-	  .sub = NULL,
-	  .size = 0,
+	{
+	.kind = SEC_ASN1_SEQUENCE,
+	.offset = 0,
+	.sub = NULL,
+	.size = 0,
 	},
-	{ .kind = SEC_ASN1_ANY |
-		  SEC_ASN1_OPTIONAL,
-	  .offset = offsetof(SpcIndirectDataContent, data),
-	  .sub = &SEC_AnyTemplate,
-	  .size = sizeof(SECItem)
+	{
+	.kind = SEC_ASN1_ANY |
+		SEC_ASN1_OPTIONAL,
+	.offset = offsetof(SpcIndirectDataContent, data),
+	.sub = &SEC_AnyTemplate,
+	.size = sizeof (SECItem)
 	},
-	{ .kind = SEC_ASN1_ANY |
-		  SEC_ASN1_OPTIONAL,
-	  .offset = offsetof(SpcIndirectDataContent, messageDigest),
-	  .sub = &DigestInfoTemplate,
-	  .size = sizeof(SECItem)
+	{
+	.kind = SEC_ASN1_ANY |
+		SEC_ASN1_OPTIONAL,
+	.offset = offsetof(SpcIndirectDataContent, messageDigest),
+	.sub = &DigestInfoTemplate,
+	.size = sizeof (SECItem)
 	},
 	{ 0, }
 };
@@ -315,7 +332,7 @@ generate_spc_indirect_data_content(PRArenaPool *arena,
 				SECAlgorithmID *hashtype, SECItem *hash)
 {
 	SpcIndirectDataContent idc;
-	memset(&idc, '\0', sizeof(idc));
+	memset(&idc, '\0', sizeof (idc));
 
 	if (generate_spc_attribute_yadda_yadda(arena, &idc.data) < 0) {
 		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
@@ -339,23 +356,26 @@ generate_spc_indirect_data_content(PRArenaPool *arena,
 }
 
 const SEC_ASN1Template SpcContentInfoTemplate[] = {
-	{ .kind = SEC_ASN1_SEQUENCE,
-	  .offset = 0,
-	  .sub = NULL,
-	  .size = sizeof (SpcContentInfo)
+	{
+	.kind = SEC_ASN1_SEQUENCE,
+	.offset = 0,
+	.sub = NULL,
+	.size = sizeof (SpcContentInfo)
 	},
-	{ .kind = SEC_ASN1_OBJECT_ID,
-	  .offset = offsetof(SpcContentInfo, contentType),
-	  .sub = NULL,
-	  .size = 0,
+	{
+	.kind = SEC_ASN1_OBJECT_ID,
+	.offset = offsetof(SpcContentInfo, contentType),
+	.sub = NULL,
+	.size = 0,
 	},
-	{ .kind = SEC_ASN1_CONSTRUCTED |
-		  SEC_ASN1_CONTEXT_SPECIFIC | 0 |
-		  SEC_ASN1_OPTIONAL |
-		  SEC_ASN1_EXPLICIT,
-	  .offset = offsetof(SpcContentInfo, content),
-	  .sub = &SEC_AnyTemplate,
-	  .size = sizeof(SECItem),
+	{
+	.kind = SEC_ASN1_CONSTRUCTED |
+		SEC_ASN1_CONTEXT_SPECIFIC | 0 |
+		SEC_ASN1_OPTIONAL |
+		SEC_ASN1_EXPLICIT,
+	.offset = offsetof(SpcContentInfo, content),
+	.sub = &SEC_AnyTemplate,
+	.size = sizeof (SECItem),
 	},
 	{ 0, }
 };
@@ -370,7 +390,7 @@ generate_spc_content_info(SECItem *cip,
 	PRArenaPool *arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
 
 	SpcContentInfo ci;
-	memset(&ci, '\0', sizeof(ci));
+	memset(&ci, '\0', sizeof (ci));
 
 	if (get_ms_oid_secitem(SPC_INDIRECT_DATA_OBJID, &ci.contentType) < 0) {
 		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
