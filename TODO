@@ -12,7 +12,7 @@ In no particular order, this stuff still needs to be done (or is in progress):
  d) read cert from file *done*
  e) create hash/digest of file *done*
  f) create new signature (aka "sign the hash")
-  i) generate SpcContentInfo
+  i) generate SpcContentInfo *done*
   ii) sign it
  g) create cert table
  h) find cert table
