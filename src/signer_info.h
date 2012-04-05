@@ -31,8 +31,13 @@ typedef struct {
 } IssuerAndSerialNumber;
 extern SEC_ASN1Template IssuerAndSerialNumberTemplate[];
 
+enum SignerType {
+	signerTypeIssuerAndSerialNumber = 1,
+	signerTypeSubjectKeyIdentifier = 2,
+};
+
 typedef struct {
-	int signerType;
+	int signerType; /* actually the enum above, but enum ABI ew. */
 	struct {
 		IssuerAndSerialNumber iasn;
 		SECItem subjectKeyID;

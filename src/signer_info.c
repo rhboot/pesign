@@ -22,7 +22,49 @@
 #include <nspr4/prerror.h>
 #include <nss3/cms.h>
 
+SEC_ASN1Template IssuerAndSerialNumberTemplate[] = {
+	{
+	.kind = SEC_ASN1_SEQUENCE,
+	.offset = 0,
+	.sub = NULL,
+	.size = sizeof (IssuerAndSerialNumber)
+	},
+	{
+	.kind = SEC_ASN1_ANY,
+	.offset = offsetof(IssuerAndSerialNumber, issuer),
+	.sub = &SEC_AnyTemplate,
+	.size = sizeof (SECItem)
+	},
+	{
+	.kind = SEC_ASN1_INTEGER,
+	.offset = offsetof(IssuerAndSerialNumber, issuer),
+	.sub = &SEC_IntegerTemplate,
+	.size = sizeof (SECItem)
+	},
+	{ 0, }
+};
+
 SEC_ASN1Template SignerIdentifierTemplate[] = {
+	{
+	.kind = SEC_ASN1_CHOICE,
+	.offset = offsetof(SignerIdentifier, signerType),
+	.sub = NULL,
+	.size = sizeof (SignerIdentifier)
+	},
+	{
+	.kind = SEC_ASN1_INLINE,
+	.offset = offsetof(SignerIdentifier, signerValue.iasn),
+	.sub = &IssuerAndSerialNumberTemplate,
+	.size = signerTypeIssuerAndSerialNumber,
+	},
+	{
+	.kind = SEC_ASN1_CONTEXT_SPECIFIC | 0 |
+		SEC_ASN1_EXPLICIT |
+		SEC_ASN1_CONSTRUCTED,
+	.offset = offsetof(SignerIdentifier, signerValue.subjectKeyID),
+	.sub = &SEC_OctetStringTemplate,
+	.size = signerTypeSubjectKeyIdentifier,
+	},
 	{ 0, }
 };
 
@@ -95,12 +137,10 @@ generate_spc_signer_info(SECItem *sip, cms_context *ctx)
 	if (!sip)
 		return -1;
 
-	PRArenaPool *arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-
 	SpcSignerInfo si;
 	memset(&si, '\0', sizeof (si));
 
-	if (SEC_ASN1EncodeInteger(arena, &si.CMSVersion, 1) == NULL) {
+	if (SEC_ASN1EncodeInteger(ctx->arena, &si.CMSVersion, 1) == NULL) {
 		fprintf(stderr, "Could not encode CMSVersion: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		goto err;
@@ -110,12 +150,16 @@ generate_spc_signer_info(SECItem *sip, cms_context *ctx)
 		sizeof(si.digestAlgorithm));
 
 #if 0
-	if (generate_signer_infos(arena, cert, pwcb_args,
+	if (generate_signer_infos(ctx->arena, sip, ctx) < 0) {
+		fprintf(stderr, "Could not add signer infos: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		goto err;
+	}
 #endif
 
 	SECItem encoded;
-	if (SEC_ASN1EncodeItem(arena, &encoded, &si, SpcSignerInfoTemplate) !=
-			&encoded) {
+	if (SEC_ASN1EncodeItem(ctx->arena, &encoded, &si,
+			SpcSignerInfoTemplate) != &encoded) {
 		fprintf(stderr, "Could not encode SignerInfo: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		goto err;
@@ -128,11 +172,7 @@ generate_spc_signer_info(SECItem *sip, cms_context *ctx)
 	sip->len = encoded.len;
 	sip->type = encoded.type;
 
-	/* this will clean up the whole of the allocations in this call chain
-	 * except for the malloc we're returning through cip */
-	PORT_FreeArena(arena, PR_TRUE);
 	return 0;
 err:
-	PORT_FreeArena(arena, PR_TRUE);
 	return -1;
 }

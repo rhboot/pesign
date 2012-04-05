@@ -487,8 +487,8 @@ decoder_error:
 
 #define SHA1_DIGEST_SIZE	20
 #define SHA256_DIGEST_SIZE	32
-#define MAX_DIGEST_SIZE		SHA256_DIGEST_SIZE
-#define HASH_TYPE		SEC_OID_SHA256
+#define MAX_DIGEST_SIZE		SHA1_DIGEST_SIZE
+#define HASH_TYPE		SEC_OID_SHA1
 
 static int
 setup_algorithm_id(cms_context *ctx)
@@ -554,90 +554,22 @@ generate_signature(pesign_context *p_ctx)
 
 	assert(ctx->digest != NULL);
 
-	SECItem ci_der;
-	rc = generate_spc_content_info(&ci_der, ctx);
+	SECItem sd_der;
+	memset(&sd_der, '\0', sizeof(sd_der));
+	rc = generate_spc_signed_data(&sd_der, ctx);
 	if (rc < 0) {
-		fprintf(stderr, "Could not create content info: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
-	}
-
-	SECItem si_der;
-	rc = generate_spc_signer_info(&si_der, ctx);
-	if (rc < 0) {
-		fprintf(stderr, "Could not create signer info: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
-	}
-	
-	SignOut(stdout, (char *)si_der.data, si_der.len);
-	exit(1);
-
-#if 0
-	SECItem sd_der = { 0, };
-	rc = generate_spc_signed_data(&sd_der, &ci, HASH_TYPE);
-
-	SignOut(stdout, (char *)sd_der.data, sd_der.len);
-
-#endif
-	return 0;
-#if 0
-	SECStatus status;
-	SEC_PKCS7ContentInfo *ci = NULL;
-	SECItem digest;
-
-	digest.data = (unsigned char *)ctx->digest;
-	digest.len = ctx->digest_size;
-
-	PORT_SetError(0);
-	ci = SEC_PKCS7CreateSignedData(ctx->cert, certUsageObjectSigner,
-		NULL, HASH_TYPE, NULL, NULL, NULL);
-	if (!ci) {
 		fprintf(stderr, "Could not create signed data: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
 
-
-	status = SEC_PKCS7SetContent(ci, ctx->digest, ctx->digest_size);
-	if (status != SECSuccess) {
-		fprintf(stderr, "Could not set content info: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		rc = -1;
-	}
-
-	status = SEC_PKCS7AddSigningTime(ci);
-	if (status != SECSuccess) {
-		fprintf(stderr, "Could not add signing time: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		rc = -1;
-	}
-
-	status = SEC_PKCS7IncludeCertChain(ci, NULL);
-	if (status != SECSuccess) {
-		fprintf(stderr, "Could not include cert chain: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		rc = -1;
-	}
-
-	status = SEC_PKCS7Encode(ci, SignOut, stdout, NULL, NULL, &pwdata);
-	if (status != SECSuccess) {
-		fprintf(stderr, "Could not encode content: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		rc = -1;
-	}
-
-	if (ci)
-		SEC_PKCS7DestroyContentInfo(ci);
-#endif
+	SignOut(stdout, (char *)sd_der.data, sd_der.len);
 	return rc;
 }
 
 int
 generate_digest(pesign_context *ctx)
 {
-	unsigned char digest[MAX_DIGEST_SIZE];
-	unsigned int digest_size = 0;
 	void *hash_base;
 	size_t hash_size;
 	struct pe32_opt_hdr *pe32opthdr = NULL;
@@ -744,21 +676,34 @@ generate_digest(pesign_context *ctx)
 		PK11_DigestOp(pk11ctx, hash_base, hash_size);
 	}
 
-	PK11_DigestFinal(pk11ctx, digest, &digest_size, MAX_DIGEST_SIZE);
-
-	if ((ctx->cms_ctx.digest = SECITEM_AllocItem(ctx->cms_ctx.arena,
-			NULL, digest_size)) == NULL)
+	SECItem *digest = PORT_ArenaZAlloc(ctx->cms_ctx.arena,
+					sizeof (SECItem));
+	if (!digest)
 		goto error_shdrs;
 
-	memcpy(ctx->cms_ctx.digest->data, digest, digest_size);
+	digest->type = siBuffer;
+	digest->data = PORT_ArenaZAlloc(ctx->cms_ctx.arena, MAX_DIGEST_SIZE);
+	digest->len = MAX_DIGEST_SIZE;
+	if (!digest->data)
+		goto error_digest;
 
-	rc = 0;
+	PK11_DigestFinal(pk11ctx, digest->data, &digest->len, MAX_DIGEST_SIZE);
+	ctx->cms_ctx.digest = digest;
+
+	if (shdrs)
+		free(shdrs);
+	PK11_DestroyContext(pk11ctx, PR_TRUE);
+
+	return 0;
+
+error_digest:
+	PORT_Free(digest->data);
 error_shdrs:
 	if (shdrs)
 		free(shdrs);
 error:
 	PK11_DestroyContext(pk11ctx, PR_TRUE);
-	return rc;
+	return -1;
 }
 
 int
