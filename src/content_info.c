@@ -389,7 +389,7 @@ generate_spc_content_info(SpcContentInfo *cip, cms_context *ctx)
 
 	if (get_ms_oid_secitem(SPC_INDIRECT_DATA_OBJID, &ci.contentType) < 0) {
 		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
-		goto err;
+		return -1;
 	}
 
 	if (generate_spc_indirect_data_content(ctx->arena, &ci.content,
@@ -398,24 +398,15 @@ generate_spc_content_info(SpcContentInfo *cip, cms_context *ctx)
 		return -1;
 	}
 
-	SECItem encoded = { 0, };
-	if (SEC_ASN1EncodeItem(arena, &encoded, &ci, SpcContentInfoTemplate) !=
-			&encoded) {
-		fprintf(stderr, "Could not encode SpcContentInfo: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		goto err;
-	}
-
-	cip->data = malloc(encoded.len);
-	if (!cip->data)
-		goto err;
-	memcpy(cip->data, encoded.data, encoded.len);
-	cip->len = encoded.len;
-	cip->type = encoded.type;
-
+	memcpy(cip, &ci, sizeof *cip);
 	return 0;
-err:
-	return -1;
+}
+
+void
+free_spc_content_info(SpcContentInfo *cip, cms_context *ctx)
+{
+	SECITEM_FreeItem(&cip->contentType, PR_TRUE);
+	SECITEM_FreeItem(&cip->content, PR_TRUE);
 }
 
 /* There's nothing else here. */
