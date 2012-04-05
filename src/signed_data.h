@@ -19,8 +19,6 @@
 #ifndef SIGNED_DATA_H
 #define SIGNED_DATA_H 1
 
-extern int generate_spc_signed_data(SECItem *sd_der,
-					SpcContentInfo *cip,
-					SECOidTag hashalg);
+extern int generate_spc_signed_data(SECItem *sdp, cms_context *ctx);
 
 #endif /* SIGNED_DATA_H */
