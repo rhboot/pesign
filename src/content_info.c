@@ -276,14 +276,14 @@ SEC_ASN1Template DigestInfoTemplate[] = {
 };
 
 static int
-generate_spc_digest_info(PRArenaPool *arena, SECItem *dip,
-				SECAlgorithmID *hashtype, SECItem *hash)
+generate_spc_digest_info(PRArenaPool *arena, SECItem *dip, cms_context *ctx)
 {
 	DigestInfo di;
 	memset(&di, '\0', sizeof (di));
 
-	memcpy(&di.digestAlgorithm, hashtype, sizeof (di.digestAlgorithm));
-	memcpy(&di.digest, hash, sizeof (di.digest));
+	memcpy(&di.digestAlgorithm, ctx->algorithm_id,
+				sizeof (di.digestAlgorithm));
+	memcpy(&di.digest, ctx->digest, sizeof (di.digest));
 
 	if (SEC_ASN1EncodeItem(arena, dip, &di, DigestInfoTemplate) == NULL) {
 		fprintf(stderr, "Could not encode DigestInfo: %s\n",
@@ -327,9 +327,8 @@ SEC_ASN1Template SpcIndirectDataContentTemplate[] = {
 };
 
 static int
-generate_spc_indirect_data_content(PRArenaPool *arena,
-				SECItem *idcp,
-				SECAlgorithmID *hashtype, SECItem *hash)
+generate_spc_indirect_data_content(PRArenaPool *arena, SECItem *idcp,
+				cms_context *ctx)
 {
 	SpcIndirectDataContent idc;
 	memset(&idc, '\0', sizeof (idc));
@@ -339,8 +338,7 @@ generate_spc_indirect_data_content(PRArenaPool *arena,
 		return -1;
 	}
 
-	if (generate_spc_digest_info(arena, &idc.messageDigest,
-					hashtype, hash) < 0) {
+	if (generate_spc_digest_info(arena, &idc.messageDigest, ctx) < 0) {
 		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
 		return -1;
 	}
@@ -381,7 +379,7 @@ const SEC_ASN1Template SpcContentInfoTemplate[] = {
 };
 
 int
-generate_spc_content_info(SECItem *cip, cms_context *ctx)
+generate_spc_content_info(SpcContentInfo *cip, cms_context *ctx)
 {
 	if (!cip)
 		return -1;
@@ -396,8 +394,8 @@ generate_spc_content_info(SECItem *cip, cms_context *ctx)
 		goto err;
 	}
 
-	if (generate_spc_indirect_data_content(arena, &ci.content,
-			ctx->algorithm_id, ctx->digest) < 0) {
+	if (generate_spc_indirect_data_content(ctx->arena, &ci.content,
+						ctx) < 0) {
 		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
 		return -1;
 	}
