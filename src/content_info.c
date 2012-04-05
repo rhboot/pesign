@@ -384,8 +384,6 @@ generate_spc_content_info(SpcContentInfo *cip, cms_context *ctx)
 	if (!cip)
 		return -1;
 
-	PRArenaPool *arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-
 	SpcContentInfo ci;
 	memset(&ci, '\0', sizeof (ci));
 
@@ -415,12 +413,8 @@ generate_spc_content_info(SpcContentInfo *cip, cms_context *ctx)
 	cip->len = encoded.len;
 	cip->type = encoded.type;
 
-	/* this will clean up the whole of the allocations in this call chain
-	 * except for the malloc we're returning through cip */
-	PORT_FreeArena(arena, PR_TRUE);
 	return 0;
 err:
-	PORT_FreeArena(arena, PR_TRUE);
 	return -1;
 }
 

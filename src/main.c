@@ -298,7 +298,11 @@ main(int argc, char *argv[])
 		POPT_TABLEEND
 	};
 
-	pesign_context_init(ctxp);
+	rc = pesign_context_init(ctxp);
+	if (rc < 0) {
+		fprintf(stderr, "Could not initialize context: %m\n");
+		exit(1);
+	}
 
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
@@ -340,12 +344,6 @@ main(int argc, char *argv[])
 
 	if (ctx.hash)
 		action |= GENERATE_DIGEST|PRINT_DIGEST;
-
-	rc = crypto_init(&ctx);
-	if (rc < 0) {
-		fprintf(stderr, "Could not initialize cryptographic library\n");
-		exit(1);
-	}
 
 	switch (action) {
 		case NO_FLAGS:
@@ -413,6 +411,5 @@ main(int argc, char *argv[])
 			exit(1);
 	}
 	pesign_context_fini(&ctx);
-	crypto_fini(&ctx);
 	return (rc < 0);
 }

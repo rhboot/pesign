@@ -65,45 +65,11 @@ pesign_context_init(pesign_context *ctx)
 	ctx->sign = 0;
 	ctx->hash = 0;
 
+	int rc = cms_context_init(&ctx->cms_ctx);
+	if (rc < 0)
+		return rc;
+
 	return 0;
-}
-
-void
-cms_context_fini(cms_context *ctx)
-{
-	if (ctx->cert) {
-		CERT_DestroyCertificate(ctx->cert);
-		ctx->cert = NULL;
-	}
-
-	if (ctx->privkey) {
-		free(ctx->privkey);
-		ctx->privkey = NULL;
-	}
-
-	if (ctx->algorithm_id) {
-		free_poison(ctx->algorithm_id->algorithm.data,
-			ctx->algorithm_id->algorithm.len);
-		SECITEM_FreeItem(&ctx->algorithm_id->algorithm, PR_FALSE);
-		free_poison(ctx->algorithm_id->parameters.data,
-			ctx->algorithm_id->parameters.len);
-		SECITEM_FreeItem(&ctx->algorithm_id->parameters, PR_FALSE);
-		free_poison(ctx->algorithm_id, sizeof (*ctx->algorithm_id));
-		free(ctx->algorithm_id);
-		ctx->algorithm_id = NULL;
-	}
-
-	if (ctx->digest) {
-		free_poison(ctx->digest->data, ctx->digest->len);
-		free(ctx->digest->data);
-		free_poison(ctx->digest, sizeof (*ctx->digest));
-		free(ctx->digest);
-		ctx->digest = NULL;
-	}
-
-	PORT_FreeArena(ctx->arena, PR_TRUE);
-
-	memset(ctx, '\0', sizeof(*ctx));
 }
 
 void

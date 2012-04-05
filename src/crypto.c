@@ -36,7 +36,8 @@
 #include <nss3/pk11pub.h>
 #include <nss3/secerr.h>
 
-int crypto_init(pesign_context *ctx)
+int
+cms_context_init(cms_context *ctx)
 {
 	SECStatus status;
 	
@@ -48,21 +49,53 @@ int crypto_init(pesign_context *ctx)
 	if (status != SECSuccess)
 		return -1;
 
-	ctx->cms_ctx.arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-	if (!ctx->cms_ctx.arena) {
+	ctx->arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	if (!ctx->arena) {
 		fprintf(stderr, "Could not create cryptographic arena: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
 
-
-
 	return 0;
 }
 
-void crypto_fini(pesign_context *ctx)
+void
+cms_context_fini(cms_context *ctx)
 {
-	PORT_FreeArena(ctx->cms_ctx.arena, PR_TRUE);
+	if (ctx->cert) {
+		CERT_DestroyCertificate(ctx->cert);
+		ctx->cert = NULL;
+	}
+
+	if (ctx->privkey) {
+		free(ctx->privkey);
+		ctx->privkey = NULL;
+	}
+
+	if (ctx->algorithm_id) {
+		free_poison(ctx->algorithm_id->algorithm.data,
+			ctx->algorithm_id->algorithm.len);
+		//SECITEM_FreeItem(&ctx->algorithm_id->algorithm, PR_FALSE);
+		free_poison(ctx->algorithm_id->parameters.data,
+			ctx->algorithm_id->parameters.len);
+		//SECITEM_FreeItem(&ctx->algorithm_id->parameters, PR_FALSE);
+		free_poison(ctx->algorithm_id, sizeof (*ctx->algorithm_id));
+		free(ctx->algorithm_id);
+		ctx->algorithm_id = NULL;
+	}
+
+	if (ctx->digest) {
+		free_poison(ctx->digest->data, ctx->digest->len);
+		/* XXX sure seems like we should be freeing it here, but
+		 * that's segfaulting, and we know it'll get cleaned up with
+		 * PORT_FreeArena a couple of lines down.
+		 */
+		ctx->digest = NULL;
+	}
+
+	PORT_FreeArena(ctx->arena, PR_TRUE);
+	memset(ctx, '\0', sizeof(*ctx));
+
 	NSS_Shutdown();
 }
 
