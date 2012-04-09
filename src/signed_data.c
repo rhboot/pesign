@@ -258,7 +258,7 @@ generate_spc_signed_data(SECItem *sdp, cms_context *ctx)
 	memcpy(&sdw.content, &encoded, sizeof (sdw.content));
 
 	SECItem wrapper = { 0, };
-	if (SEC_ASN1Encode(ctx->arena, &wrapper, &sdw,
+	if (SEC_ASN1EncodeItem(ctx->arena, &wrapper, &sdw,
 			ContentInfoTemplate) == NULL) {
 		fprintf(stderr, "Could not encode SignedData: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
