@@ -28,6 +28,7 @@ static int
 generate_algorithm_id_list(SECAlgorithmID ***algorithm_list_p, cms_context *ctx)
 {
 	SECAlgorithmID **algorithms = NULL;
+	int err = 0;
 
 	algorithms = PORT_ArenaZAlloc(ctx->arena, sizeof (SECAlgorithmID *) *
 						  2);
@@ -36,18 +37,23 @@ generate_algorithm_id_list(SECAlgorithmID ***algorithm_list_p, cms_context *ctx)
 
 	algorithms[0] = PORT_ArenaZAlloc(ctx->arena, sizeof(SECAlgorithmID));
 	if (!algorithms[0]) {
-		int err = PORT_GetError();
-		PORT_ZFree(algorithms, sizeof (SECAlgorithmID) * 2);
-		PORT_SetError(err);
-		return -1;
+		err = PORT_GetError();
+		goto err_list;
 	}
 
-	SECITEM_CopyItem(ctx->arena, &algorithms[0]->algorithm,
-					&ctx->algorithm_id->algorithm);
-	SECITEM_CopyItem(ctx->arena, &algorithms[0]->parameters,
-					&ctx->algorithm_id->parameters);
+	if (generate_algorithm_id(ctx, algorithms[0], ctx->oidtag) < 0) {
+		err = PORT_GetError();
+		goto err_item;
+	}
+
 	*algorithm_list_p = algorithms;
 	return 0;
+err_item:
+	PORT_ZFree(algorithms[0], sizeof (SECAlgorithmID));
+err_list:
+	PORT_ZFree(algorithms, sizeof (SECAlgorithmID *) * 2);
+	PORT_SetError(err);
+	return -1;
 }
 
 void

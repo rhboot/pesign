@@ -281,8 +281,8 @@ generate_spc_digest_info(PRArenaPool *arena, SECItem *dip, cms_context *ctx)
 	DigestInfo di;
 	memset(&di, '\0', sizeof (di));
 
-	memcpy(&di.digestAlgorithm, ctx->algorithm_id,
-				sizeof (di.digestAlgorithm));
+	if (generate_algorithm_id(ctx, &di.digestAlgorithm, ctx->oidtag) < 0)
+		return -1;
 	memcpy(&di.digest, ctx->digest, sizeof (di.digest));
 
 	if (SEC_ASN1EncodeItem(arena, dip, &di, DigestInfoTemplate) == NULL) {

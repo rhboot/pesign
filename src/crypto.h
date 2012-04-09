@@ -38,4 +38,7 @@ extern int remove_signature(pesign_context *ctx, int signum);
 extern int generate_signature(pesign_context *ctx);
 extern int generate_digest(pesign_context *ctx);
 
+extern int generate_algorithm_id(cms_context *ctx, SECAlgorithmID *idp,
+				SECOidTag tag);
+
 #endif /* PESIGN_CRYPTO_H */

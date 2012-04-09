@@ -30,7 +30,7 @@ typedef struct {
 	PRArenaPool *arena;
 	void *privkey;
 	CERTCertificate *cert;
-	SECAlgorithmID *algorithm_id;
+	SECOidTag oidtag;
 	SECItem *digest;
 } cms_context;
 

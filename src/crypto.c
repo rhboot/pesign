@@ -72,18 +72,6 @@ cms_context_fini(cms_context *ctx)
 		ctx->privkey = NULL;
 	}
 
-	if (ctx->algorithm_id) {
-		free_poison(ctx->algorithm_id->algorithm.data,
-			ctx->algorithm_id->algorithm.len);
-		//SECITEM_FreeItem(&ctx->algorithm_id->algorithm, PR_FALSE);
-		free_poison(ctx->algorithm_id->parameters.data,
-			ctx->algorithm_id->parameters.len);
-		//SECITEM_FreeItem(&ctx->algorithm_id->parameters, PR_FALSE);
-		free_poison(ctx->algorithm_id, sizeof (*ctx->algorithm_id));
-		free(ctx->algorithm_id);
-		ctx->algorithm_id = NULL;
-	}
-
 	if (ctx->digest) {
 		free_poison(ctx->digest->data, ctx->digest->len);
 		/* XXX sure seems like we should be freeing it here, but
@@ -490,39 +478,35 @@ decoder_error:
 #define MAX_DIGEST_SIZE		SHA1_DIGEST_SIZE
 #define HASH_TYPE		SEC_OID_SHA1
 
-static int
-setup_algorithm_id(cms_context *ctx)
+int
+generate_algorithm_id(cms_context *ctx, SECAlgorithmID *idp, SECOidTag tag)
 {
-	SECAlgorithmID *id;
+	SECAlgorithmID id;
 
-	id = malloc(sizeof (*id));
-	if (!id)
+	if (!idp)
 		return -1;
 
 	SECOidData *oiddata;
-
-	oiddata = SECOID_FindOIDByTag(SEC_OID_SHA256);
+	oiddata = SECOID_FindOIDByTag(tag);
 	if (!oiddata) {
 		PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
-		goto err;
+		return -1;
 	}
-	if (SECITEM_CopyItem(ctx->arena, &id->algorithm, &oiddata->oid))
+	if (SECITEM_CopyItem(ctx->arena, &id.algorithm, &oiddata->oid))
+		return -1;
+
+	SECITEM_AllocItem(ctx->arena, &id.parameters, 2);
+	if (id.parameters.data == NULL)
 		goto err;
+	id.parameters.data[0] = SEC_ASN1_NULL;
+	id.parameters.data[1] = 0;
+	id.parameters.type = siBuffer;
 
-	SECITEM_AllocItem(ctx->arena, &id->parameters, 2);
-	if (id->parameters.data == NULL)
-		goto err_copy;
-	id->parameters.data[0] = SEC_ASN1_NULL;
-	id->parameters.data[1] = 0;
-	id->parameters.type = siBuffer;
-
-	ctx->algorithm_id = id;
+	memcpy(idp, &id, sizeof (id));
 	return 0;
-err_copy:
-	SECITEM_FreeItem(&id->algorithm, PR_FALSE);
+
 err:
-	free_poison(id, sizeof(*id));
-	free(id);
+	SECITEM_FreeItem(&id.algorithm, PR_FALSE);
 	return -1;
 }
 
@@ -545,12 +529,6 @@ generate_signature(pesign_context *p_ctx)
 {
 	int rc = 0;
 	cms_context *ctx = &p_ctx->cms_ctx;
-
-	if (setup_algorithm_id(ctx) < 0) {
-		fprintf(stderr, "Could not set up algorithm ID: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
-	}
 
 	assert(ctx->digest != NULL);
 
@@ -688,6 +666,7 @@ generate_digest(pesign_context *ctx)
 		goto error_digest;
 
 	PK11_DigestFinal(pk11ctx, digest->data, &digest->len, MAX_DIGEST_SIZE);
+	ctx->cms_ctx.oidtag = HASH_TYPE;
 	ctx->cms_ctx.digest = digest;
 
 	if (shdrs)
