@@ -106,18 +106,36 @@ int
 generate_signerInfo_list(SpcSignerInfo ***signerInfo_list_p, cms_context *ctx)
 {
 	SpcSignerInfo **signerInfo_list;
+	int err;
 
 	if (!signerInfo_list_p)
 		return -1;
 
 	signerInfo_list = PORT_ArenaZAlloc(ctx->arena,
-					sizeof (SpcSignerInfo *));
-
+					sizeof (SpcSignerInfo *) * 2);
 	if (!signerInfo_list)
 		return -1;
 
+	signerInfo_list[0] = PORT_ArenaZAlloc(ctx->arena,
+						sizeof (SpcSignerInfo));
+	if (!signerInfo_list[0]) {
+		err = PORT_GetError();
+		goto err_list;
+	}
+	
+	if (generate_spc_signer_info(signerInfo_list[0], ctx) < 0) {
+		err = PORT_GetError();
+		goto err_item;
+	}
+
 	*signerInfo_list_p = signerInfo_list;
 	return 0;
+err_item:
+	PORT_ZFree(signerInfo_list[0], sizeof (SpcSignerInfo));
+err_list:
+	PORT_ZFree(signerInfo_list, sizeof (SpcSignerInfo *) * 2);
+	PORT_SetError(err);
+	return -1;
 }
 
 void
