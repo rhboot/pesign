@@ -7,7 +7,7 @@ LIBS = popt dpe
 PKLIBS = nss
 LDFLAGS =
 CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags --libs $(pklib)))
-CFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib)))
+CFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib))) -Werror
 
 TARGETS = pesign
 SOURCES = $(patsubst %.c,%,$(wildcard *.c))

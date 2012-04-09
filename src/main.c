@@ -188,6 +188,7 @@ open_certificate(pesign_context *ctx)
 }
 
 static void
+__attribute__ ((unused))
 open_privkey(pesign_context *ctx)
 {
 	if (!ctx->privkeyfile) {
