@@ -45,18 +45,23 @@ SEC_ASN1Template IssuerAndSerialNumberTemplate[] = {
 };
 
 SEC_ASN1Template SignerIdentifierTemplate[] = {
+	/* we don't /really/ ever need signerType ==
+	 * signerTypeSubjectKeyIdentifier */
+#if 0
 	{
 	.kind = SEC_ASN1_CHOICE,
 	.offset = offsetof(SignerIdentifier, signerType),
 	.sub = NULL,
 	.size = sizeof (SignerIdentifier)
 	},
+#endif
 	{
 	.kind = SEC_ASN1_INLINE,
 	.offset = offsetof(SignerIdentifier, signerValue.iasn),
 	.sub = &IssuerAndSerialNumberTemplate,
 	.size = signerTypeIssuerAndSerialNumber,
 	},
+#if 0
 	{
 	.kind = SEC_ASN1_CONTEXT_SPECIFIC | 0 |
 		SEC_ASN1_EXPLICIT |
@@ -65,6 +70,7 @@ SEC_ASN1Template SignerIdentifierTemplate[] = {
 	.sub = &SEC_OctetStringTemplate,
 	.size = signerTypeSubjectKeyIdentifier,
 	},
+#endif
 	{ 0, }
 };
 
@@ -81,19 +87,17 @@ SEC_ASN1Template SpcSignerInfoTemplate[] = {
 	.sub = &SEC_IntegerTemplate,
 	.size = sizeof (SECItem),
 	},
-#if 0
 	{
 	.kind = SEC_ASN1_INLINE,
 	.offset = offsetof(SpcSignerInfo, sid),
 	.sub = &SignerIdentifierTemplate,
 	.size = sizeof (SignerIdentifier),
 	},
-#endif
 	{
 	.kind = SEC_ASN1_INLINE,
 	.offset = offsetof(SpcSignerInfo, digestAlgorithm),
 	.sub = &AlgorithmIDTemplate,
-	.size = sizeof (SECItem)
+	.size = sizeof (SECAlgorithmID)
 	},
 #if 0
 	{
@@ -105,13 +109,14 @@ SEC_ASN1Template SpcSignerInfoTemplate[] = {
 	.sub = &AttributeSetTemplate;
 	.size = sizeof (SECItem)
 	},
+#endif
 	{
-	.kind = SEC_ASN1_ANY |
-		SEC_ASN1_OPTIONAL,
+	.kind = SEC_ASN1_INLINE,
 	.offset = offsetof(SpcSignerInfo, signatureAlgorithm),
-	.sub = &DigestInfoTemplate,
+	.sub = &AlgorithmIDTemplate,
 	.size = sizeof (SECItem)
 	},
+#if 0
 	{
 	.kind = SEC_ASN1_OCTET_STRING,
 	.offset = offsetof(SpcSignerInfo, signature),
@@ -132,7 +137,7 @@ SEC_ASN1Template SpcSignerInfoTemplate[] = {
 };
 
 int
-generate_spc_signer_info(SECItem *sip, cms_context *ctx)
+generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx)
 {
 	if (!sip)
 		return -1;
@@ -146,32 +151,17 @@ generate_spc_signer_info(SECItem *sip, cms_context *ctx)
 		goto err;
 	}
 
-	memcpy(&si.digestAlgorithm, ctx->algorithm_id,
-		sizeof(si.digestAlgorithm));
+	si.sid.signerType = signerTypeIssuerAndSerialNumber;
+	si.sid.signerValue.iasn.issuer = ctx->cert->derIssuer;
+	si.sid.signerValue.iasn.serial = ctx->cert->serialNumber;
 
-#if 0
-	if (generate_signer_infos(ctx->arena, sip, ctx) < 0) {
-		fprintf(stderr, "Could not add signer infos: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
+	if (generate_algorithm_id(ctx, &si.digestAlgorithm, ctx->oidtag) < 0)
 		goto err;
-	}
-#endif
-
-	SECItem encoded;
-	if (SEC_ASN1EncodeItem(ctx->arena, &encoded, &si,
-			SpcSignerInfoTemplate) != &encoded) {
-		fprintf(stderr, "Could not encode SignerInfo: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
+	if (generate_algorithm_id(ctx, &si.signatureAlgorithm,
+				SEC_OID_PKCS1_RSA_ENCRYPTION) < 0)
 		goto err;
-	}
 
-	sip->data = malloc(encoded.len);
-	if (!sip->data)
-		goto err;
-	memcpy(sip->data, encoded.data, encoded.len);
-	sip->len = encoded.len;
-	sip->type = encoded.type;
-
+	memcpy(sip, &si, sizeof(si));
 	return 0;
 err:
 	return -1;

@@ -60,13 +60,17 @@ typedef struct {
 	SECItem CMSVersion;
 	SignerIdentifier sid;
 	SECAlgorithmID digestAlgorithm;
+#if 0
 	SECItem signedAttrs;
+#endif
 	SECAlgorithmID signatureAlgorithm;
+#if 0
 	SECItem signature;
 	SECItem unsignedAttrs;
+#endif
 } SpcSignerInfo;
 extern SEC_ASN1Template SpcSignerInfoTemplate[];
 
-extern int generate_spc_signer_info(SECItem *sip, cms_context *ctx);
+extern int generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx);
 
 #endif /* SIGNER_INFO */
