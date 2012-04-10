@@ -22,6 +22,119 @@
 #include <nspr4/prerror.h>
 #include <nss3/cms.h>
 
+SEC_ASN1Template AttributeTemplate[] = {
+	{
+	.kind = SEC_ASN1_SEQUENCE,
+	.offset = 0,
+	.sub = NULL,
+	.size = sizeof (Attribute)
+	},
+	{
+	.kind = SEC_ASN1_OBJECT_ID,
+	.offset = offsetof(Attribute, attrType),
+	.sub = &SEC_ObjectIDTemplate,
+	.size = sizeof (SECItem)
+	},
+	{
+	.kind = SEC_ASN1_SET_OF,
+	.offset = offsetof(Attribute, attrValues),
+	.sub = &SEC_AnyTemplate,
+	.size = sizeof (SECItem **)
+	},
+	{ 0, }
+};
+
+SEC_ASN1Template AttributeSetTemplate[] = {
+	{
+	.kind = SEC_ASN1_SET_OF,
+	.offset = 0,
+	.sub = AttributeTemplate,
+	.size = 0
+	},
+};
+
+SEC_ASN1Template SignedAttributesTemplate[] = {
+	{
+	.kind = SEC_ASN1_CONTEXT_SPECIFIC | 0,
+	.offset = 0,
+	.sub = &AttributeSetTemplate,
+	.size = 0
+	}
+};
+
+static int
+generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
+{
+	Attribute *attrs[5];
+	memset(attrs, '\0', sizeof (attrs));
+
+	SECItem encoded;
+	SECOidTag tag;
+	SECOidData *oid;
+
+	/* build the first attribute */
+	attrs[0] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
+	if (!attrs[0])
+		goto err;
+
+	oid = SECOID_FindOIDByTag(SEC_OID_PKCS9_CONTENT_TYPE);
+	attrs[0]->attrType = oid->oid;
+
+	SECItem *content_types[2] = { NULL, NULL };
+	tag = find_ms_oid_tag(SPC_INDIRECT_DATA_OBJID);
+	if (tag == SEC_OID_UNKNOWN)
+		goto err;
+	if (generate_object_id(ctx, &encoded, tag) < 0)
+		goto err;
+	content_types[0] = SECITEM_ArenaDupItem(ctx->arena, &encoded);
+	if (!content_types[0])
+		goto err;
+	attrs[0]->attrValues = content_types;
+
+	/* build the second attribute */
+	attrs[1] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
+	if (!attrs[1])
+		goto err;
+	if (get_ms_oid_secitem(SPC_STATEMENT_TYPE_OBJID,
+			&attrs[1]->attrType) < 0)
+		goto err;
+
+	SECItem *microsoft_magic[2] = { NULL, NULL };
+	tag = find_ms_oid_tag(SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID);
+	if (tag == SEC_OID_UNKNOWN)
+		goto err;
+	if (generate_object_id(ctx, &encoded, tag) < 0)
+		goto err;
+	microsoft_magic[0] = SECITEM_ArenaDupItem(ctx->arena, &encoded);
+	if (!microsoft_magic[0])
+		goto err;
+	attrs[1]->attrValues = microsoft_magic;
+
+	/* build the third attribute */
+	attrs[2] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
+	if (!attrs[2])
+		goto err;
+
+	oid = SECOID_FindOIDByTag(SEC_OID_PKCS9_MESSAGE_DIGEST);
+	attrs[2]->attrType = oid->oid;
+
+	SECItem *digest_values[2] = { NULL, NULL };
+	if (generate_octet_string(ctx, &encoded, ctx->ci_digest) < 0)
+		goto err;
+	digest_values[0] = SECITEM_ArenaDupItem(ctx->arena, &encoded);
+	if (!digest_values[0])
+		goto err;
+	attrs[2]->attrValues = digest_values;
+
+	Attribute **attrtmp = attrs;
+	if (SEC_ASN1EncodeItem(ctx->arena, sattrs, &attrtmp,
+				AttributeSetTemplate) == NULL)
+		goto err;
+	return 0;
+err:
+	return -1;
+}
+
 SEC_ASN1Template IssuerAndSerialNumberTemplate[] = {
 	{
 	.kind = SEC_ASN1_SEQUENCE,
@@ -99,17 +212,14 @@ SEC_ASN1Template SpcSignerInfoTemplate[] = {
 	.sub = &AlgorithmIDTemplate,
 	.size = sizeof (SECAlgorithmID)
 	},
-#if 0
 	{
-	.kind = SEC_ASN1_CONSTRUCTED |
-		SEC_ASN1_CONTEXT_SPECIFIC | 0 |
-		SEC_ASN1_OPTIONAL |
-		SEC_ASN1_IMPLICIT,
+	.kind = SEC_ASN1_CONTEXT_SPECIFIC | 0 |
+		SEC_ASN1_CONSTRUCTED |
+		SEC_ASN1_OPTIONAL,
 	.offset = offsetof(SpcSignerInfo, signedAttrs),
-	.sub = &AttributeSetTemplate;
+	.sub = &SEC_AnyTemplate,
 	.size = sizeof (SECItem)
 	},
-#endif
 	{
 	.kind = SEC_ASN1_INLINE,
 	.offset = offsetof(SpcSignerInfo, signatureAlgorithm),
@@ -158,6 +268,10 @@ generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx)
 	if (generate_algorithm_id(ctx, &si.digestAlgorithm,
 			ctx->digest_oid_tag) < 0)
 		goto err;
+
+	if (generate_signed_attributes(ctx, &si.signedAttrs) < 0)
+		goto err;
+
 	if (generate_algorithm_id(ctx, &si.signatureAlgorithm,
 				SEC_OID_PKCS1_RSA_ENCRYPTION) < 0)
 		goto err;

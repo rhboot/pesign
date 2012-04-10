@@ -60,9 +60,7 @@ typedef struct {
 	SECItem CMSVersion;
 	SignerIdentifier sid;
 	SECAlgorithmID digestAlgorithm;
-#if 0
 	SECItem signedAttrs;
-#endif
 	SECAlgorithmID signatureAlgorithm;
 #if 0
 	SECItem signature;
