@@ -81,6 +81,16 @@ cms_context_fini(cms_context *ctx)
 		ctx->pe_digest = NULL;
 	}
 
+	if (ctx->ci_digest) {
+		free_poison(ctx->ci_digest->data, ctx->ci_digest->len);
+		/* XXX sure seems like we should be freeing it here, but
+		 * that's segfaulting, and we know it'll get cleaned up with
+		 * PORT_FreeArena a couple of lines down.
+		 */
+		ctx->ci_digest = NULL;
+	}
+
+
 	PORT_FreeArena(ctx->arena, PR_TRUE);
 	memset(ctx, '\0', sizeof(*ctx));
 
@@ -106,6 +116,30 @@ int read_cert(int certfd, CERTCertificate **cert)
 	*cert = CERT_DecodeCertFromPackage(certstr, certlen);
 	free(certstr);
 	if (!*cert)
+		return -1;
+	return 0;
+}
+
+int
+generate_octet_string(cms_context *ctx, SECItem *encoded, SECItem *original)
+{
+	if (SEC_ASN1EncodeItem(ctx->arena, encoded, original,
+			SEC_OctetStringTemplate) == NULL)
+		return -1;
+	return 0;
+}
+
+int
+generate_object_id(cms_context *ctx, SECItem *encoded, SECOidTag tag)
+{
+	SECOidData *oid;
+
+	oid = SECOID_FindOIDByTag(tag);
+	if (!oid)
+		return -1;
+
+	if (SEC_ASN1EncodeItem(ctx->arena, encoded, &oid->oid,
+			SEC_ObjectIDTemplate) == NULL)
 		return -1;
 	return 0;
 }

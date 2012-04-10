@@ -24,9 +24,13 @@ extern void cms_context_fini(cms_context *ctx);
 
 extern int read_cert(int certfd, CERTCertificate **cert);
 
+extern int generate_octet_string(cms_context *ctx, SECItem *encoded,
+				SECItem *original);
+extern int generate_object_id(cms_context *ctx, SECItem *encoded,
+				SECOidTag tag);
+
 extern SEC_ASN1Template AlgorithmIDTemplate[];
 extern int generate_algorithm_id(cms_context *ctx, SECAlgorithmID *idp,
 				SECOidTag tag);
-
 
 #endif /* CMS_COMMON_H */
