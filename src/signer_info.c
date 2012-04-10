@@ -155,7 +155,8 @@ generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx)
 	si.sid.signerValue.iasn.issuer = ctx->cert->derIssuer;
 	si.sid.signerValue.iasn.serial = ctx->cert->serialNumber;
 
-	if (generate_algorithm_id(ctx, &si.digestAlgorithm, ctx->oidtag) < 0)
+	if (generate_algorithm_id(ctx, &si.digestAlgorithm,
+			ctx->digest_oid_tag) < 0)
 		goto err;
 	if (generate_algorithm_id(ctx, &si.signatureAlgorithm,
 				SEC_OID_PKCS1_RSA_ENCRYPTION) < 0)

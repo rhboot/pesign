@@ -424,7 +424,7 @@ generate_signature(pesign_context *p_ctx)
 	int rc = 0;
 	cms_context *ctx = &p_ctx->cms_ctx;
 
-	assert(ctx->digest != NULL);
+	assert(ctx->pe_digest != NULL);
 
 	SECItem sd_der;
 	memset(&sd_der, '\0', sizeof(sd_der));
@@ -560,8 +560,9 @@ generate_digest(pesign_context *ctx)
 		goto error_digest;
 
 	PK11_DigestFinal(pk11ctx, digest->data, &digest->len, MAX_DIGEST_SIZE);
-	ctx->cms_ctx.oidtag = HASH_TYPE;
-	ctx->cms_ctx.digest = digest;
+	ctx->cms_ctx.digest_oid_tag = HASH_TYPE;
+	ctx->cms_ctx.digest_size = MAX_DIGEST_SIZE;
+	ctx->cms_ctx.pe_digest = digest;
 
 	if (shdrs)
 		free(shdrs);

@@ -249,8 +249,8 @@ print_digest(pesign_context *pctx)
 		return;
 
 	printf("hash: ");
-	for (int i = 0; i < ctx->digest->len; i++)
-		printf("%02x", (unsigned char)ctx->digest->data[i]);
+	for (int i = 0; i < ctx->pe_digest->len; i++)
+		printf("%02x", (unsigned char)ctx->pe_digest->data[i]);
 	printf("\n");
 }
 

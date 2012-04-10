@@ -72,13 +72,13 @@ cms_context_fini(cms_context *ctx)
 		ctx->privkey = NULL;
 	}
 
-	if (ctx->digest) {
-		free_poison(ctx->digest->data, ctx->digest->len);
+	if (ctx->pe_digest) {
+		free_poison(ctx->pe_digest->data, ctx->pe_digest->len);
 		/* XXX sure seems like we should be freeing it here, but
 		 * that's segfaulting, and we know it'll get cleaned up with
 		 * PORT_FreeArena a couple of lines down.
 		 */
-		ctx->digest = NULL;
+		ctx->pe_digest = NULL;
 	}
 
 	PORT_FreeArena(ctx->arena, PR_TRUE);

@@ -41,7 +41,8 @@ generate_algorithm_id_list(SECAlgorithmID ***algorithm_list_p, cms_context *ctx)
 		goto err_list;
 	}
 
-	if (generate_algorithm_id(ctx, algorithms[0], ctx->oidtag) < 0) {
+	if (generate_algorithm_id(ctx, algorithms[0],
+			ctx->digest_oid_tag) < 0) {
 		err = PORT_GetError();
 		goto err_item;
 	}
