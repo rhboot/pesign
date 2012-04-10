@@ -29,6 +29,8 @@
 #include "crypto.h"
 #include "endian.h"
 #include "oid.h"
+
+#include "cms_common.h"
 #include "content_info.h"
 #include "signer_info.h"
 #include "signed_data.h"

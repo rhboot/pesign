@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2011-2012 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,21 +16,17 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_CRYPTO_H
-#define PESIGN_CRYPTO_H 1
+#ifndef CMS_COMMON_H
+#define CMS_COMMON_H 1
 
-#include <nss3/cert.h>
-#include <nss3/secpkcs7.h>
+extern int cms_context_init(cms_context *ctx);
+extern void cms_context_fini(cms_context *ctx);
 
-#include "wincert.h"
+extern int read_cert(int certfd, CERTCertificate **cert);
 
-extern int has_signatures(pesign_context *ctx);
-extern int list_signatures(pesign_context *ctx);
-extern void export_signature(pesign_context *ctx);
-extern void parse_signature(pesign_context *ctx);
-extern int import_signature(pesign_context *ctx);
-extern int remove_signature(pesign_context *ctx, int signum);
-extern int generate_signature(pesign_context *ctx);
-extern int generate_digest(pesign_context *ctx);
+extern SEC_ASN1Template AlgorithmIDTemplate[];
+extern int generate_algorithm_id(cms_context *ctx, SECAlgorithmID *idp,
+				SECOidTag tag);
 
-#endif /* PESIGN_CRYPTO_H */
+
+#endif /* CMS_COMMON_H */

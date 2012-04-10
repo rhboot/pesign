@@ -230,29 +230,6 @@ generate_spc_attribute_yadda_yadda(PRArenaPool *arena, SECItem *ataovp)
  * reason this is the only place I could really get template chaining to
  * work right. It's probably my on defficiency.
  */
-SEC_ASN1Template AlgorithmIDTemplate[] = {
-	{
-	.kind = SEC_ASN1_SEQUENCE,
-	.offset = 0,
-	.sub = NULL,
-	.size = sizeof (SECAlgorithmID),
-	},
-	{
-	.kind = SEC_ASN1_OBJECT_ID,
-	.offset = offsetof(SECAlgorithmID, algorithm),
-	.sub = NULL,
-	.size = 0,
-	},
-	{
-	.kind = SEC_ASN1_OPTIONAL |
-		SEC_ASN1_ANY,
-	.offset = offsetof(SECAlgorithmID, parameters),
-	.sub = NULL,
-	.size = 0,
-	},
-	{ 0, }
-};
-
 SEC_ASN1Template DigestInfoTemplate[] = {
 	{
 	.kind = SEC_ASN1_SEQUENCE,
@@ -263,7 +240,7 @@ SEC_ASN1Template DigestInfoTemplate[] = {
 	{
 	.kind = SEC_ASN1_INLINE,
 	.offset = offsetof(DigestInfo, digestAlgorithm),
-	.sub = AlgorithmIDTemplate,
+	.sub = &AlgorithmIDTemplate,
 	.size = sizeof (SECAlgorithmID),
 	},
 	{

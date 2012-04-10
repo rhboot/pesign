@@ -53,7 +53,6 @@ typedef struct {
 	SECAlgorithmID digestAlgorithm;
 	SECItem digest;
 } DigestInfo;
-extern SEC_ASN1Template AlgorithmIDTemplate[];
 extern SEC_ASN1Template DigestInfoTemplate[];
 
 typedef struct {
