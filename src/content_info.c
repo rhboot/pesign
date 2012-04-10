@@ -23,6 +23,7 @@
 
 #include <nspr4/prerror.h>
 #include <nss3/cms.h>
+#include <nss3/pk11pub.h>
 
 /* Generate DER for SpcString, which is always "<<<Obsolete>>>" in UCS-2.
  * Irony abounds. Needs to decode like this:
@@ -356,6 +357,56 @@ const SEC_ASN1Template SpcContentInfoTemplate[] = {
 	{ 0, }
 };
 
+static int
+generate_cinfo_digest(cms_context *cms_ctx, SpcContentInfo *cip)
+{
+	SECItem encoded = { 0, };
+	if (SEC_ASN1EncodeItem(cms_ctx->arena, &encoded, cip,
+			SpcContentInfoTemplate) == NULL)
+		return -1;
+	
+	PK11Context *ctx = NULL;
+	SECOidData *oid = SECOID_FindOIDByTag(cms_ctx->digest_oid_tag);
+	if (oid == NULL)
+		return -1;
+
+	cms_ctx->ci_digest = SECITEM_AllocItem(cms_ctx->arena, NULL,
+						cms_ctx->digest_size);
+	if (!cms_ctx->ci_digest)
+		goto err;
+
+	ctx = PK11_CreateDigestContext(oid->offset);
+	if (ctx == NULL)
+		goto err;
+
+	if (PK11_DigestBegin(ctx) != SECSuccess)
+		goto err;
+	if (PK11_DigestOp(ctx, encoded.data, encoded.len) != SECSuccess)
+		goto err;
+	if (PK11_DigestFinal(ctx, cms_ctx->ci_digest->data,
+				&cms_ctx->ci_digest->len,
+				cms_ctx->digest_size) != SECSuccess)
+		goto err;
+	if (cms_ctx->ci_digest->len > cms_ctx->digest_size)
+		goto err;
+
+	PK11_DestroyContext(ctx, PR_TRUE);
+#if 0
+	SECITEM_FreeItem(&encoded, PR_FALSE);
+#endif
+	return 0;
+err:
+	if (ctx)
+		PK11_DestroyContext(ctx, PR_TRUE);
+	if (cms_ctx->ci_digest)
+		SECITEM_FreeItem(cms_ctx->ci_digest, PR_TRUE);
+#if 0
+	if (encoded.data)
+		SECITEM_FreeItem(&encoded, PR_FALSE);
+#endif
+	return -1;
+}
+
 int
 generate_spc_content_info(SpcContentInfo *cip, cms_context *ctx)
 {
@@ -377,6 +428,10 @@ generate_spc_content_info(SpcContentInfo *cip, cms_context *ctx)
 	}
 
 	memcpy(cip, &ci, sizeof *cip);
+
+	if (generate_cinfo_digest(ctx, cip) < 0)
+		return -1;
+
 	return 0;
 }
 

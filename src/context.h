@@ -35,6 +35,7 @@ typedef struct {
 	int digest_size;
 
 	SECItem *pe_digest;
+	SECItem *ci_digest;
 } cms_context;
 
 typedef struct {
