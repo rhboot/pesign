@@ -23,9 +23,11 @@ typedef struct {
 	/* L"<<<Obsolete>>>" no nul */
 	SECItem unicode;
 } SpcString;
+extern SEC_ASN1Template SpcStringTemplate[];
 
 typedef enum {
-	SpcLinkTypeUrl = 0,
+	SpcLinkYouHaveFuckedThisUp = 0,
+	SpcLinkTypeUrl = 1,
 	SpcLinkTypeFile = 2,
 } SpcLinkType;
 
@@ -36,6 +38,7 @@ typedef struct {
 		SECItem file;
 	};
 } SpcLink;
+extern SEC_ASN1Template SpcLinkTemplate[];
 
 extern int cms_context_init(cms_context *ctx);
 extern void cms_context_fini(cms_context *ctx);
@@ -53,9 +56,8 @@ extern int generate_algorithm_id(cms_context *ctx, SECAlgorithmID *idp,
 extern int generate_spc_link(PRArenaPool *arena, SpcLink *slp,
 				SpcLinkType link_type, void *link_data,
 				size_t link_data_size);
-extern int generate_spc_string(PRArenaPool *arena, SECItem *ssp, char *str,
-				int len);
 
-extern SEC_ASN1Template SpcLinkTemplate[];
+extern int generate_spc_string(PRArenaPool *arena, SECItem *ssp,
+				char *str, int len);
 
 #endif /* CMS_COMMON_H */

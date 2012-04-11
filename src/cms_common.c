@@ -249,10 +249,10 @@ SEC_ASN1Template SpcLinkTemplate[] = {
 	.size = sizeof (SpcLink)
 	},
 	{
-	.kind = SEC_ASN1_CONSTRUCTED |
-		SEC_ASN1_CONTEXT_SPECIFIC | 2,
+	.kind = SEC_ASN1_CONTEXT_SPECIFIC | 0 |
+		SEC_ASN1_EXPLICIT,
 	.offset = offsetof(SpcLink, url),
-	.sub = &SEC_IA5StringTemplate,
+	.sub = &SEC_AnyTemplate,
 	.size = SpcLinkTypeUrl,
 	},
 	{
@@ -282,24 +282,16 @@ generate_spc_link(PRArenaPool *arena, SpcLink *slp, SpcLinkType link_type,
 		}
 		break;
 	case SpcLinkTypeUrl:
-		if (SEC_ASN1EncodeItem(arena, &sl.url, link_data,
-				SEC_IA5StringTemplate) == NULL) {
-			fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
-			return -1;
-		}
+		sl.url.type = siBuffer;
+		sl.url.data = link_data;
+		sl.url.len = link_data_size;
 		break;
+	default:
+		fprintf(stderr, "Invalid SpcLinkType\n");
+		return -1;
 	};
 
-#if 0
-	if (SEC_ASN1EncodeItem(arena, slp, &sl, SpcLinkTemplate) == NULL) {
-		fprintf(stderr, "Could not encode SpcLink: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
-	}
-#else
 	memcpy(slp, &sl, sizeof (sl));
-#endif
-
 	return 0;
 }
 
