@@ -63,11 +63,12 @@ free_algorithm_list(SECAlgorithmID **algorithm_list, cms_context *ctx)
 	if (!algorithm_list)
 		return;
 
+#if 0
 	for (int i = 0; algorithm_list[i] != NULL; i++) {
-		PORT_Free(&algorithm_list[i]->algorithm);
-		PORT_Free(&algorithm_list[i]->parameters);
+		PORT_ZFree(algorithm_list[i], sizeof (SECAlgorithmID));
 	}
 	PORT_ZFree(algorithm_list, sizeof (SECAlgorithmID *) * 2);
+#endif
 }
 
 static int
@@ -297,7 +298,9 @@ err_cinfo:
 err_algorithms:
 	free_algorithm_list(sd.algorithms, ctx);
 err:
+#if 0
 	SECITEM_FreeItem(&sd.version, PR_TRUE);
+#endif
 	return -1;
 
 	
