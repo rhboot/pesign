@@ -289,10 +289,17 @@ const SEC_ASN1Template SpcContentInfoTemplate[] = {
 static int
 generate_cinfo_digest(cms_context *cms_ctx, SpcContentInfo *cip)
 {
-	SECItem encoded = { 0, };
-	if (SEC_ASN1EncodeItem(cms_ctx->arena, &encoded, cip,
-			SpcContentInfoTemplate) == NULL)
-		return -1;
+	/* I have exactly no idea why the thing I need to digest is 2 bytes
+	 * in to the content data, but the hash winds up identical to what
+	 * Microsoft is embedding in their binaries if I do, so I'm calling
+	 * that "correct", where "correct" means "there's not enough booze
+	 * in the world."
+	 */
+	SECItem encoded = {
+		.type = cip->content.type,
+		.data = cip->content.data + 2,
+		.len = cip->content.len - 2
+	};
 	
 	PK11Context *ctx = NULL;
 	SECOidData *oid = SECOID_FindOIDByTag(cms_ctx->digest_oid_tag);
