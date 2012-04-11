@@ -20,8 +20,8 @@
 #define SIGNER_INFO 1
 
 typedef struct {
-	SECItem ProgramName;
-	SECItem MoreInfo;
+	SECItem programName;
+	SpcLink moreInfo;
 } SpcSpOpusInfo;
 extern SEC_ASN1Template SpcSpOpusInfoTemplate[];
 
