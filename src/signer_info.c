@@ -129,7 +129,8 @@ generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 	SECOidTag tag;
 	SECOidData *oid;
 
-	/* build the first attribute */
+	/* build the first attribute, which says that this is
+	 * a PKCS9 content blob thingy */
 	attrs[0] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
 	if (!attrs[0])
 		goto err;
@@ -148,7 +149,8 @@ generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 		goto err;
 	attrs[0]->attrValues = content_types;
 
-	/* build the second attribute */
+	/* build the second attribute.  I have no idea what this
+	 * is for whatsoever. */
 	attrs[1] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
 	if (!attrs[1])
 		goto err;
@@ -167,7 +169,8 @@ generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 		goto err;
 	attrs[1]->attrValues = microsoft_magic;
 
-	/* build the third attribute */
+	/* build the third attribute, which is our PKCS9 message
+	 * digest (which is a SHA-whatever selected and generated elsewhere */
 	attrs[2] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
 	if (!attrs[2])
 		goto err;
@@ -183,7 +186,9 @@ generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 		goto err;
 	attrs[2]->attrValues = digest_values;
 
-	/* build the fourth attribute */
+	/* build the fourth attribute, which is meaningless bullshit
+	 * that should have been stripped out of this bogus spec before
+	 * 1.0 ever happened */
 	attrs[3] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
 	if (!attrs[3])
 		goto err;
