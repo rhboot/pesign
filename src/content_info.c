@@ -278,10 +278,9 @@ const SEC_ASN1Template SpcContentInfoTemplate[] = {
 	{
 	.kind = SEC_ASN1_CONSTRUCTED |
 		SEC_ASN1_CONTEXT_SPECIFIC | 0 |
-		SEC_ASN1_OPTIONAL |
-		SEC_ASN1_EXPLICIT,
+		SEC_ASN1_OPTIONAL,
 	.offset = offsetof(SpcContentInfo, content),
-	.sub = &SEC_AnyTemplate,
+	.sub = &SEC_OctetStringTemplate,
 	.size = sizeof (SECItem),
 	},
 	{ 0, }
