@@ -19,6 +19,24 @@
 #ifndef CMS_COMMON_H
 #define CMS_COMMON_H 1
 
+typedef struct {
+	/* L"<<<Obsolete>>>" no nul */
+	SECItem unicode;
+} SpcString;
+
+typedef enum {
+	SpcLinkTypeUrl = 0,
+	SpcLinkTypeFile = 2,
+} SpcLinkType;
+
+typedef struct {
+	SpcLinkType type;
+	union {
+		SECItem url;
+		SECItem file;
+	};
+} SpcLink;
+
 extern int cms_context_init(cms_context *ctx);
 extern void cms_context_fini(cms_context *ctx);
 
@@ -32,5 +50,12 @@ extern int generate_object_id(cms_context *ctx, SECItem *encoded,
 extern SEC_ASN1Template AlgorithmIDTemplate[];
 extern int generate_algorithm_id(cms_context *ctx, SECAlgorithmID *idp,
 				SECOidTag tag);
+extern int generate_spc_link(PRArenaPool *arena, SpcLink *slp,
+				SpcLinkType link_type, void *link_data,
+				size_t link_data_size);
+extern int generate_spc_string(PRArenaPool *arena, SECItem *ssp, char *str,
+				int len);
+
+extern SEC_ASN1Template SpcLinkTemplate[];
 
 #endif /* CMS_COMMON_H */

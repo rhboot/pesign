@@ -199,4 +199,107 @@ err:
 	return -1;
 }
 
+/* Generate DER for SpcString, which is always "<<<Obsolete>>>" in UCS-2.
+ * Irony abounds. Needs to decode like this:
+ *        [0]  (28)
+ *           00 3c 00 3c 00 3c 00 4f 00 62 00 73 00 6f 00
+ *           6c 00 65 00 74 00 65 00 3e 00 3e 00 3e
+ */
+SEC_ASN1Template SpcStringTemplate[] = {
+	{
+	.kind = SEC_ASN1_CONTEXT_SPECIFIC | 0,
+	.offset = offsetof(SpcString, unicode),
+	.sub = &SEC_BMPStringTemplate,
+	.size = sizeof (SECItem),
+	},
+	{ 0, }
+};
+
+int
+generate_spc_string(PRArenaPool *arena, SECItem *ssp, char *str, int len)
+{
+	SpcString ss;
+	memset(&ss, '\0', sizeof (ss));
+
+	SECITEM_AllocItem(arena, &ss.unicode, len);
+	if (!ss.unicode.data)
+		return -1;
+
+	memcpy(ss.unicode.data, str, len);
+	ss.unicode.type = siBMPString;
+
+	if (SEC_ASN1EncodeItem(arena, ssp, &ss, SpcStringTemplate) == NULL) {
+		fprintf(stderr, "Could not encode SpcString: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	return 0;
+}
+
+/* Generate the SpcLink DER. Awesomely, this needs to decode as:
+ *                      C-[2]  (30)
+ * That is all.
+ */
+SEC_ASN1Template SpcLinkTemplate[] = {
+	{
+	.kind = SEC_ASN1_CHOICE,
+	.offset = offsetof(SpcLink, type),
+	.sub = NULL,
+	.size = sizeof (SpcLink)
+	},
+	{
+	.kind = SEC_ASN1_CONSTRUCTED |
+		SEC_ASN1_CONTEXT_SPECIFIC | 2,
+	.offset = offsetof(SpcLink, url),
+	.sub = &SEC_IA5StringTemplate,
+	.size = SpcLinkTypeUrl,
+	},
+	{
+	.kind = SEC_ASN1_CONSTRUCTED |
+		SEC_ASN1_CONTEXT_SPECIFIC | 2,
+	.offset = offsetof(SpcLink, file),
+	.sub = &SpcStringTemplate,
+	.size = SpcLinkTypeFile,
+	},
+	{ 0, }
+};
+
+int
+generate_spc_link(PRArenaPool *arena, SpcLink *slp, SpcLinkType link_type,
+		void *link_data, size_t link_data_size)
+{
+	SpcLink sl;
+	memset(&sl, '\0', sizeof (sl));
+
+	sl.type = link_type;
+	switch (sl.type) {
+	case SpcLinkTypeFile:
+		if (generate_spc_string(arena, &sl.file, link_data,
+				link_data_size) < 0) {
+			fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
+			return -1;
+		}
+		break;
+	case SpcLinkTypeUrl:
+		if (SEC_ASN1EncodeItem(arena, &sl.url, link_data,
+				SEC_IA5StringTemplate) == NULL) {
+			fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
+			return -1;
+		}
+		break;
+	};
+
+#if 0
+	if (SEC_ASN1EncodeItem(arena, slp, &sl, SpcLinkTemplate) == NULL) {
+		fprintf(stderr, "Could not encode SpcLink: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+#else
+	memcpy(slp, &sl, sizeof (sl));
+#endif
+
+	return 0;
+}
 

@@ -25,80 +25,7 @@
 #include <nss3/cms.h>
 #include <nss3/pk11pub.h>
 
-/* Generate DER for SpcString, which is always "<<<Obsolete>>>" in UCS-2.
- * Irony abounds. Needs to decode like this:
- *        [0]  (28)
- *           00 3c 00 3c 00 3c 00 4f 00 62 00 73 00 6f 00
- *           6c 00 65 00 74 00 65 00 3e 00 3e 00 3e
- */
-SEC_ASN1Template SpcStringTemplate[] = {
-	{
-	.kind = SEC_ASN1_CONTEXT_SPECIFIC | 0,
-	.offset = offsetof(SpcString, unicode),
-	.sub = &SEC_BMPStringTemplate,
-	.size = sizeof (SECItem),
-	},
-	{ 0, }
-};
-
-static int
-generate_spc_string(PRArenaPool *arena, SECItem *ssp, char *str, int len)
-{
-	SpcString ss;
-	memset(&ss, '\0', sizeof (ss));
-
-	SECITEM_AllocItem(arena, &ss.unicode, len);
-	if (!ss.unicode.data)
-		return -1;
-
-	memcpy(ss.unicode.data, str, len);
-	ss.unicode.type = siBMPString;
-
-	if (SEC_ASN1EncodeItem(arena, ssp, &ss, SpcStringTemplate) == NULL) {
-		fprintf(stderr, "Could not encode SpcString: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
-	}
-
-	return 0;
-}
-
-/* Generate the SpcLink DER. Awesomely, this needs to decode as:
- *                      C-[2]  (30)
- * That is all.
- */
-SEC_ASN1Template SpcLinkTemplate[] = {
-	{
-	.kind = SEC_ASN1_CONSTRUCTED |
-		SEC_ASN1_CONTEXT_SPECIFIC | 2 |
-		SEC_ASN1_INLINE,
-	.offset = offsetof(SpcLink, file),
-	.sub = &SpcStringTemplate,
-	.size = sizeof (SECItem),
-	},
-	{ 0, }
-};
-
-static int
-generate_spc_link(PRArenaPool *arena, SECItem *slp)
-{
-	SpcLink sl;
-	memset(&sl, '\0', sizeof (sl));
-
-	if (generate_spc_string(arena, &sl.file,
-			"\0<\0<\0<\0O\0b\0s\0o\0l\0e\0t\0e\0>\0>\0>", 28) < 0) {
-		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
-		return -1;
-	}
-
-	if (SEC_ASN1EncodeItem(arena, slp, &sl, SpcLinkTemplate) == NULL) {
-		fprintf(stderr, "Could not encode SpcLink: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
-	}
-
-	return 0;
-}
+#include "content_info_priv.h"
 
 /* This generates to the DER for a SpcPeImageData, which includes the two
  * DER chunks generated above. Output is basically:
@@ -134,7 +61,8 @@ SEC_ASN1Template SpcPeImageDataTemplate[] = {
 	},
 	{
 	.kind = SEC_ASN1_CONSTRUCTED |
-		SEC_ASN1_CONTEXT_SPECIFIC | 0,
+		SEC_ASN1_CONTEXT_SPECIFIC | 0 |
+		SEC_ASN1_EXPLICIT,
 	.offset = offsetof(SpcPeImageData, link),
 	.sub = &SpcLinkTemplate,
 	.size = sizeof (SpcLink),
@@ -152,7 +80,9 @@ generate_spc_pe_image_data(PRArenaPool *arena, SECItem *spidp)
 		return -1;
 	spid.flags.data[0] = 0;
 
-	if (generate_spc_link(arena, &spid.link) < 0) {
+	char obsolete[28] = "\0<\0<\0<\0O\0b\0s\0o\0l\0e\0t\0e\0>\0>\0>";
+	if (generate_spc_link(arena, &spid.link, SpcLinkTypeFile, obsolete,
+			28) < 0) {
 		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
 		return -1;
 	}
