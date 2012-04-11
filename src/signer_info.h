@@ -64,8 +64,8 @@ typedef struct {
 	SECAlgorithmID signatureAlgorithm;
 #if 0
 	SECItem signature;
-	SECItem unsignedAttrs;
 #endif
+	SECItem unsignedAttrs;
 } SpcSignerInfo;
 extern SEC_ASN1Template SpcSignerInfoTemplate[];
 

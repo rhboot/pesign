@@ -208,6 +208,21 @@ err:
 	return -1;
 }
 
+static int
+generate_unsigned_attributes(cms_context *ctx, SECItem *uattrs)
+{
+	Attribute *attrs[1];
+	memset(attrs, '\0', sizeof (attrs));
+
+	Attribute **attrtmp = attrs;
+	if (SEC_ASN1EncodeItem(ctx->arena, uattrs, &attrtmp,
+				AttributeSetTemplate) == NULL)
+		goto err;
+	return 0;
+err:
+	return -1;
+}
+
 SEC_ASN1Template IssuerAndSerialNumberTemplate[] = {
 	{
 	.kind = SEC_ASN1_SEQUENCE,
@@ -306,16 +321,16 @@ SEC_ASN1Template SpcSignerInfoTemplate[] = {
 	.sub = &SEC_OctetStringTemplate,
 	.size = sizeof (SECItem)
 	},
+#endif
 	{
-	.kind = SEC_ASN1_CONSTRUCTED |
-		SEC_ASN1_CONTEXT_SPECIFIC | 1 |
+	.kind = SEC_ASN1_CONTEXT_SPECIFIC | 1 |
+		SEC_ASN1_CONSTRUCTED |
 		SEC_ASN1_OPTIONAL |
-		SEC_ASN1_IMPLICIT,
+		SEC_ASN1_EXPLICIT,
 	.offset = offsetof(SpcSignerInfo, unsignedAttrs),
-	.sub = &AttributeSetTemplate;
+	.sub = &SEC_AnyTemplate,
 	.size = sizeof (SECItem)
 	},
-#endif
 	{ 0, }
 };
 
@@ -347,6 +362,9 @@ generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx)
 
 	if (generate_algorithm_id(ctx, &si.signatureAlgorithm,
 				SEC_OID_PKCS1_RSA_ENCRYPTION) < 0)
+		goto err;
+
+	if (generate_unsigned_attributes(ctx, &si.unsignedAttrs) < 0)
 		goto err;
 
 	memcpy(sip, &si, sizeof(si));
