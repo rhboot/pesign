@@ -19,8 +19,16 @@
 
 #include "pesign.h"
 
+#include <limits.h>
+#include <string.h>
+#include <termios.h>
+#include <unistd.h>
+
 #include <nspr4/prerror.h>
 #include <nss3/cms.h>
+#include <nss3/cryptohi.h>
+#include <nss3/keyhi.h>
+#include <nss3/pk11pub.h>
 
 SEC_ASN1Template SpcSpOpusInfoTemplate[] = {
 	{
@@ -213,6 +221,86 @@ err:
 	return -1;
 }
 
+static char *getpw(PK11SlotInfo *slot, PRBool retry, void *arg)
+{
+	struct termios sio, tio;
+	char line[LINE_MAX], *p;
+
+	if (tcgetattr(fileno(stdin), &sio) < 0) {
+		fprintf(stderr, "Could not read password from standard input.\n");
+		return NULL;
+	}
+	tio = sio;
+	tio.c_lflag &= ~ECHO;
+	if (tcsetattr(fileno(stdin), 0, &tio) < 0) {
+		fprintf(stderr, "Could not read password from standard input.\n");
+		return NULL;
+	}
+
+	fprintf(stdout, "Enter passphrase for %s: ", PK11_GetTokenName(slot));
+	if (fgets(line, sizeof(line), stdin) == NULL) {
+		fprintf(stdout, "\n");
+		tcsetattr(fileno(stdin), 0, &sio);
+		return NULL;
+	}
+	fprintf(stdout, "\n");
+	tcsetattr(fileno(stdin), 0, &sio);
+
+	p = line + strcspn(line, "\r\n");
+	if (p != NULL)
+		*p = '\0';
+
+	char *ret = strdup(line);
+	memset(line, '\0', sizeof (line));
+	if (!ret) {
+		fprintf(stderr, "Could not read passphrase.\n");
+		return NULL;
+	}
+	return ret;
+}
+
+static int
+sign_blob(cms_context *ctx, SECItem *sigitem, SECItem *sign_content)
+{
+	sign_content = SECITEM_ArenaDupItem(ctx->arena, sign_content);
+	if (!sign_content)
+		return -1;
+
+	//SECOidData *oid = SECOID_FindOIDByTag(SEC_OID_PKCS1_RSA_ENCRYPTION);
+	SECOidData *oid = SECOID_FindOIDByTag(SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION);
+	if (!oid)
+		goto err;
+
+	PK11_SetPasswordFunc(getpw);
+	SECKEYPrivateKey *privkey = PK11_FindKeyByAnyCert(ctx->cert, NULL);
+	if (!privkey) {
+		fprintf(stderr, "Could not get private key.\n");
+		goto err;
+	}
+	
+	SECItem signature;
+	memset (&signature, '\0', sizeof (signature));
+
+	SECStatus status;
+	status = SEC_SignData(&signature, sign_content->data, sign_content->len,
+			privkey, oid->offset);
+	SECKEY_DestroyPrivateKey(privkey);
+	privkey = NULL;
+
+	if (status != SECSuccess) {
+		fprintf(stderr, "Error signing data.\n");
+		SECITEM_FreeItem(&signature, PR_FALSE);
+		return -1;
+	}
+	*sigitem = signature;
+
+	//SECITEM_FreeItem(sign_content, PR_TRUE);
+	return 0;
+err:
+	//SECITEM_FreeItem(sign_content, PR_TRUE);
+	return -1;
+}
+
 static int
 generate_unsigned_attributes(cms_context *ctx, SECItem *uattrs)
 {
@@ -319,14 +407,12 @@ SEC_ASN1Template SpcSignerInfoTemplate[] = {
 	.sub = &AlgorithmIDTemplate,
 	.size = sizeof (SECItem)
 	},
-#if 0
 	{
 	.kind = SEC_ASN1_OCTET_STRING,
 	.offset = offsetof(SpcSignerInfo, signature),
 	.sub = &SEC_OctetStringTemplate,
 	.size = sizeof (SECItem)
 	},
-#endif
 	{
 	.kind = SEC_ASN1_CONTEXT_SPECIFIC | 1 |
 		SEC_ASN1_CONSTRUCTED |
@@ -364,6 +450,12 @@ generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx)
 
 	if (generate_signed_attributes(ctx, &si.signedAttrs) < 0)
 		goto err;
+
+	if (sign_blob(ctx, &si.signature, &si.signedAttrs) < 0)
+		goto err;
+
+	si.signedAttrs.data[0] = SEC_ASN1_CONTEXT_SPECIFIC | 0 |
+				SEC_ASN1_CONSTRUCTED;
 
 	if (generate_algorithm_id(ctx, &si.signatureAlgorithm,
 				SEC_OID_PKCS1_RSA_ENCRYPTION) < 0)
