@@ -49,6 +49,8 @@ cms_context_init(cms_context *ctx)
 	if (status != SECSuccess)
 		return -1;
 
+	memset(ctx, '\0', sizeof (*ctx));
+
 	ctx->arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
 	if (!ctx->arena) {
 		fprintf(stderr, "Could not create cryptographic arena: %s\n",
