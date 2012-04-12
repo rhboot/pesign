@@ -308,26 +308,4 @@ err:
 	SECITEM_FreeItem(&sd.version, PR_TRUE);
 #endif
 	return -1;
-
-	
-#if 0
-	typedef struct {
-		enum {
-			PW_NONE = 0,
-			PW_FROMFILE = 1,
-			PW_PLAINTEXT = 2,
-			PW_EXTERNAL = 3
-		} source;
-		char *data;
-	} secuPWData;
-	secuPWData pwdata = { 0, 0 };
-	CERTCertificate *cert = NULL;
-
-	cert = CERT_FindUserCertByUsage(NULL, "pjones@redhat.com",
-		certUsageObjectSigner, PR_FALSE, &pwdata);
-	if (cert == NULL) {
-		fprintf(stderr, "Could not find certificate\n");
-		goto err;
-	}
-#endif
 }

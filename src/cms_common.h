@@ -43,8 +43,6 @@ extern SEC_ASN1Template SpcLinkTemplate[];
 extern int cms_context_init(cms_context *ctx);
 extern void cms_context_fini(cms_context *ctx);
 
-extern int read_cert(int certfd, CERTCertificate **cert);
-
 extern int generate_octet_string(cms_context *ctx, SECItem *encoded,
 				SECItem *original);
 extern int generate_object_id(cms_context *ctx, SECItem *encoded,

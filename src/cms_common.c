@@ -99,29 +99,6 @@ cms_context_fini(cms_context *ctx)
 	NSS_Shutdown();
 }
 
-/* read a cert generated with:
- * $ openssl genrsa -out privkey.pem 2048
- * $ openssl req -new -key privkey.pem -out cert.csr
- * $ openssl req -new -x509 -key privkey.pem -out cacert.pem -days 1095
- * See also: http://www.openssl.org/docs/HOWTO/keys.txt
- */
-int read_cert(int certfd, CERTCertificate **cert)
-{
-	char *certstr = NULL;
-	size_t certlen = 0;
-	int rc;
-
-	rc = read_file(certfd, &certstr, &certlen);
-	if (rc < 0)
-		return -1;
-
-	*cert = CERT_DecodeCertFromPackage(certstr, certlen);
-	free(certstr);
-	if (!*cert)
-		return -1;
-	return 0;
-}
-
 int
 generate_octet_string(cms_context *ctx, SECItem *encoded, SECItem *original)
 {

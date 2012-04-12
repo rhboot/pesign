@@ -161,30 +161,33 @@ open_sig_output(pesign_context *ctx)
 }
 
 static void
-open_certificate(pesign_context *ctx)
+find_certificate(pesign_context *ctx)
 {
-	int rc;
-
-	if (!ctx->certfile) {
+	if (!ctx->certname) {
 		fprintf(stderr, "pesign: No signing certificate specified.\n");
 		exit(1);
 	}
 
-	int certfd = open(ctx->certfile, O_RDONLY|O_CLOEXEC);
+	typedef struct {
+		enum {
+			PW_NONE = 0,
+			PW_FROMFILE = 1,
+			PW_PLAINTEXT = 2,
+			PW_EXTERNAL = 3
+		} source;
+		char *data;
+	} secuPWData;
+	secuPWData pwdata = { 0, 0 };
+	CERTCertificate *cert = NULL;
 
-	if (certfd < 0) {
-		fprintf(stderr, "pesign: could not open certificate "
-				"\"%s\": %m\n", ctx->certfile);
+	cert = CERT_FindUserCertByUsage(CERT_GetDefaultCertDB(), ctx->certname,
+		certUsageObjectSigner, PR_FALSE, &pwdata);
+	if (cert == NULL) {
+		fprintf(stderr, "Could not find certificate\n");
 		exit(1);
 	}
-
-	rc = read_cert(certfd, &ctx->cms_ctx.cert);
-	if (rc < 0) {
-		fprintf(stderr, "pesign: could not read certificate\n");
-		exit(1);
-	}
-
-	close(certfd);
+	
+	ctx->cms_ctx.cert = cert;
 }
 
 static void
@@ -270,8 +273,9 @@ main(int argc, char *argv[])
 			"specify input file", "<infile>"},
 		{"out", 'o', POPT_ARG_STRING, &ctx.outfile, 0,
 			"specify output file", "<outfile>" },
-		{"certficate", 'c', POPT_ARG_STRING, &ctx.certfile, 0,
-			"specify certificate file", "<certificate>" },
+		{"certficate", 'c', POPT_ARG_STRING, &ctx.certname, 0,
+			"specify certificate nickname",
+			"<certificate nickname>" },
 		{"privkey", 'p', POPT_ARG_STRING, &ctx.privkeyfile, 0,
 			"specify private key file", "<privkey>" },
 		{"force", 'f', POPT_ARG_NONE|POPT_ARG_VAL, &ctx.force,  1,
@@ -386,7 +390,7 @@ main(int argc, char *argv[])
 			break;
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:
-			open_certificate(ctxp);
+			find_certificate(ctxp);
 			open_input(ctxp);
 			open_sig_output(ctxp);
 			generate_digest(ctxp);
@@ -396,7 +400,7 @@ main(int argc, char *argv[])
 		/* generate a signature and embed it in the binary */
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
 			check_inputs(ctxp);
-			open_certificate(ctxp);
+			find_certificate(ctxp);
 			open_input(ctxp);
 			open_output(ctxp);
 			generate_signature(ctxp);
