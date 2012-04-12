@@ -26,7 +26,7 @@
 #include <libdpe/pe.h>
 #include "util.h"
 #include "context.h"
-#include "crypto.h"
+#include "actions.h"
 #include "endian.h"
 #include "oid.h"
 
