@@ -99,9 +99,11 @@ free_certificate_list(SECItem **certificate_list, cms_context *ctx)
 	if (!certificate_list)
 		return;
 
+#if 0
 	for (int i = 0; certificate_list[i] != NULL; i++)
 		PORT_Free(certificate_list[i]);
 	PORT_ZFree(certificate_list, sizeof (SECItem) * 2);
+#endif
 }
 
 int
@@ -133,9 +135,13 @@ generate_signerInfo_list(SpcSignerInfo ***signerInfo_list_p, cms_context *ctx)
 	*signerInfo_list_p = signerInfo_list;
 	return 0;
 err_item:
+#if 0
 	PORT_ZFree(signerInfo_list[0], sizeof (SpcSignerInfo));
+#endif
 err_list:
+#if 0
 	PORT_ZFree(signerInfo_list, sizeof (SpcSignerInfo *) * 2);
+#endif
 	PORT_SetError(err);
 	return -1;
 }

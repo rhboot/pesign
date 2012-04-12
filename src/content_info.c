@@ -334,9 +334,9 @@ generate_cinfo_digest(cms_context *cms_ctx, SpcContentInfo *cip)
 err:
 	if (ctx)
 		PK11_DestroyContext(ctx, PR_TRUE);
+#if 0
 	if (cms_ctx->ci_digest)
 		SECITEM_FreeItem(cms_ctx->ci_digest, PR_TRUE);
-#if 0
 	if (encoded.data)
 		SECITEM_FreeItem(&encoded, PR_FALSE);
 #endif
@@ -374,8 +374,10 @@ generate_spc_content_info(SpcContentInfo *cip, cms_context *ctx)
 void
 free_spc_content_info(SpcContentInfo *cip, cms_context *ctx)
 {
+#if 0
 	SECITEM_FreeItem(&cip->contentType, PR_TRUE);
 	SECITEM_FreeItem(&cip->content, PR_TRUE);
+#endif
 }
 
 /* There's nothing else here. */
