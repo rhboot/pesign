@@ -237,7 +237,7 @@ static char *getpw(PK11SlotInfo *slot, PRBool retry, void *arg)
 		return NULL;
 	}
 
-	fprintf(stdout, "Enter passphrase for %s: ", PK11_GetTokenName(slot));
+	fprintf(stdout, "Enter passphrase for private key: ");
 	if (fgets(line, sizeof(line), stdin) == NULL) {
 		fprintf(stdout, "\n");
 		tcsetattr(fileno(stdin), 0, &sio);
