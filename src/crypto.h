@@ -26,6 +26,7 @@
 
 extern int has_signatures(pesign_context *ctx);
 extern int list_signatures(pesign_context *ctx);
+extern void find_signature(pesign_context *ctx);
 extern void export_signature(pesign_context *ctx);
 extern void parse_signature(pesign_context *ctx);
 extern int import_signature(pesign_context *ctx);

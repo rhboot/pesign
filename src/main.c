@@ -364,6 +364,7 @@ main(int argc, char *argv[])
 		case EXPORT_SIGNATURE:
 			open_input(ctxp);
 			open_sig_output(ctxp);
+			find_signature(ctxp);
 			export_signature(ctxp);
 			break;
 		/* remove a signature from the binary */
@@ -390,7 +391,6 @@ main(int argc, char *argv[])
 			open_sig_output(ctxp);
 			generate_digest(ctxp);
 			generate_signature(ctxp);
-			break; /* XXX temporary */
 			export_signature(ctxp);
 			break;
 		/* generate a signature and embed it in the binary */

@@ -266,11 +266,12 @@ static const char *sig_begin_marker ="-----BEGIN AUTHENTICODE SIGNATURE-----\n";
 static const char *sig_end_marker = "\n-----END AUTHENTICODE SIGNATURE-----\n";
 
 void
-export_signature(pesign_context *ctx)
+find_signature(pesign_context *p_ctx)
 {
 	cert_iter iter;
+	cms_context *ctx = &p_ctx->cms_ctx;
 
-	int rc = cert_iter_init(&iter, ctx->inpe);
+	int rc = cert_iter_init(&iter, p_ctx->inpe);
 
 	if (rc < 0) {
 		printf("No certificate list found.\n");
@@ -281,8 +282,8 @@ export_signature(pesign_context *ctx)
 	ssize_t datalen;
 	int nsigs = 0;
 
-	if (ctx->signum < 0)
-		ctx->signum = 0;
+	if (p_ctx->signum < 0)
+		p_ctx->signum = 0;
 
 	rc = 0;
 	while (1) {
@@ -290,48 +291,71 @@ export_signature(pesign_context *ctx)
 		if (rc <= 0)
 			break;
 
-		if (nsigs < ctx->signum) {
+		if (nsigs < p_ctx->signum) {
 			nsigs++;
 			continue;
 		}
 
-		if (ctx->ascii) {
-			char *ascii = BTOA_DataToAscii(data, datalen);
-			if (!ascii) {
-				fprintf(stderr, "Error exporting signature\n");
+		ctx->signature.type = siBuffer;
+		ctx->signature.data = data;
+		ctx->signature.len = datalen;
+		break;
+	}
+
+	if (!ctx->signature.data) {
+		fprintf(stderr, "Could not find signature.\n");
+		exit(1);
+	}
+}
+
+void
+export_signature(pesign_context *p_ctx)
+{
+	cms_context *ctx = &p_ctx->cms_ctx;
+	int rc = 0;
+
+	if (!ctx->signature.data) {
+		fprintf(stderr, "Could not find signature.\n");
+		exit(1);
+	}
+	unsigned char *data = ctx->signature.data;
+	int datalen = ctx->signature.len;
+	if (p_ctx->ascii) {
+		char *ascii = BTOA_DataToAscii(data, datalen);
+		if (!ascii) {
+			fprintf(stderr, "Error exporting signature\n");
 failure:
-				close(ctx->outsigfd);
-				unlink(ctx->outsig);
-				exit(1);
-			}
+			close(p_ctx->outsigfd);
+			unlink(p_ctx->outsig);
+			exit(1);
+		}
 
-			rc = write(ctx->outsigfd, sig_begin_marker,
-					strlen(sig_begin_marker));
-			if (rc < 0) {
-				fprintf(stderr, "Error exporting signature: %m\n");
-				goto failure;
-			}
+		rc = write(p_ctx->outsigfd, sig_begin_marker,
+				strlen(sig_begin_marker));
+		if (rc < 0) {
+			fprintf(stderr, "Error exporting signature: %m\n");
+			goto failure;
+		}
 
-			rc = write(ctx->outsigfd, ascii, strlen(ascii));
-			if (rc < 0) {
-				fprintf(stderr, "Error exporting signature: %m\n");
-				goto failure;
-			}
+		rc = write(p_ctx->outsigfd, ascii, strlen(ascii));
+		if (rc < 0) {
+			fprintf(stderr, "Error exporting signature: %m\n");
+			goto failure;
+		}
 
-			rc = write(ctx->outsigfd, sig_end_marker,
-				strlen(sig_end_marker));
-			if (rc < 0) {
-				fprintf(stderr, "Error exporting signature: %m\n");
-				goto failure;
-			}
+		rc = write(p_ctx->outsigfd, sig_end_marker,
+			strlen(sig_end_marker));
+		if (rc < 0) {
+			fprintf(stderr, "Error exporting signature: %m\n");
+			goto failure;
+		}
 
-			PORT_Free(ascii);
-		} else {
-			rc = write(ctx->outsigfd, data, datalen);
-			if (rc < 0) {
-				fprintf(stderr, "Error exporting signature: %m\n");
-				goto failure;
-			}
+		PORT_Free(ascii);
+	} else {
+		rc = write(p_ctx->outsigfd, data, datalen);
+		if (rc < 0) {
+			fprintf(stderr, "Error exporting signature: %m\n");
+			goto failure;
 		}
 	}
 }
@@ -404,15 +428,6 @@ decoder_error:
 #define MAX_DIGEST_SIZE		SHA1_DIGEST_SIZE
 #define HASH_TYPE		SEC_OID_SHA1
 
-static void
-SignOut(void *arg, const char *buf, unsigned long len)
-{
-	FILE *out;
-
-	out = (FILE *)arg;
-	fwrite(buf, len, 1, out);
-}
-
 /* before you run this, you'll need to enroll your CA with:
  * certutil -A -n 'my CA' -d /etc/pki/pesign -t CT,CT,CT -i ca.crt
  * And you'll need to enroll the private key like this:
@@ -435,8 +450,8 @@ generate_signature(pesign_context *p_ctx)
 		return -1;
 	}
 
-	SignOut(stdout, (char *)sd_der.data, sd_der.len);
-	return rc;
+	ctx->signature = sd_der;
+	return 0;
 }
 
 int
