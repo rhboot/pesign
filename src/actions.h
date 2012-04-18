@@ -31,6 +31,6 @@ extern void parse_signature(pesign_context *ctx);
 extern int import_signature(pesign_context *ctx);
 extern int remove_signature(pesign_context *ctx, int signum);
 extern int generate_signature(pesign_context *ctx);
-extern int generate_digest(pesign_context *ctx);
+extern int generate_digest(pesign_context *ctx, Pe *pe);
 
 #endif /* PESIGN_CRYPTO_H */

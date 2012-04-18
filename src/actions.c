@@ -440,7 +440,7 @@ generate_signature(pesign_context *p_ctx)
 }
 
 int
-generate_digest(pesign_context *ctx)
+generate_digest(pesign_context *ctx, Pe *pe)
 {
 	void *hash_base;
 	size_t hash_size;
@@ -450,13 +450,16 @@ generate_digest(pesign_context *ctx)
 	uint64_t hashed_bytes = 0;
 	int rc = -1;
 
-	Pe *pe = ctx->inpe;
-	if (!pe)
-		return -1;
+	if (!pe) {
+		fprintf(stderr, "pesign: no output pe ready\n");
+		exit(1);
+	}
 
 	struct pe_hdr pehdr;
-	if (pe_getpehdr(pe, &pehdr) == NULL)
-		return -1;
+	if (pe_getpehdr(pe, &pehdr) == NULL) {
+		fprintf(stderr, "pesign: invalid output file header\n");
+		exit(1);
+	}
 
 	void *map = NULL;
 	size_t map_size = 0;
@@ -464,12 +467,16 @@ generate_digest(pesign_context *ctx)
 	/* 1. Load the image header into memory - should be done
 	 * 2. Initialize SHA hash context. */
 	map = pe_rawfile(pe, &map_size);
-	if (!map)
-		return -1;
+	if (!map) {
+		fprintf(stderr, "pesign: could not get raw output file address\n");
+		exit(1);
+	}
 
 	pk11ctx = PK11_CreateDigestContext(HASH_TYPE);
-	if (!pk11ctx)
-		return -1;
+	if (!pk11ctx) {
+		fprintf(stderr, "pesign: could not initialize digest\n");
+		exit(1);
+	}
 	PK11_DigestBegin(pk11ctx);
 
 	/* 3. Calculate the distance from the base of the image header to the
@@ -577,7 +584,8 @@ error_shdrs:
 		free(shdrs);
 error:
 	PK11_DestroyContext(pk11ctx, PR_TRUE);
-	return -1;
+	fprintf(stderr, "pesign: could not digest file.\n");
+	exit(1);
 }
 
 int
