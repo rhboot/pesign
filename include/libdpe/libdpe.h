@@ -88,6 +88,12 @@ extern char *pe_rawfile(Pe *pe, size_t *ptr);
 extern int pe_getdatadir(Pe *pe, data_directory **dd);
 extern void *pe_getopthdr(Pe *pe);
 
+extern int pe_allocspace(Pe *pe, size_t size, uint32_t *offset);
+extern int pe_freespace(Pe *pe, uint32_t offset, size_t size);
+
+extern int pe_clearcert(Pe *pe);
+extern int pe_addcert(Pe *pe, void *cert, size_t len);
+
 extern int pe_errno(void);
 extern const char *pe_errmsg(int error);
 
