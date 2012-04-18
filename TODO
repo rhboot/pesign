@@ -4,20 +4,22 @@ In no particular order, this stuff still needs to be done (or is in progress):
 
 1) file i/o
  a) get an in-memory representation via mmap *done*
- b) render in-memory representation back to disk also via mmap
+ b) render in-memory representation back to disk also via mmap *done-ish*
 2) signatures
- a) read hash from stand-alone file
+ a) read hash from stand-alone file *done*
  b) write hash to stand-alone file *done*
  c) verify hash from stand-alone file
  d) read cert from file *done*
  e) create hash/digest of file *done*
  f) create new signature (aka "sign the hash")
   i) generate SpcContentInfo *done*
-  ii) sign it
- g) create cert table
- h) find cert table
- i) implant cert in table
-3) test suite
+  ii) sign it *done*
+ g) create cert table *done for the very basic (ms-supported) case*
+ h) find cert table *eh*
+ i) implant cert in table *eh*
+3) make hash algorithm configurable
+4) test suite
+5) docs
 
 See also: https://github.com/vathpela/pesign/issues/milestones
 
