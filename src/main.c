@@ -92,6 +92,28 @@ open_input(pesign_context *ctx)
 }
 
 static void
+close_input(pesign_context *ctx)
+{
+	pe_end(ctx->inpe);
+	ctx->inpe = NULL;
+
+	close(ctx->infd);
+	ctx->infd = -1;
+}
+
+static void
+close_output(pesign_context *ctx)
+{
+	Pe_Cmd cmd = ctx->outfd == STDOUT_FILENO ? PE_C_RDWR : PE_C_RDWR_MMAP;
+	pe_update(ctx->outpe, cmd);
+	pe_end(ctx->outpe);
+	ctx->outpe = NULL;
+
+	close(ctx->outfd);
+	ctx->outfd = -1;
+}
+
+static void
 open_output(pesign_context *ctx)
 {
 	if (!ctx->outfile) {
@@ -138,6 +160,13 @@ open_sig_input(pesign_context *ctx)
 }
 
 static void
+close_sig_input(pesign_context *ctx)
+{
+	close(ctx->insigfd);
+	ctx->insigfd = -1;
+}
+
+static void
 open_sig_output(pesign_context *ctx)
 {
 	if (!ctx->outsig) {
@@ -159,6 +188,14 @@ open_sig_output(pesign_context *ctx)
 		exit(1);
 	}
 }
+
+static void
+close_sig_output(pesign_context *ctx)
+{
+	close(ctx->outsigfd);
+	ctx->outsigfd = -1;
+}
+
 
 static void
 find_certificate(pesign_context *ctx)
@@ -360,9 +397,12 @@ main(int argc, char *argv[])
 			check_inputs(ctxp);
 			open_input(ctxp);
 			open_output(ctxp);
+			close_input(ctxp);
 			open_sig_input(ctxp);
 			parse_signature(ctxp);
 			import_signature(ctxp);
+			close_sig_input(ctxp);
+			close_output(ctxp);
 			break;
 		/* find a signature in the binary and save it to a file */
 		case EXPORT_SIGNATURE:
@@ -370,13 +410,17 @@ main(int argc, char *argv[])
 			open_sig_output(ctxp);
 			find_signature(ctxp);
 			export_signature(ctxp);
+			close_input(ctxp);
+			close_sig_output(ctxp);
 			break;
 		/* remove a signature from the binary */
 		case REMOVE_SIGNATURE:
 			check_inputs(ctxp);
 			open_input(ctxp);
 			open_output(ctxp);
+			close_input(ctxp);
 			rc = remove_signature(&ctx, remove);
+			close_output(ctxp);
 			break;
 		/* list signatures in the binary */
 		case LIST_SIGNATURES:
@@ -403,9 +447,11 @@ main(int argc, char *argv[])
 			find_certificate(ctxp);
 			open_input(ctxp);
 			open_output(ctxp);
+			close_input(ctxp);
 			generate_digest(ctxp, ctx.outpe);
 			generate_signature(ctxp);
 			import_signature(ctxp);
+			close_output(ctxp);
 			break;
 		default:
 			fprintf(stderr, "Incompatible flags (0x%08x): ", action);
