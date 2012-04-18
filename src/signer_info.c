@@ -266,8 +266,11 @@ sign_blob(cms_context *ctx, SECItem *sigitem, SECItem *sign_content)
 	if (!sign_content)
 		return -1;
 
-	//SECOidData *oid = SECOID_FindOIDByTag(SEC_OID_PKCS1_RSA_ENCRYPTION);
+#if 0
+	SECOidData *oid = SECOID_FindOIDByTag(SEC_OID_PKCS1_RSA_ENCRYPTION);
+#else
 	SECOidData *oid = SECOID_FindOIDByTag(SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION);
+#endif
 	if (!oid)
 		goto err;
 
@@ -457,9 +460,15 @@ generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx)
 	si.signedAttrs.data[0] = SEC_ASN1_CONTEXT_SPECIFIC | 0 |
 				SEC_ASN1_CONSTRUCTED;
 
+#if 0
 	if (generate_algorithm_id(ctx, &si.signatureAlgorithm,
 				SEC_OID_PKCS1_RSA_ENCRYPTION) < 0)
 		goto err;
+#else
+	if (generate_algorithm_id(ctx, &si.signatureAlgorithm,
+				SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION) < 0)
+		goto err;
+#endif
 
 	if (generate_unsigned_attributes(ctx, &si.unsignedAttrs) < 0)
 		goto err;
