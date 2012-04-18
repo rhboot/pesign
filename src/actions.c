@@ -139,21 +139,6 @@ done:
 }
 
 int
-has_signatures(pesign_context *ctx)
-{
-	cert_iter iter;
-
-	int rc = cert_iter_init(&iter, ctx->inpe);
-	if (rc < 0)
-		return 0;
-
-	rc = next_cert(&iter, NULL, NULL);
-	if (rc <= 0)
-		return 0;
-	return 1;
-}
-
-int
 list_signatures(pesign_context *ctx)
 {
 	cert_iter iter;
