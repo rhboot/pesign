@@ -591,6 +591,17 @@ error:
 int
 import_signature(pesign_context *ctx)
 {
+	void *clist = NULL;
+	size_t clist_size = 0;
+
+	if (generate_cert_list(ctx, &clist, &clist_size) < 0)
+		return -1;
+
+	if (implant_cert_list(ctx, clist, clist_size) < 0) {
+		free(clist);
+		return -1;
+	}
+
 	return 0;
 }
 
