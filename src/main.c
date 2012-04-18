@@ -134,13 +134,24 @@ open_output(pesign_context *ctx)
 		exit(1);
 	}
 
-	Pe_Cmd cmd = ctx->outfd == STDOUT_FILENO ? PE_C_WRITE : PE_C_WRITE_MMAP;
-	ctx->outpe = pe_begin(ctx->outfd, cmd, ctx->inpe);
+	size_t size;
+	char *addr;
+
+	addr = pe_rawfile(ctx->inpe, &size);
+
+	ftruncate(ctx->outfd, size);
+	lseek(ctx->outfd, 0, SEEK_SET);
+	write(ctx->outfd, addr, size);
+
+	Pe_Cmd cmd = ctx->outfd == STDOUT_FILENO ? PE_C_RDWR : PE_C_RDWR_MMAP;
+	ctx->outpe = pe_begin(ctx->outfd, cmd, NULL);
 	if (!ctx->outpe) {
 		fprintf(stderr, "pesign: could not load output file: %s\n",
 			pe_errmsg(pe_errno()));
 		exit(1);
 	}
+
+	pe_clearcert(ctx->outpe);
 }
 
 static void
