@@ -346,7 +346,18 @@ pe_begin(int fildes, Pe_Cmd cmd, Pe *ref)
 			break;
 		case PE_C_RDWR:
 		case PE_C_RDWR_MMAP:
-			/* XXX PJFIX implement me */
+			if (ref != NULL) {
+				if (ref->cmd != PE_C_RDWR &&
+						ref->cmd != PE_C_RDWR_MMAP &&
+						ref->cmd != PE_C_WRITE &&
+						ref->cmd != PE_C_WRITE_MMAP) {
+					__libpe_seterrno(PE_E_INVALID_CMD);
+					retval = NULL;
+				}
+			} else {
+				retval = read_file(fildes, ~((size_t) 0), cmd,
+						NULL);
+			}
 			break;
 		case PE_C_WRITE:
 		case PE_C_WRITE_MMAP:
