@@ -29,6 +29,7 @@
 #include "actions.h"
 #include "endian.h"
 #include "oid.h"
+#include "wincert.h"
 
 #include "cms_common.h"
 #include "content_info.h"
