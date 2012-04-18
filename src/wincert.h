@@ -32,4 +32,9 @@ typedef struct win_certificate {
 	uint16_t cert_type;
 } win_certificate;
 
+extern int generate_cert_list(pesign_context *ctx, void **cert_list,
+				size_t *cert_list_size);
+extern int implant_cert_list(pesign_context *ctx, void *cert_list,
+				size_t cert_list_size);
+
 #endif /* PESIGN_WINCERT_H */
