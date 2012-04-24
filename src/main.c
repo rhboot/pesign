@@ -315,6 +315,8 @@ main(int argc, char *argv[])
 	int list = 0;
 	int remove = -1;
 
+	char *digest_name = NULL;
+
 	poptContext optCon;
 	struct poptOption options[] = {
 		{"in", 'i', POPT_ARG_STRING, &ctx.infile, 0,
@@ -333,6 +335,8 @@ main(int argc, char *argv[])
 		{"sign", 's', POPT_ARG_VAL, &ctx.sign, 1,
 			"create a new signature", NULL },
 		{"hash", 'h', POPT_ARG_VAL, &ctx.hash, 1, "hash binary", NULL },
+		{"digest_type", 'd', POPT_ARG_STRING, &digest_name, 0,
+			"digest type to use for pe hash" },
 		{"import-signature", 'm', POPT_ARG_STRING, &ctx.insig, 0,
 			"import signature from file", "<insig>" },
 #if 0 /* there's not concensus that this is really a thing... */
@@ -361,6 +365,18 @@ main(int argc, char *argv[])
 
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
+
+	if (digest_name && digest_name[0]) {
+		rc = set_digest_parameters(&ctx.cms_ctx, digest_name);
+		int is_help  = strcmp(digest_name, "help") ? 0 : 1;
+		if (rc < 0) {
+			if (!is_help) {
+				fprintf(stderr, "Digest \"%s\" not found.\n",
+					digest_name);
+			}
+			exit(!is_help);
+		}
+	}
 
 	if (rc < -1) {
 		fprintf(stderr, "pesign: Invalid argument: %s: %s\n",

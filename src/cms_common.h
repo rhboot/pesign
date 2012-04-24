@@ -58,4 +58,6 @@ extern int generate_spc_link(PRArenaPool *arena, SpcLink *slp,
 extern int generate_spc_string(PRArenaPool *arena, SECItem *ssp,
 				char *str, int len);
 
+extern int set_digest_parameters(cms_context *ctx, char *name);
+
 #endif /* CMS_COMMON_H */

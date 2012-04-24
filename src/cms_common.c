@@ -36,6 +36,18 @@
 #include <nss3/pk11pub.h>
 #include <nss3/secerr.h>
 
+struct digest_param {
+	char *name;
+	SECOidTag tag;
+	int size;
+};
+
+static struct digest_param digest_params[] = {
+	{"sha256", SEC_OID_SHA256, 32 },
+	{"sha1", SEC_OID_SHA1, 20 },
+	{NULL,}
+};
+
 int
 cms_context_init(cms_context *ctx)
 {
@@ -58,9 +70,7 @@ cms_context_init(cms_context *ctx)
 		return -1;
 	}
 
-	/* XXX PJFIX get this from a policy function/table */
-	ctx->digest_oid_tag = SEC_OID_SHA256;
-	ctx->digest_size = 32;
+	set_digest_parameters(ctx, "sha256");
 
 	return 0;
 }
@@ -101,6 +111,27 @@ cms_context_fini(cms_context *ctx)
 	memset(ctx, '\0', sizeof(*ctx));
 
 	NSS_Shutdown();
+}
+
+int
+set_digest_parameters(cms_context *ctx, char *name)
+{
+	if (strcmp(name, "help")) {
+		for (int i = 0; digest_params[i].name != NULL; i++) {
+			if (!strcmp(name, digest_params[i].name)) {
+				ctx->digest_oid_tag = digest_params[i].tag;
+				ctx->digest_size = digest_params[i].size;
+				return 0;
+			}
+		}
+	} else {
+		printf("Supported digests: ");
+		for (int i = 0; digest_params[i].name != NULL; i++) {
+			printf("%s ", digest_params[i].name);
+		}
+		printf("\n");
+	}
+	return -1;
 }
 
 int
