@@ -58,6 +58,10 @@ cms_context_init(cms_context *ctx)
 		return -1;
 	}
 
+	/* XXX PJFIX get this from a policy function/table */
+	ctx->digest_oid_tag = SEC_OID_SHA256;
+	ctx->digest_size = 32;
+
 	return 0;
 }
 

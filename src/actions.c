@@ -408,11 +408,6 @@ decoder_error:
 	PORT_Free(der);
 }
 
-#define SHA1_DIGEST_SIZE	20
-#define SHA256_DIGEST_SIZE	32
-#define MAX_DIGEST_SIZE		SHA1_DIGEST_SIZE
-#define HASH_TYPE		SEC_OID_SHA1
-
 /* before you run this, you'll need to enroll your CA with:
  * certutil -A -n 'my CA' -d /etc/pki/pesign -t CT,CT,CT -i ca.crt
  * And you'll need to enroll the private key like this:
@@ -472,7 +467,7 @@ generate_digest(pesign_context *ctx, Pe *pe)
 		exit(1);
 	}
 
-	pk11ctx = PK11_CreateDigestContext(HASH_TYPE);
+	pk11ctx = PK11_CreateDigestContext(ctx->cms_ctx.digest_oid_tag);
 	if (!pk11ctx) {
 		fprintf(stderr, "pesign: could not initialize digest\n");
 		exit(1);
@@ -561,14 +556,14 @@ generate_digest(pesign_context *ctx, Pe *pe)
 		goto error_shdrs;
 
 	digest->type = siBuffer;
-	digest->data = PORT_ArenaZAlloc(ctx->cms_ctx.arena, MAX_DIGEST_SIZE);
-	digest->len = MAX_DIGEST_SIZE;
+	digest->data = PORT_ArenaZAlloc(ctx->cms_ctx.arena,
+						ctx->cms_ctx.digest_size);
+	digest->len = ctx->cms_ctx.digest_size;
 	if (!digest->data)
 		goto error_digest;
 
-	PK11_DigestFinal(pk11ctx, digest->data, &digest->len, MAX_DIGEST_SIZE);
-	ctx->cms_ctx.digest_oid_tag = HASH_TYPE;
-	ctx->cms_ctx.digest_size = MAX_DIGEST_SIZE;
+	PK11_DigestFinal(pk11ctx, digest->data, &digest->len,
+						ctx->cms_ctx.digest_size);
 	ctx->cms_ctx.pe_digest = digest;
 
 	if (shdrs)
