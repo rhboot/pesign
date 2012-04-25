@@ -315,7 +315,7 @@ main(int argc, char *argv[])
 	int list = 0;
 	int remove = -1;
 
-	char *digest_name = NULL;
+	char *digest_name = "sha256";
 
 	poptContext optCon;
 	struct poptOption options[] = {
@@ -335,20 +335,28 @@ main(int argc, char *argv[])
 		{"sign", 's', POPT_ARG_VAL, &ctx.sign, 1,
 			"create a new signature", NULL },
 		{"hash", 'h', POPT_ARG_VAL, &ctx.hash, 1, "hash binary", NULL },
-		{"digest_type", 'd', POPT_ARG_STRING, &digest_name, 0,
-			"digest type to use for pe hash" },
-		{"import-signature", 'm', POPT_ARG_STRING, &ctx.insig, 0,
-			"import signature from file", "<insig>" },
+		{"digest_type", 'd', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
+			&digest_name, 0, "digest type to use for pe hash" },
+		{"import-signature", 'm',
+			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+			&ctx.insig, 0,"import signature from file", "<insig>" },
 #if 0 /* there's not concensus that this is really a thing... */
 		{"signature-number", 'u', POPT_ARG_INT, &ctx.signum, -1,
 			"specify which signature to operate on","<sig-number>"},
 #endif
-		{"list-signatures", 'l', POPT_ARG_NONE|POPT_ARG_VAL, &list, 1,
-			"list signatures", NULL },
-		{"export-signature", 'e', POPT_ARG_STRING, &ctx.outsig, 0,
-			"export signature to file", "<outsig>" },
-		{"remove-signature", 'r', POPT_ARG_INT, &remove, -1,
+		{"list-signatures", 'l',
+			POPT_ARG_NONE|POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
+			&list, 1, "list signatures", NULL },
+		{"show-signature", 'S', POPT_ARG_NONE|POPT_ARG_VAL, &list, 1,
+			"show signature", NULL },
+		{"export-signature", 'e',
+			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+			&ctx.outsig, 0,"export signature to file", "<outsig>" },
+		{"remove-signature-n", 'R',
+			POPT_ARG_INT|POPT_ARGFLAG_DOC_HIDDEN, &remove, -1,
 			"remove signature", "<sig-number>" },
+		{"remove-signature", 'r', POPT_ARG_NONE, &remove, -1,
+			"remove signature" },
 		{"ascii-armor", 'a', POPT_ARG_VAL, &ctx.ascii, 1,
 			"use ascii armoring", NULL },
 		POPT_AUTOHELP
@@ -366,16 +374,14 @@ main(int argc, char *argv[])
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
 
-	if (digest_name && digest_name[0]) {
-		rc = set_digest_parameters(&ctx.cms_ctx, digest_name);
-		int is_help  = strcmp(digest_name, "help") ? 0 : 1;
-		if (rc < 0) {
-			if (!is_help) {
-				fprintf(stderr, "Digest \"%s\" not found.\n",
-					digest_name);
-			}
-			exit(!is_help);
+	rc = set_digest_parameters(&ctx.cms_ctx, digest_name);
+	int is_help  = strcmp(digest_name, "help") ? 0 : 1;
+	if (rc < 0) {
+		if (!is_help) {
+			fprintf(stderr, "Digest \"%s\" not found.\n",
+				digest_name);
 		}
+		exit(!is_help);
 	}
 
 	if (rc < -1) {

@@ -70,8 +70,6 @@ cms_context_init(cms_context *ctx)
 		return -1;
 	}
 
-	set_digest_parameters(ctx, "sha256");
-
 	return 0;
 }
 
