@@ -376,16 +376,6 @@ main(int argc, char *argv[])
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
 
-	rc = set_digest_parameters(&ctx.cms_ctx, digest_name);
-	int is_help  = strcmp(digest_name, "help") ? 0 : 1;
-	if (rc < 0) {
-		if (!is_help) {
-			fprintf(stderr, "Digest \"%s\" not found.\n",
-				digest_name);
-		}
-		exit(!is_help);
-	}
-
 	if (rc < -1) {
 		fprintf(stderr, "pesign: Invalid argument: %s: %s\n",
 			poptBadOption(optCon, 0), poptStrerror(rc));
@@ -399,6 +389,16 @@ main(int argc, char *argv[])
 	}
 
 	poptFreeContext(optCon);
+
+	rc = set_digest_parameters(&ctx.cms_ctx, digest_name);
+	int is_help  = strcmp(digest_name, "help") ? 0 : 1;
+	if (rc < 0) {
+		if (!is_help) {
+			fprintf(stderr, "Digest \"%s\" not found.\n",
+				digest_name);
+		}
+		exit(!is_help);
+	}
 
 	int action = 0;
 	if (ctx.insig)
