@@ -5,15 +5,14 @@ SONAME = libdpe.so.0
 
 include $(TOPDIR)/Make.defaults
 
-# TARGETS = libdpe.so libdpe.a
-TARGETS = libdpe.so
+TARGETS = libdpe.so libdpe.a
 all : $(TARGETS)
 
 SOURCES = $(patsubst %.c,%,$(wildcard *.c))
 OBJECTS = $(foreach source,$(SOURCES),$(source).o)
-PEOBJECTS = $(foreach source,$(SOURCES),$(source)_pe.o)
+# PEOBJECTS = $(foreach source,$(SOURCES),$(source)_pe.o)
 
-libdpe.a :: $(PEOBJECTS)
+libdpe.a :: $(OBJECTS)
 
 libdpe.so :: $(OBJECTS)
 

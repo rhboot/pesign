@@ -3,7 +3,7 @@ TOPDIR = $(SRCDIR)/..
 
 include $(TOPDIR)/Make.defaults
 
-LIBS = popt dpe
+LIBS = popt
 PKLIBS = nss
 LDFLAGS =
 CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags --libs $(pklib)))
@@ -11,7 +11,7 @@ CFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $
 
 TARGETS = pesign
 SOURCES = $(patsubst %.c,%,$(wildcard *.c))
-OBJECTS = $(foreach source,$(SOURCES),$(source).o)
+OBJECTS = $(foreach source,$(SOURCES),$(source).o) ../libdpe/libdpe.a
 
 all : $(TARGETS)
 
