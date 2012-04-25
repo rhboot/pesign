@@ -14,11 +14,11 @@ TARGETS = pesign authvar
 
 all : $(TARGETS)
 
-authvar_SOURCES = $(filter-out pesign.c, $(wildcard *.c))
+authvar_SOURCES = $(filter-out $(wildcard pesign*.c), $(wildcard *.c))
 authvar_OBJECTS = $(foreach source,$(authvar_SOURCES),$(patsubst %.c,%,$(source)).o)
 authvar : $(authvar_OBJECTS) $(STATIC_LIBS)
 
-pesign_SOURCES = $(filter-out authvar.c,$(wildcard *.c))
+pesign_SOURCES = $(filter-out $(wildcard authvar*.c), $(wildcard *.c))
 pesign_OBJECTS = $(foreach source,$(pesign_SOURCES),$(patsubst %.c,%,$(source)).o)
 pesign : $(pesign_OBJECTS) $(STATIC_LIBS)
 

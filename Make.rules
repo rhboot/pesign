@@ -15,3 +15,5 @@
 
 %.E: %.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -E $< -o $@
+
+%.c : %.h
