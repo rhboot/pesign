@@ -32,6 +32,10 @@ pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 		align = (pe->maximum_size + size) % align;
 	int extra = size + align;
 
+	int rc = ftruncate(pe->fildes, pe->maximum_size + extra);
+	if (rc < 0)
+		return -1;
+
 	new = mremap(pe->map_address, pe->maximum_size,
 		pe->maximum_size + extra, 0);
 	if (!new)
@@ -70,6 +74,10 @@ pe_shorten_file(Pe *pe, size_t size)
 	new = mremap(pe->map_address, pe->maximum_size,
 		pe->maximum_size - size, 0);
 	if (!new)
+		return -1;
+
+	int rc = ftruncate(pe->fildes, pe->maximum_size - size);
+	if (rc < 0)
 		return -1;
 	
 	pe->maximum_size -= size;
