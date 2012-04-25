@@ -4,16 +4,23 @@ TOPDIR = $(SRCDIR)/..
 include $(TOPDIR)/Make.defaults
 
 LIBS = popt
+STATIC_LIBS = $(TOPDIR)/libdpe/libdpe.a
 PKLIBS = nss
 LDFLAGS =
 CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags --libs $(pklib)))
 CFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib))) -Werror
 
-TARGETS = pesign
-SOURCES = $(patsubst %.c,%,$(wildcard *.c))
-OBJECTS = $(foreach source,$(SOURCES),$(source).o) ../libdpe/libdpe.a
+TARGETS = pesign authvar
 
 all : $(TARGETS)
+
+authvar_SOURCES = $(filter-out pesign.c, $(wildcard *.c))
+authvar_OBJECTS = $(foreach source,$(authvar_SOURCES),$(patsubst %.c,%,$(source)).o)
+authvar : $(authvar_OBJECTS) $(STATIC_LIBS)
+
+pesign_SOURCES = $(filter-out authvar.c,$(wildcard *.c))
+pesign_OBJECTS = $(foreach source,$(pesign_SOURCES),$(patsubst %.c,%,$(source)).o)
+pesign : $(pesign_OBJECTS) $(STATIC_LIBS)
 
 clean : 
 	@rm -rfv *.o *.a *.so $(TARGETS)
@@ -25,7 +32,6 @@ install :
 	$(INSTALL) -m 644 pesign.popt $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pki/pesign/
 
-pesign : $(OBJECTS)
 
 .PHONY: all clean install
 

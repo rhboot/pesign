@@ -4,6 +4,7 @@
 *.a
 *.efi
 pesign
+authvar
 *.sw?
 core.*
 ms
