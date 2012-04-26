@@ -29,7 +29,10 @@ typedef enum {
 typedef struct {
 	action_t action;
 
+	char *namespace;
 	char *name;
+	char *value;
+	char *valuefile;
 	char *importfile;
 	char *exportfile;
 

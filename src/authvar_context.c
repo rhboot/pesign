@@ -19,10 +19,14 @@
 
 #include "authvar.h"
 
+static char *default_namespace="global";
+
 int
 authvar_context_init(authvar_context *ctx)
 {
 	memset(ctx, '\0', sizeof (*ctx));
+
+	ctx->namespace = default_namespace;
 
 	int rc = cms_context_init(&ctx->cms_ctx);
 

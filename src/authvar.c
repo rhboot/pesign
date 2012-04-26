@@ -21,11 +21,40 @@
 
 #include "authvar.h"
 
+static void
+check_name(authvar_context *ctx)
+{
+	if (!ctx->name || !*ctx->name) {
+		fprintf(stderr, "authvar: no name specified.\n");
+		exit(1);
+	}
+}
+
+static void
+check_value(authvar_context *ctx, int needed)
+{
+	if ((!ctx->value || !*ctx->value) &&
+			(!ctx->valuefile || !*ctx->valuefile)) {
+		if (needed)
+			fprintf(stderr, "authvar: no value specified.\n");
+		else
+			fprintf(stderr,
+				"authvar: command does not take a value.\n");
+		exit(1);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	int rc;
 	authvar_context ctx = { 0, };
 	authvar_context *ctxp = &ctx;
+
+	rc = authvar_context_init(ctxp);
+	if (rc < 0) {
+		fprintf(stderr, "Could not initialize context: %m\n");
+		exit(1);
+	}
 
 	poptContext optCon;
 	struct poptOption options[] = {
@@ -35,26 +64,27 @@ int main(int argc, char *argv[])
 		{ "clear", 'c', POPT_ARG_VAL, &ctx.action, clear,
 			"clear variable" },
 		{ "set", 's', POPT_ARG_VAL, &ctx.action, set, "set variable" },
+		{ "namespace", 'N', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
+			&ctx.namespace, 0,
+			"specified variable is in <namespace>" ,"<namespace>" },
 		{ "name", 'n', POPT_ARG_STRING, &ctx.name, 0, "variable name",
 			"<name>" },
+		{ "value", 'v', POPT_ARG_STRING, &ctx.value, 0,
+			"value to set or append", "<value>" },
+		{ "valuefile", 'f', POPT_ARG_STRING, &ctx.valuefile, 0,
+			"read value from <file>", "<file>" },
 		{ "import", 'i', POPT_ARG_STRING, &ctx.importfile, 0,
 			"import variable from <file>", "<file>" },
 		{ "export", 'e', POPT_ARG_STRING, &ctx.exportfile, 0,
 			"export variable to <file> instead of firmware",
 			"<file>" },
 		{ "sign", 'S', POPT_ARG_STRING, &ctx.cms_ctx.certname, 0,
-			"sign variable with certificate nickname",
+			"sign variable with certificate <nickname>",
 			"<nickname>" },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
 	};
-
-	rc = authvar_context_init(ctxp);
-	if (rc < 0) {
-		fprintf(stderr, "Could not initialize context: %m\n");
-		exit(1);
-	}
 
 	optCon = poptGetContext("authvar", argc, (const char **)argv,
 				options, 0);
@@ -75,9 +105,22 @@ int main(int argc, char *argv[])
 
 	poptFreeContext(optCon);
 
-	if (ctx.action == none) {
+	switch (ctx.action) {
+	case none:
 		fprintf(stderr, "authvar: No action specified\n");
 		exit(1);
+	case append:
+		check_name(ctxp);
+		check_value(ctxp, 1);
+		break;
+	case set:
+		check_name(ctxp);
+		check_value(ctxp, 1);
+		break;
+	case clear:
+		check_name(ctxp);
+		check_value(ctxp, 0);
+		break;
 	}
 
 	if (ctx.cms_ctx.certname && *ctx.cms_ctx.certname) {
