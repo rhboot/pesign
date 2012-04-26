@@ -27,20 +27,6 @@ enum {
 };
 
 typedef struct {
-	PRArenaPool *arena;
-	void *privkey;
-	CERTCertificate *cert;
-
-	SECOidTag digest_oid_tag;
-	int digest_size;
-
-	SECItem *pe_digest;
-	SECItem *ci_digest;
-
-	SECItem signature;
-} cms_context;
-
-typedef struct {
 	int infd;
 	int outfd;
 	char *infile;

@@ -133,6 +133,35 @@ set_digest_parameters(cms_context *ctx, char *name)
 }
 
 int
+find_certificate(cms_context *ctx)
+{
+	if (!ctx->certname || !*ctx->certname)
+		return -1;
+
+	typedef struct {
+		enum {
+			PW_NONE = 0,
+			PW_FROMFILE = 1,
+			PW_PLAINTEXT = 2,
+			PW_EXTERNAL = 3
+		} source;
+		char *data;
+	} secuPWData;
+	secuPWData pwdata = { 0, 0 };
+	CERTCertificate *cert = NULL;
+
+	cert = CERT_FindUserCertByUsage(CERT_GetDefaultCertDB(), ctx->certname,
+		certUsageObjectSigner, PR_FALSE, &pwdata);
+	if (cert == NULL) {
+		fprintf(stderr, "Could not find certificate\n");
+		exit(1);
+	}
+	
+	ctx->cert = cert;
+	return 0;
+}
+
+int
 generate_octet_string(cms_context *ctx, SECItem *encoded, SECItem *original)
 {
 	if (SEC_ASN1EncodeItem(ctx->arena, encoded, original,

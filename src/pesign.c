@@ -208,35 +208,6 @@ close_sig_output(pesign_context *ctx)
 }
 
 
-static void
-find_certificate(pesign_context *ctx)
-{
-	if (!ctx->certname) {
-		fprintf(stderr, "pesign: No signing certificate specified.\n");
-		exit(1);
-	}
-
-	typedef struct {
-		enum {
-			PW_NONE = 0,
-			PW_FROMFILE = 1,
-			PW_PLAINTEXT = 2,
-			PW_EXTERNAL = 3
-		} source;
-		char *data;
-	} secuPWData;
-	secuPWData pwdata = { 0, 0 };
-	CERTCertificate *cert = NULL;
-
-	cert = CERT_FindUserCertByUsage(CERT_GetDefaultCertDB(), ctx->certname,
-		certUsageObjectSigner, PR_FALSE, &pwdata);
-	if (cert == NULL) {
-		fprintf(stderr, "Could not find certificate\n");
-		exit(1);
-	}
-	
-	ctx->cms_ctx.cert = cert;
-}
 
 static void
 __attribute__ ((unused))
@@ -324,7 +295,7 @@ main(int argc, char *argv[])
 			"specify input file", "<infile>"},
 		{"out", 'o', POPT_ARG_STRING, &ctx.outfile, 0,
 			"specify output file", "<outfile>" },
-		{"certficate", 'c', POPT_ARG_STRING, &ctx.certname, 0,
+		{"certficate", 'c', POPT_ARG_STRING, &ctx.cms_ctx.certname, 0,
 			"specify certificate nickname",
 			"<certificate nickname>" },
 		{"privkey", 'p', POPT_ARG_STRING, &ctx.privkeyfile, 0,
@@ -469,7 +440,13 @@ main(int argc, char *argv[])
 			break;
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:
-			find_certificate(ctxp);
+			rc = find_certificate(&ctx.cms_ctx);
+			if (rc < 0) {
+				fprintf(stderr, "pesign: Could not find "
+					"certificate %s\n",
+					ctx.cms_ctx.certname);
+				exit(1);
+			}
 			open_input(ctxp);
 			open_sig_output(ctxp);
 			generate_digest(ctxp, ctx.inpe);
@@ -479,7 +456,13 @@ main(int argc, char *argv[])
 		/* generate a signature and embed it in the binary */
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
 			check_inputs(ctxp);
-			find_certificate(ctxp);
+			rc = find_certificate(&ctx.cms_ctx);
+			if (rc < 0) {
+				fprintf(stderr, "pesign: Could not find "
+					"certificate %s\n",
+					ctx.cms_ctx.certname);
+				exit(1);
+			}
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);

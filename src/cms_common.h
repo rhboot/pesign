@@ -19,6 +19,25 @@
 #ifndef CMS_COMMON_H
 #define CMS_COMMON_H 1
 
+#include <nss3/cert.h>
+#include <nss3/secpkcs7.h>
+
+typedef struct {
+	PRArenaPool *arena;
+	void *privkey;
+
+	char *certname;
+	CERTCertificate *cert;
+
+	SECOidTag digest_oid_tag;
+	int digest_size;
+
+	SECItem *pe_digest;
+	SECItem *ci_digest;
+
+	SECItem signature;
+} cms_context;
+
 typedef struct {
 	/* L"<<<Obsolete>>>" no nul */
 	SECItem unicode;
@@ -57,6 +76,8 @@ extern int generate_spc_link(PRArenaPool *arena, SpcLink *slp,
 
 extern int generate_spc_string(PRArenaPool *arena, SECItem *ssp,
 				char *str, int len);
+
+extern int find_certificate(cms_context *ctx);
 
 extern int set_digest_parameters(cms_context *ctx, char *name);
 
