@@ -22,6 +22,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
+
+#define xfree(x) ({if (x) { free(x); x = NULL; }})
 
 static inline int
 __attribute__ ((unused))

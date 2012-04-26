@@ -19,19 +19,17 @@
 #ifndef PESIGN_H
 #define PESIGN_H 1
 
-#include <stdlib.h>
-#define xfree(x) ({if (x) { free(x); x = NULL; }})
-
 #include <libdpe/libdpe.h>
 #include <libdpe/pe.h>
+
+#include "cms_common.h"
+#include "pesign_context.h"
+
 #include "util.h"
-#include "context.h"
 #include "actions.h"
 #include "endian.h"
 #include "oid.h"
 #include "wincert.h"
-
-#include "cms_common.h"
 #include "content_info.h"
 #include "signer_info.h"
 #include "signed_data.h"
