@@ -30,6 +30,8 @@ extern void export_signature(pesign_context *ctx);
 extern void parse_signature(pesign_context *ctx);
 extern int import_signature(pesign_context *ctx);
 extern int remove_signature(pesign_context *ctx, int signum);
+extern void export_pubkey(pesign_context *ctx);
+extern void export_cert(pesign_context *ctx);
 extern int generate_signature(pesign_context *ctx);
 extern int generate_digest(pesign_context *ctx, Pe *pe);
 

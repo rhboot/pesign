@@ -41,6 +41,12 @@ typedef struct {
 	char *outsig;
 	int outsigfd;
 
+	char *outkey;
+	int outkeyfd;
+
+	char *outcert;
+	int outcertfd;
+
 	Pe *inpe;
 	Pe *outpe;
 

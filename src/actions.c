@@ -294,6 +294,35 @@ find_signature(pesign_context *p_ctx)
 }
 
 void
+export_pubkey(pesign_context *p_ctx)
+{
+	cms_context *ctx = &p_ctx->cms_ctx;
+	int rc;
+	
+	SECItem derPublicKey = ctx->cert->derPublicKey;
+	rc = write(p_ctx->outkeyfd, derPublicKey.data, derPublicKey.len);
+	close(p_ctx->outkeyfd);
+	if (rc == derPublicKey.len)
+		exit(0);
+	exit(1);
+}
+
+void
+export_cert(pesign_context *p_ctx)
+{
+	cms_context *ctx = &p_ctx->cms_ctx;
+	int rc;
+	
+	SECItem derCert = ctx->cert->derCert;
+	rc = write(p_ctx->outcertfd, derCert.data, derCert.len);
+	close(p_ctx->outcertfd);
+	if (rc == derCert.len)
+		exit(0);
+	exit(1);
+}
+
+
+void
 export_signature(pesign_context *p_ctx)
 {
 	cms_context *ctx = &p_ctx->cms_ctx;

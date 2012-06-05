@@ -40,7 +40,9 @@
 #define REMOVE_SIGNATURE	0x10
 #define LIST_SIGNATURES		0x20
 #define PRINT_DIGEST		0x40
-#define FLAG_LIST_END		0x80
+#define EXPORT_PUBKEY		0x80
+#define EXPORT_CERT		0x100
+#define FLAG_LIST_END		0x200
 
 static struct {
 	int flag;
@@ -49,7 +51,9 @@ static struct {
 	{GENERATE_DIGEST, "hash"},
 	{GENERATE_SIGNATURE, "sign"},
 	{IMPORT_SIGNATURE, "import"},
-	{EXPORT_SIGNATURE, "export"},
+	{EXPORT_SIGNATURE, "export-sig"},
+	{EXPORT_PUBKEY, "export-pubkey"},
+	{EXPORT_CERT, "export-cert"},
 	{REMOVE_SIGNATURE, "remove"},
 	{LIST_SIGNATURES, "list"},
 	{FLAG_LIST_END, NULL},
@@ -207,7 +211,51 @@ close_sig_output(pesign_context *ctx)
 	ctx->outsigfd = -1;
 }
 
+static void
+open_pubkey_output(pesign_context *ctx)
+{
+	if (!ctx->outkey) {
+		fprintf(stderr, "pesign: No output file specified.\n");
+		exit(1);
+	}
 
+	if (access(ctx->outkey, F_OK) == 0 && ctx->force == 0) {
+		fprintf(stderr, "pesign: \"%s\" exists and --force "
+				"was not given.\n", ctx->outkey);
+		exit(1);
+	}
+
+	ctx->outkeyfd = open(ctx->outkey, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
+				ctx->outmode);
+	if (ctx->outkeyfd < 0) {
+		fprintf(stderr, "pesign: Error opening pubkey for output: "
+				"%m\n");
+		exit(1);
+	}
+}
+
+static void
+open_cert_output(pesign_context *ctx)
+{
+	if (!ctx->outcert) {
+		fprintf(stderr, "pesign: No output file specified.\n");
+		exit(1);
+	}
+
+	if (access(ctx->outcert, F_OK) == 0 && ctx->force == 0) {
+		fprintf(stderr, "pesign: \"%s\" exists and --force "
+				"was not given.\n", ctx->outcert);
+		exit(1);
+	}
+
+	ctx->outcertfd = open(ctx->outcert, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
+				ctx->outmode);
+	if (ctx->outcertfd < 0) {
+		fprintf(stderr, "pesign: Error opening certificate for output: "
+				"%m\n");
+		exit(1);
+	}
+}
 
 static void
 __attribute__ ((unused))
@@ -324,6 +372,11 @@ main(int argc, char *argv[])
 		{"export-signature", 'e',
 			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
 			&ctx.outsig, 0,"export signature to file", "<outsig>" },
+		{"export-pubkey", 'K', POPT_ARG_STRING,
+			&ctx.outkey, 0, "export pubkey to file", "<outkey>" },
+		{"export-cert", 'C', POPT_ARG_STRING,
+			&ctx.outcert, 0, "export signing cert to file",
+			"<outcert>" },
 		{"remove-signature-n", 'R',
 			POPT_ARG_INT|POPT_ARGFLAG_DOC_HIDDEN, &remove, -1,
 			"remove signature", "<sig-number>" },
@@ -375,6 +428,12 @@ main(int argc, char *argv[])
 	if (ctx.insig)
 		action |= IMPORT_SIGNATURE;
 
+	if (ctx.outkey)
+		action |= EXPORT_PUBKEY;
+
+	if (ctx.outcert)
+		action |= EXPORT_CERT;
+
 	if (ctx.outsig)
 		action |= EXPORT_SIGNATURE;
 
@@ -409,6 +468,28 @@ main(int argc, char *argv[])
 			import_signature(ctxp);
 			close_sig_input(ctxp);
 			close_output(ctxp);
+			break;
+		case EXPORT_PUBKEY:
+			rc = find_certificate(&ctx.cms_ctx);
+			if (rc < 0) {
+				fprintf(stderr, "pesign: Could not find "
+					"certificate %s\n",
+					ctx.cms_ctx.certname);
+				exit(1);
+			}
+			open_pubkey_output(ctxp);
+			export_pubkey(ctxp);
+			break;
+		case EXPORT_CERT:
+			rc = find_certificate(&ctx.cms_ctx);
+			if (rc < 0) {
+				fprintf(stderr, "pesign: Could not find "
+					"certificate %s\n",
+					ctx.cms_ctx.certname);
+				exit(1);
+			}
+			open_cert_output(ctxp);
+			export_cert(ctxp);
 			break;
 		/* find a signature in the binary and save it to a file */
 		case EXPORT_SIGNATURE:
