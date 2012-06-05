@@ -21,6 +21,42 @@
 
 #include "authvar.h"
 
+#define NO_FLAGS		0x00
+#define GENERATE_APPEND		0x01
+#define GENERATE_CLEAR		0x02
+#define GENERATE_SET		0x04
+
+#define IMPORT			0x10
+#define EXPORT			0x20
+#define SET			0x40
+
+#define SIGN			0x100
+
+#define FLAG_LIST_END		0x1000
+
+static struct {
+	int flag;
+	const char *name;
+} flag_names[] = {
+	{GENERATE_APPEND, "append" },
+	{GENERATE_CLEAR, "clear" },
+	{GENERATE_SET, "set" },
+	{IMPORT, "import" },
+	{EXPORT, "export" },
+	{SET, "set_firmware" },
+	{SIGN, "sign" },
+	{FLAG_LIST_END, NULL },
+};
+
+static void
+print_flag_name(FILE *f, int flag)
+{
+	for (int i = 0; flag_names[i].flag != FLAG_LIST_END; i++) {
+		if (flag_names[i].flag & flag)
+			fprintf(f, "%s ", flag_names[i].name);
+	}
+}
+
 static void
 check_name(authvar_context *ctx)
 {
@@ -50,6 +86,8 @@ int main(int argc, char *argv[])
 	authvar_context ctx = { 0, };
 	authvar_context *ctxp = &ctx;
 
+	int action = 0;
+
 	rc = authvar_context_init(ctxp);
 	if (rc < 0) {
 		fprintf(stderr, "Could not initialize context: %m\n");
@@ -59,11 +97,12 @@ int main(int argc, char *argv[])
 	poptContext optCon;
 	struct poptOption options[] = {
 		{ NULL, '\0', POPT_ARG_INTL_DOMAIN, "pesign" },
-		{ "append", 'a', POPT_ARG_VAL, &ctx.action, append,
-			"append to variable" },
-		{ "clear", 'c', POPT_ARG_VAL, &ctx.action, clear,
-			"clear variable" },
-		{ "set", 's', POPT_ARG_VAL, &ctx.action, set, "set variable" },
+		{ "append", 'a', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
+			GENERATE_APPEND, "append to variable" },
+		{ "clear", 'c', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
+			GENERATE_CLEAR, "clear variable" },
+		{ "set", 's', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
+			GENERATE_SET, "set variable" },
 		{ "namespace", 'N', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
 			&ctx.namespace, 0,
 			"specified variable is in <namespace>" ,"<namespace>" },
@@ -86,6 +125,25 @@ int main(int argc, char *argv[])
 		POPT_TABLEEND
 	};
 
+	if (ctx.importfile)
+		action |= IMPORT;
+	if (ctx.exportfile)
+		action |= EXPORT;
+	if (!(action & (IMPORT|EXPORT)))
+		action |= SET;
+
+	if (ctx.cms_ctx.certname && *ctx.cms_ctx.certname) {
+		rc = find_certificate(&ctx.cms_ctx);
+		if (rc < 0) {
+			fprintf(stderr, "authvar: Could not find certificate "
+				"for \"%s\"\n", ctx.cms_ctx.certname);
+			exit(1);
+		}
+		action |= SIGN;
+	}
+
+
+
 	optCon = poptGetContext("authvar", argc, (const char **)argv,
 				options, 0);
 	while ((rc = poptGetNextOpt(optCon)) > 0)
@@ -105,31 +163,37 @@ int main(int argc, char *argv[])
 
 	poptFreeContext(optCon);
 
-	switch (ctx.action) {
-	case none:
+	print_flag_name(stdout, action);
+	printf("\n");
+	switch (action) {
+	case NO_FLAGS:
 		fprintf(stderr, "authvar: No action specified\n");
 		exit(1);
-	case append:
+		break;
+	case GENERATE_APPEND|EXPORT:
+	case GENERATE_APPEND|SET:
 		check_name(ctxp);
 		check_value(ctxp, 1);
 		break;
-	case set:
-		check_name(ctxp);
-		check_value(ctxp, 1);
-		break;
-	case clear:
+	case GENERATE_CLEAR|EXPORT:
+	case GENERATE_CLEAR|SET:
 		check_name(ctxp);
 		check_value(ctxp, 0);
 		break;
-	}
+	case GENERATE_SET|EXPORT:
+	case GENERATE_SET|SET:
+		check_name(ctxp);
+		check_value(ctxp, 1);
+		break;
+	case IMPORT|SET:
+	case IMPORT|SIGN|SET:
 
-	if (ctx.cms_ctx.certname && *ctx.cms_ctx.certname) {
-		rc = find_certificate(&ctx.cms_ctx);
-		if (rc < 0) {
-			fprintf(stderr, "authvar: Could not find certificate "
-				"for \"%s\"\n", ctx.cms_ctx.certname);
-			exit(1);
-		}
+	case IMPORT|SIGN|EXPORT:
+	default:
+		fprintf(stderr, "authvar: invalid flags: ");
+		print_flag_name(stderr, action);
+		fprintf(stderr, "\n");
+		exit(1);
 	}
 
 	authvar_context_fini(ctxp);

@@ -24,7 +24,7 @@
 
 #include "cms_common.h"
 #include "authvar_context.h"
-
+#include "efitypes.h"
 #include "util.h"
 
 #endif /* AUTHVAR_H */

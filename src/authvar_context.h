@@ -19,16 +19,7 @@
 #ifndef AUTHVAR_CONTEXT_H
 #define AUTHVAR_CONTEXT_H 1
 
-typedef enum {
-	none,
-	append,
-	clear,
-	set
-} action_t;
-
 typedef struct {
-	action_t action;
-
 	char *namespace;
 	char *name;
 	char *value;
