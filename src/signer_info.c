@@ -412,6 +412,7 @@ SEC_ASN1Template SpcSignerInfoTemplate[] = {
 	.sub = &SEC_OctetStringTemplate,
 	.size = sizeof (SECItem)
 	},
+#if 0
 	{
 	.kind = SEC_ASN1_CONTEXT_SPECIFIC | 1 |
 		SEC_ASN1_CONSTRUCTED |
@@ -421,6 +422,7 @@ SEC_ASN1Template SpcSignerInfoTemplate[] = {
 	.sub = &SEC_AnyTemplate,
 	.size = sizeof (SECItem)
 	},
+#endif
 	{ 0, }
 };
 
