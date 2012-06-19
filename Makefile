@@ -23,7 +23,7 @@ install :
 
 include $(TOPDIR)/Make.rules
 
-GITTAG = $(VERSION)-1
+GITTAG = $(VERSION)
 
 test-archive:
 	@rm -rf /tmp/pesign-$(VERSION) /tmp/pesign-$(VERSION)-tmp
