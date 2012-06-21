@@ -75,7 +75,7 @@ write_file(Pe *pe, off_t size, size_t shnum)
 	return size;
 }
 
-off_t
+loff_t
 pe_update(Pe *pe, Pe_Cmd cmd)
 {
 	if (cmd != PE_C_NULL && cmd != PE_C_WRITE && cmd != PE_C_WRITE_MMAP) {
