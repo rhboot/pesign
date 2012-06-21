@@ -1,5 +1,5 @@
 INSTALLROOT:= /
-PREFIX := /usr/local
+PREFIX := /usr
 
 HOSTARCH   = $(shell uname -m | sed s,i[3456789]86,ia32,)
 ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
