@@ -471,7 +471,7 @@ generate_digest(pesign_context *ctx, Pe *pe)
 	struct pe32_opt_hdr *pe32opthdr = NULL;
 	struct pe32plus_opt_hdr *pe64opthdr = NULL;
 	PK11Context *pk11ctx;
-	uint64_t hashed_bytes = 0;
+	unsigned long hashed_bytes = 0;
 	int rc = -1;
 
 	if (!pe) {
@@ -512,13 +512,13 @@ generate_digest(pesign_context *ctx, Pe *pe)
 	case PE_K_PE_EXE: {
 		void *opthdr = pe_getopthdr(pe);
 		pe32opthdr = opthdr;
-		hash_size = (uint64_t)&pe32opthdr->csum - (uint64_t)hash_base;
+		hash_size = (uintptr_t)&pe32opthdr->csum - (uintptr_t)hash_base;
 		break;
 	}
 	case PE_K_PE64_EXE: {
 		void *opthdr = pe_getopthdr(pe);
 		pe64opthdr = opthdr;
-		hash_size = (uint64_t)&pe64opthdr->csum - (uint64_t)hash_base;
+		hash_size = (uintptr_t)&pe64opthdr->csum - (uintptr_t)hash_base;
 		break;
 	}
 	default:
@@ -538,7 +538,7 @@ generate_digest(pesign_context *ctx, Pe *pe)
 	if (rc < 0 || !dd)
 		goto error;
 
-	hash_size = (uint64_t)&dd->certs - (uint64_t)hash_base;
+	hash_size = (uintptr_t)&dd->certs - (uintptr_t)hash_base;
 	PK11_DigestOp(pk11ctx, hash_base, hash_size);
 
 	/* 8. Skip over the crt dir
@@ -546,7 +546,7 @@ generate_digest(pesign_context *ctx, Pe *pe)
 	hash_base = &dd->base_relocations;
 	hash_size = (pe32opthdr ? pe32opthdr->header_size
 				: pe64opthdr->header_size) -
-		((uint64_t)&dd->base_relocations - (uint64_t)map);
+		((uintptr_t)&dd->base_relocations - (uintptr_t)map);
 	PK11_DigestOp(pk11ctx, hash_base, hash_size);
 
 	/* 10. Set SUM_OF_BYTES_HASHED to the size of the header. */
@@ -566,7 +566,7 @@ generate_digest(pesign_context *ctx, Pe *pe)
 	sort_shdrs(shdrs, pehdr.sections - 1);
 
 	for (int i = 0; i < pehdr.sections; i++) {
-		hash_base = (void *)((uint64_t)map + shdrs[i].data_addr);
+		hash_base = (void *)((uintptr_t)map + shdrs[i].data_addr);
 		hash_size = shdrs[i].raw_data_size;
 		PK11_DigestOp(pk11ctx, hash_base, hash_size);
 
@@ -574,7 +574,7 @@ generate_digest(pesign_context *ctx, Pe *pe)
 	}
 
 	if (map_size > hashed_bytes) {
-		hash_base = (void *)((uint64_t)map + hashed_bytes);
+		hash_base = (void *)((uintptr_t)map + hashed_bytes);
 		hash_size = map_size - dd->certs.size - hashed_bytes;
 		PK11_DigestOp(pk11ctx, hash_base, hash_size);
 	}
