@@ -1,0 +1,85 @@
+.TH PESIGN 8 "Thu Jun 21 2012"
+.SH NAME
+pesign \- command line tool for signing UEFI applications
+
+.SH SYNOPSIS
+\fBpesign\fR [--in=\fIinfile\fR | -i \fIinfile\fR]
+       [--out=\fIoutfile\fR | -o \fIoutfile\fR]
+       [--certificate=\fIcertificate nickname\fR | -c \fInickname\fR]
+       [--privkey=\fIprivkey\fR | -p \fIprivkey\fR] [--force | -f]
+       [--sign | -s] [--hash | -h]
+       [--digest_type=\fIdigest\fR | -d \fIdigest\fR]
+       [--show-signature | -S ] [--remove-signature | -r ]
+       [--export-pubkey=\fIoutkey\fR | -K \fIoutkey\fR]
+       [--export-cert=\fIoutcert\fR | -C \fIoutcert\fR]
+       [--ascii-armor | -a]
+
+.SH DESCRIPTION
+\fBpesign\fR is a command line tool for manipulating signatures and 
+cryptographic digests of UEFI applications.
+
+.SH OPTIONS
+.TP
+\fB-\-in\fR=\fIinfile\fR
+Specify input binary.
+
+.TP
+\fB-\-out\fR=\fIoutfile\fR
+Specify output binary.
+
+.TP
+\fB-\-certificate\fR=\fIcertificate nickname\fR
+Use the certificate database entry with the specified nickname for signing.
+
+.TP
+\fB-\-privkey\fR=\fIprivkey\fR
+Use the private key specified by \fIprivkey\fR for signing.
+
+.TP
+\fB-\-force\fR
+Overwrite output files. Without this parameter, \fBpesign\fR will refuse
+to overrite any output files which already exist.
+
+.TP
+\fB-\-sign\fR
+Sign the input binary with the key specified by \fB-\-certificate\fR or
+\fB-\-privkey\fR.
+
+.TP
+\fB-\-hash\fR
+Display the cryptographic digest of the input binary on standard output.
+
+.TP
+\fB-\-digest_type\fR=\fIdigest\fR
+Use the specified digest in hashing and signing operations. By default,
+this value is "sha256".  Use "--digest=help" to list the available digests.
+
+.TP
+\fB-\-show-signature\fR
+Show information about the signature of the input binary.
+
+.TP
+\fB-\-remove-signature\fR
+Remove the signature section from the binary.
+
+.TP
+\fB-\-export-pubkey\fR=\fIoutkey\fR
+Export the public key specified by --certificate to \fIoutkey\fR
+
+.TP
+\fB-\-export-cert\fR=\fIoutcert\fR
+Export the certificate specified by --certificate to \fIoutcert\fR
+
+.TP
+\fB-\-ascii\fR
+Use ascii armoring on exported certificates.
+
+
+.SH "SEE ALSO"
+.BR shim (8),
+.BR authvar (8)
+
+.SH AUTHORS
+.nf
+Peter Jones
+.fi
