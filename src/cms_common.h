@@ -67,6 +67,8 @@ extern int generate_octet_string(cms_context *ctx, SECItem *encoded,
 				SECItem *original);
 extern int generate_object_id(cms_context *ctx, SECItem *encoded,
 				SECOidTag tag);
+extern int generate_empty_sequence(cms_context *ctx, SECItem *encoded);
+extern int generate_time(cms_context *ctx, SECItem *encoded, time_t when);
 
 extern SEC_ASN1Template AlgorithmIDTemplate[];
 extern int generate_algorithm_id(cms_context *ctx, SECAlgorithmID *idp,

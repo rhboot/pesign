@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -161,6 +162,54 @@ find_certificate(cms_context *ctx)
 	}
 	
 	ctx->cert = cert;
+	return 0;
+}
+
+static SEC_ASN1Template EmptySequenceTemplate[] = {
+	{
+	.kind = SEC_ASN1_SEQUENCE,
+	.offset = 0,
+	.sub = NULL,
+	.size = 0
+	},
+	{ 0, }
+};
+
+int
+generate_time(cms_context *ctx, SECItem *encoded, time_t when)
+{
+	static char timebuf[14];
+	SECItem whenitem = {.type = SEC_ASN1_UTC_TIME,
+			 .data = (unsigned char *)timebuf,
+			 .len = 0
+	};
+	struct tm *tm;
+
+	tm = gmtime(&when);
+
+	whenitem.len = snprintf(timebuf, 32, "%02d%02d%02d%02d%02d%02dZ",
+		tm->tm_year % 100, tm->tm_mon + 1, tm->tm_mday,
+		tm->tm_hour, tm->tm_min, tm->tm_sec);
+	if (whenitem.len == 32)
+		return -1;
+
+	if (SEC_ASN1EncodeItem(ctx->arena, encoded, &whenitem,
+			SEC_UTCTimeTemplate) == NULL) {
+		return -1;
+	}
+	return 0;
+}
+
+int
+generate_empty_sequence(cms_context *ctx, SECItem *encoded)
+{
+	SECItem empty = {.type = SEC_ASN1_SEQUENCE,
+			 .data = NULL,
+			 .len = 0
+	};
+	if (SEC_ASN1EncodeItem(ctx->arena, encoded, &empty,
+			EmptySequenceTemplate) == NULL)
+		return -1;
 	return 0;
 }
 
