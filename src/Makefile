@@ -31,8 +31,8 @@ install :
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -m 644 pesign.popt $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pki/pesign/
-	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/share/man/man8/
-	$(INSTALL) -m 644 pesign.8 $(INSTALLROOT)/usr/share/man/man8/
+	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/share/man/man1/
+	$(INSTALL) -m 644 pesign.1 $(INSTALLROOT)/usr/share/man/man1/
 
 
 .PHONY: all clean install
