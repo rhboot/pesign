@@ -81,14 +81,29 @@ generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 	SECOidTag tag;
 	SECOidData *oid;
 
-	/* build the first attribute, which says that this is
-	 * a PKCS9 content blob thingy */
+	/* build the first attribute, which says we have no S/MIME
+	 * capabilities whatsoever */
 	attrs[0] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
 	if (!attrs[0])
 		goto err;
 
-	oid = SECOID_FindOIDByTag(SEC_OID_PKCS9_CONTENT_TYPE);
+	oid = SECOID_FindOIDByTag(SEC_OID_PKCS9_SMIME_CAPABILITIES);
 	attrs[0]->attrType = oid->oid;
+
+	SECItem *smime_caps[2] = { NULL, NULL};
+	if (generate_empty_sequence(ctx, &encoded) < 0)
+		goto err;
+	smime_caps[0] = SECITEM_ArenaDupItem(ctx->arena, &encoded);
+	attrs[0]->attrValues = smime_caps;
+
+	/* build the second attribute, which says that this is
+	 * a PKCS9 content blob thingy */
+	attrs[1] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
+	if (!attrs[1])
+		goto err;
+
+	oid = SECOID_FindOIDByTag(SEC_OID_PKCS9_CONTENT_TYPE);
+	attrs[1]->attrType = oid->oid;
 
 	SECItem *content_types[2] = { NULL, NULL };
 	tag = find_ms_oid_tag(SPC_INDIRECT_DATA_OBJID);
@@ -99,36 +114,32 @@ generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 	content_types[0] = SECITEM_ArenaDupItem(ctx->arena, &encoded);
 	if (!content_types[0])
 		goto err;
-	attrs[0]->attrValues = content_types;
+	attrs[1]->attrValues = content_types;
 
-	/* build the second attribute.  I have no idea what this
-	 * is for whatsoever. */
-	attrs[1] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
-	if (!attrs[1])
-		goto err;
-	if (get_ms_oid_secitem(SPC_STATEMENT_TYPE_OBJID,
-			&attrs[1]->attrType) < 0)
-		goto err;
-
-	SECItem *microsoft_magic[2] = { NULL, NULL };
-	tag = find_ms_oid_tag(SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID);
-	if (tag == SEC_OID_UNKNOWN)
-		goto err;
-	if (generate_object_id(ctx, &encoded, tag) < 0)
-		goto err;
-	microsoft_magic[0] = SECITEM_ArenaDupItem(ctx->arena, &encoded);
-	if (!microsoft_magic[0])
-		goto err;
-	attrs[1]->attrValues = microsoft_magic;
-
-	/* build the third attribute, which is our PKCS9 message
-	 * digest (which is a SHA-whatever selected and generated elsewhere */
+	/* build the third attribute.  This is our signing time. */
 	attrs[2] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
 	if (!attrs[2])
 		goto err;
 
-	oid = SECOID_FindOIDByTag(SEC_OID_PKCS9_MESSAGE_DIGEST);
+	oid = SECOID_FindOIDByTag(SEC_OID_PKCS9_SIGNING_TIME);
 	attrs[2]->attrType = oid->oid;
+
+	SECItem *signing_time[2] = { NULL, NULL };
+	if (generate_time(ctx, &encoded, time(NULL)) < 0)
+		goto err;
+	signing_time[0] = SECITEM_ArenaDupItem(ctx->arena, &encoded);
+	if (!signing_time[0])
+		goto err;
+	attrs[2]->attrValues = signing_time;
+
+	/* build the fourth attribute, which is our PKCS9 message
+	 * digest (which is a SHA-whatever selected and generated elsewhere */
+	attrs[3] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
+	if (!attrs[3])
+		goto err;
+
+	oid = SECOID_FindOIDByTag(SEC_OID_PKCS9_MESSAGE_DIGEST);
+	attrs[3]->attrType = oid->oid;
 
 	SECItem *digest_values[2] = { NULL, NULL };
 	if (generate_octet_string(ctx, &encoded, ctx->ci_digest) < 0)
@@ -136,14 +147,7 @@ generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 	digest_values[0] = SECITEM_ArenaDupItem(ctx->arena, &encoded);
 	if (!digest_values[0])
 		goto err;
-	attrs[2]->attrValues = digest_values;
-
-	attrs[3] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
-	if (!attrs[3])
-		goto err;
-
-		goto err;
-		goto err;
+	attrs[3]->attrValues = digest_values;
 
 	Attribute **attrtmp = attrs;
 	if (SEC_ASN1EncodeItem(ctx->arena, sattrs, &attrtmp,
