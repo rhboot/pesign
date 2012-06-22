@@ -52,7 +52,6 @@ static struct {
 		&oiddata[0]),
 	OID(SPC_STATEMENT_TYPE_OBJID, "Statement Type", siDEROID, 10,
 		&oiddata[10]),
-	OID(SPC_SP_OPUS_INFO_OBJID, "Opus Info", siDEROID, 10, &oiddata[20]),
 	OID(SPC_PE_IMAGE_DATA_OBJID, "PE Image Data", siDEROID, 10,
 		&oiddata[30]),
 	OID(SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID, "Individual Key", siDEROID,

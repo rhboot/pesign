@@ -23,69 +23,13 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include <time.h>
 
 #include <nspr4/prerror.h>
 #include <nss3/cms.h>
 #include <nss3/cryptohi.h>
 #include <nss3/keyhi.h>
 #include <nss3/pk11pub.h>
-
-SEC_ASN1Template SpcSpOpusInfoTemplate[] = {
-	{
-	.kind = SEC_ASN1_SEQUENCE,
-	.offset = 0,
-	.sub = NULL,
-	.size = sizeof (SpcSpOpusInfo)
-	},
-	{
-	.kind = SEC_ASN1_CONSTRUCTED |
-		SEC_ASN1_CONTEXT_SPECIFIC | 0 |
-		SEC_ASN1_EXPLICIT,
-	.offset = offsetof(SpcSpOpusInfo, programName),
-	.sub = &SpcStringTemplate,
-	.size = sizeof (SpcString)
-	},
-	{
-	.kind = SEC_ASN1_CONSTRUCTED |
-		SEC_ASN1_CONTEXT_SPECIFIC | 1 |
-		SEC_ASN1_EXPLICIT,
-	.offset = offsetof(SpcSpOpusInfo, moreInfo),
-	.sub = &SpcLinkTemplate,
-	.size = sizeof (SpcLink)
-	},
-	{ 0, }
-};
-
-static int
-generate_spc_sp_opus_info(cms_context *ctx, SECItem *encoded)
-{
-	SpcSpOpusInfo ssoi;
-	memset(&ssoi, '\0', sizeof (ssoi));
-
-	char mswin[34] = "\0M\0i\0c\0r\0o\0s\0f\0t\0 \0W\0i\0n\0d\0o\0w\0s";
-	if (generate_spc_string(ctx->arena, &ssoi.programName, mswin, 34) < 0) {
-		fprintf(stderr, "Could not encode program name: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
-	}
-
-	char wwwmscom[25] = "http://www.microsoft.com";
-	if (generate_spc_link(ctx->arena, &ssoi.moreInfo, SpcLinkTypeUrl,
-			wwwmscom, 24) < 0) {
-		fprintf(stderr, "Could not encode url SpcLink: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
-	}
-
-	if (SEC_ASN1EncodeItem(ctx->arena, encoded, &ssoi,
-			SpcSpOpusInfoTemplate) == NULL) {
-		fprintf(stderr, "Could not encode SpcSpOpusInfo: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
-	}
-
-	return 0;	
-}
 
 SEC_ASN1Template AttributeTemplate[] = {
 	{
@@ -194,23 +138,12 @@ generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 		goto err;
 	attrs[2]->attrValues = digest_values;
 
-	/* build the fourth attribute, which is meaningless bullshit
-	 * that should have been stripped out of this bogus spec before
-	 * 1.0 ever happened */
 	attrs[3] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
 	if (!attrs[3])
 		goto err;
-	if (get_ms_oid_secitem(SPC_SP_OPUS_INFO_OBJID,
-			&attrs[3]->attrType) < 0)
-		goto err;
 
-	SECItem *opus_info[2] = { NULL, NULL };
-	if (generate_spc_sp_opus_info(ctx, &encoded) < 0)
 		goto err;
-	opus_info[0] = SECITEM_ArenaDupItem(ctx->arena, &encoded);
-	if (!opus_info[0])
 		goto err;
-	attrs[3]->attrValues = opus_info;
 
 	Attribute **attrtmp = attrs;
 	if (SEC_ASN1EncodeItem(ctx->arena, sattrs, &attrtmp,
