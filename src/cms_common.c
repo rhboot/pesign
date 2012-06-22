@@ -315,7 +315,7 @@ generate_spc_string(PRArenaPool *arena, SECItem *ssp, char *str, int len)
 	memset(&ss, '\0', sizeof (ss));
 
 	SECITEM_AllocItem(arena, &ss.unicode, len);
-	if (!ss.unicode.data)
+	if (!ss.unicode.data && len != 0)
 		return -1;
 
 	memcpy(ss.unicode.data, str, len);
