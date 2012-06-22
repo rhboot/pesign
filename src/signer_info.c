@@ -330,7 +330,7 @@ SEC_ASN1Template IssuerAndSerialNumberTemplate[] = {
 	},
 	{
 	.kind = SEC_ASN1_INTEGER,
-	.offset = offsetof(IssuerAndSerialNumber, issuer),
+	.offset = offsetof(IssuerAndSerialNumber, serial),
 	.sub = &SEC_IntegerTemplate,
 	.size = sizeof (SECItem)
 	},
