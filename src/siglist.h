@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2012 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,16 +16,15 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef AUTHVAR_H
-#define AUTHVAR_H 1
+#ifndef SIGLIST_H
+#define SIGLIST_H 1
 
-#include <libdpe/libdpe.h>
-#include <libdpe/pe.h>
+typedef struct signature_list signature_list;
 
-#include "efitypes.h"
-#include "cms_common.h"
-#include "authvar_context.h"
-#include "util.h"
-#include "siglist.h"
+extern signature_list *signature_list_new(efi_guid_t SignatureType);
+extern int signature_list_add_sig(signature_list *sl, efi_guid_t owner,
+			uint8_t *sig, uint32_t sigsize);
+extern void *signature_list_realize(signature_list *sl);
+extern void signature_list_free(signature_list *sl);
 
-#endif /* AUTHVAR_H */
+#endif /* SIGLIST_H */
