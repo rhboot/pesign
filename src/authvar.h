@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2011-2012 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -27,5 +27,7 @@
 #include "authvar_context.h"
 #include "util.h"
 #include "siglist.h"
+#include "endian.h"
+#include "ucs2.h"
 
 #endif /* AUTHVAR_H */
