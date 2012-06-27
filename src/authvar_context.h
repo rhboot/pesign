@@ -21,6 +21,7 @@
 
 typedef struct {
 	char *namespace;
+	efi_guid_t guid;
 	char *name;
 	char *value;
 	char *valuefile;

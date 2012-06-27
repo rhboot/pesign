@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <errno.h>
 #include <popt.h>
 
 #include "authvar.h"
@@ -80,6 +81,81 @@ check_value(authvar_context *ctx, int needed)
 	}
 }
 
+static int
+parse_guid(char *text, efi_guid_t *guid)
+{
+	char buf8[9] = "\0\0\0\0\0\0\0\0\0";
+	char buf4[5] = "\0\0\0\0\0";
+	char buf2[3] = "\0\0\0";
+
+	efi_guid_t retguid;
+
+	switch (strlen(text)) {
+	case 24:
+	case 28:
+		errno = 0;
+		strncpy(buf8, text, 8);
+		text += 8;
+		retguid.data1 = strtol(buf8, NULL, 16);
+		if (errno)
+			return -1;
+		if (text[0] == '-' || text[0] == ':')
+			text++;
+
+		strncpy(buf4, text, 4);
+		text += 4;
+		retguid.data2 = strtol(buf4, NULL, 16);
+		if (errno)
+			return -1;
+		if (text[0] == '-' || text[0] == ':')
+			text++;
+
+		strncpy(buf4, text, 4);
+		text += 4;
+		retguid.data3 = strtol(buf4, NULL, 16);
+		if (errno)
+			return -1;
+		if (text[0] == '-' || text[0] == ':')
+			text++;
+
+		for (int i = 0; i < 8; i++) {
+			strncpy(buf2, text, 2);
+			text += 2;
+			retguid.data4[i] = strtol(buf2, NULL, 16);
+			if (errno)
+				return -1;
+			if (text[0] == '-' || text[0] == ':')
+				text++;
+		}
+		memcpy(guid, &retguid, sizeof (*guid));
+		return 0;
+	default:
+		return -1;
+	}
+	return 0;
+}
+
+static int
+find_namespace_guid(authvar_context *ctx)
+{
+	efi_guid_t global = EFI_GLOBAL_VARIABLE;
+	efi_guid_t security = EFI_IMAGE_SECURITY_DATABASE_GUID;
+	efi_guid_t rh = RH_GUID;
+
+	if (strcmp(ctx->namespace, "global") == 0) {
+		memcpy(&ctx->guid, &global, sizeof (ctx->guid));
+		return 0;
+	} else if (strcmp(ctx->namespace, "security") == 0) {
+		memcpy(&ctx->guid, &security, sizeof (ctx->guid));
+		return 0;
+	} else if (strcmp(ctx->namespace, "rh") == 0) {
+		memcpy(&ctx->guid, &rh, sizeof (ctx->guid));
+		return 0;
+	}
+
+	return parse_guid(ctx->namespace, &ctx->guid);
+}
+
 int main(int argc, char *argv[])
 {
 	int rc;
@@ -105,7 +181,8 @@ int main(int argc, char *argv[])
 			GENERATE_SET, "set variable" },
 		{ "namespace", 'N', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
 			&ctx.namespace, 0,
-			"specified variable is in <namespace>" ,"<namespace>" },
+			"specified variable is in <namespace> or <guid>" ,
+			"{<namespace>|<guid>}" },
 		{ "name", 'n', POPT_ARG_STRING, &ctx.name, 0, "variable name",
 			"<name>" },
 		{ "value", 'v', POPT_ARG_STRING, &ctx.value, 0,
@@ -142,7 +219,12 @@ int main(int argc, char *argv[])
 		action |= SIGN;
 	}
 
-
+	rc = find_namespace_guid(ctxp);
+	if (rc < 0) {
+		fprintf(stderr, "authvar: unable to find guid for \"%s\"\n",
+			ctx.namespace);
+		exit(1);
+	}
 
 	optCon = poptGetContext("authvar", argc, (const char **)argv,
 				options, 0);
