@@ -38,8 +38,10 @@ pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 
 	new = mremap(pe->map_address, pe->maximum_size,
 		pe->maximum_size + extra, 0);
-	if (!new)
+	if (new == MAP_FAILED) {
+		__libpe_seterrno (PE_E_NOMEM);
 		return -1;
+	}
 
 	char *addr = compute_mem_addr(pe, pe->maximum_size);
 	memset(addr, '\0', extra);
@@ -73,8 +75,10 @@ pe_shorten_file(Pe *pe, size_t size)
 
 	new = mremap(pe->map_address, pe->maximum_size,
 		pe->maximum_size - size, 0);
-	if (!new)
+	if (new == MAP_FAILED) {
+		__libpe_seterrno (PE_E_NOMEM);
 		return -1;
+	}
 
 	int rc = ftruncate(pe->fildes, pe->maximum_size - size);
 	if (rc < 0)
