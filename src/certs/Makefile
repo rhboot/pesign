@@ -1,4 +1,4 @@
-NICKNAME := $(shell id | sed 's/uid=[[:digit:]]\+(\([[:alnum:]_\.]\+\)).*/\1/g')
+NICKNAME := $(whoami)
 EMAIL := ${NICKNAME}@localhost
 
 all : clean
