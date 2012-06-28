@@ -52,6 +52,24 @@ compute_file_addr(Pe *pe, void *addr)
 	return cpu_to_le32((char *)addr - ((char *)pe->map_address));
 }
 
+static inline size_t
+__attribute__ ((unused))
+get_shnum(void *map_address, size_t maxsize)
+{
+	size_t result = 0;
+	void *buf = (void *)map_address;
+	struct mz_hdr *mz = (struct mz_hdr *)buf;
+
+	off_t hdr = (off_t)le32_to_cpu(mz->peaddr);
+	struct pe_hdr *pe = (struct pe_hdr *)(buf + hdr);
+
+	uint16_t sections = pe->sections;
+
+	result = le16_to_cpu(sections);
+
+	return result;
+}
+
 static inline Pe_Kind
 __attribute__ ((unused))
 determine_kind(void *buf, size_t len)

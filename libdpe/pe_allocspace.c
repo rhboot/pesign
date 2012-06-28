@@ -34,6 +34,19 @@ pe_fix_addresses(Pe *pe, int64_t offset)
 	adjust(pe->state.pe.reserved0, offset);
 	adjust(pe->state.pe.reserved1, offset);
 	adjust(pe->state.pe.shdr, offset);
+
+	size_t scncnt = get_shnum(pe->map_address, pe->maximum_size);
+	/* in general this means we couldn't identify any sections, so
+	 * they must not need to be fixed up. */
+	if (scncnt == (size_t)-1l)
+		return;
+
+	for (size_t cnt = 0; cnt < scncnt; cnt++) {
+		pe->state.pe.scns.data[cnt].shdr =
+			&pe->state.pe.shdr[cnt];
+
+		adjust(pe->state.pe.scns.data[cnt].rawdata_base, offset);
+	}
 }
 #undef adjust
 

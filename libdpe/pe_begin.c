@@ -29,23 +29,6 @@
 
 #include "libdpe.h"
 
-static size_t
-get_shnum(void *map_address, size_t maxsize)
-{
-	size_t result = 0;
-	void *buf = (void *)map_address;
-	struct mz_hdr *mz = (struct mz_hdr *)buf;
-
-	off_t hdr = (off_t)le32_to_cpu(mz->peaddr);
-	struct pe_hdr *pe = (struct pe_hdr *)(buf + hdr);
-
-	uint16_t sections = pe->sections;
-
-	result = le16_to_cpu(sections);
-
-	return result;
-}
-
 static inline Pe *
 file_read_pe_obj(int fildes, void *map_address, unsigned char *p_ident,
 		size_t maxsize, Pe_Cmd cmd, Pe *parent)
