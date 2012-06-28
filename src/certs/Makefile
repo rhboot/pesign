@@ -1,4 +1,4 @@
-NICKNAME := $(whoami)
+NICKNAME := $(shell whoami)
 EMAIL := ${NICKNAME}@localhost
 
 all : clean
