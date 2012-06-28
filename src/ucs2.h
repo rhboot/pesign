@@ -21,5 +21,6 @@
 
 extern size_t ucs2_strlen(const uint16_t *s);
 extern uint16_t *ucs2_strdup(const uint16_t *s);
+extern uint16_t *ascii_to_ucs2(const char *s);
 
 #endif /* UCS2_H */

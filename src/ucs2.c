@@ -42,3 +42,16 @@ uint16_t *ucs2_strdup(const uint16_t *s)
 	memcpy(ret, s, len * sizeof (*ret));
 	return ret;
 }
+
+extern uint16_t *ascii_to_ucs2(const char *s)
+{
+	uint16_t *ret = NULL;
+	size_t size = strlen(s) + 1;
+
+	ret = calloc(2, size);
+	if (!ret)
+		return NULL;
+	for (int i = 0; i < size; i++)
+		ret[i] = s[i];
+	return ret;
+}
