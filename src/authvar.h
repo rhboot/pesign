@@ -29,5 +29,6 @@
 #include "siglist.h"
 #include "endian.h"
 #include "ucs2.h"
+#include "varfile.h"
 
 #endif /* AUTHVAR_H */
