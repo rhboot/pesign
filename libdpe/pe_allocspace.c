@@ -50,7 +50,6 @@ pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 	if (rc < 0)
 		return -1;
 
-	ftruncate(pe->fildes, pe->maximum_size + extra);
 	new = mremap(pe->map_address, pe->maximum_size,
 		pe->maximum_size + extra, MREMAP_MAYMOVE);
 	if (new == MAP_FAILED) {
