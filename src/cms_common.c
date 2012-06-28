@@ -106,6 +106,18 @@ cms_context_fini(cms_context *ctx)
 		ctx->ci_digest = NULL;
 	}
 
+#if 0
+	for (int i = 0; i < ctx->num_signatures; i++) {
+		if (ctx->signatures[i]) {
+			if (ctx->signatures[i]->data)
+				free(ctx->signatures[i]->data);
+			free(ctx->signatures[i]);
+		}
+	}
+	free(ctx->signatures);
+#endif
+	ctx->signatures = NULL;
+
 
 	PORT_FreeArena(ctx->arena, PR_TRUE);
 	memset(ctx, '\0', sizeof(*ctx));

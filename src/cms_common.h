@@ -36,7 +36,8 @@ typedef struct {
 	SECItem *pe_digest;
 	SECItem *ci_digest;
 
-	SECItem signature;
+	int num_signatures;
+	SECItem **signatures;
 } cms_context;
 
 typedef struct {

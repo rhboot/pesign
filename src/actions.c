@@ -62,6 +62,8 @@ cert_iter_init(cert_iter *iter, Pe *pe)
 {
 	iter->pe = pe;
 	iter->n = 0;
+	iter->certs = 0;
+	iter->size = -1;
 
 	data_directory *dd;
 
@@ -77,7 +79,9 @@ cert_iter_init(cert_iter *iter, Pe *pe)
 		return -1;
 
 	iter->certs = map + dd->certs.virtual_address;
-	iter->size = dd->certs.size;
+	if (dd->certs.virtual_address) {
+		iter->size = dd->certs.size;
+	}
 
 	return rc;
 }
@@ -132,10 +136,104 @@ done:
 		if (cert_size)
 			*cert_size = length;
 
-		iter->n = n;
+		iter->n += sizeof (*tmpcert) + length;
 
 		return 1;
 	}
+}
+
+int
+parse_signatures(pesign_context *ctx)
+{
+	cert_iter iter;
+	int rc = cert_iter_init(&iter, ctx->inpe);
+	if (rc < 0)
+		return -1;
+
+	void *data;
+	ssize_t datalen;
+	int nsigs = 0;
+
+	rc = 0;
+	while (1) {
+		rc = next_cert(&iter, &data, &datalen);
+		if (rc <= 0)
+			break;
+		nsigs++;
+	}
+
+	if (nsigs == 0) {
+		ctx->cms_ctx.num_signatures = 0;
+		ctx->cms_ctx.signatures = NULL;
+		return 0;
+	}
+
+	SECItem **signatures = calloc(nsigs, sizeof (SECItem *));
+	if (!signatures)
+		return -1;
+
+	rc = cert_iter_init(&iter, ctx->inpe);
+	if (rc < 0)
+		goto err;
+
+	int i = 0;
+	while (1) {
+		rc = next_cert(&iter, &data, &datalen);
+		if (rc <= 0)
+			break;
+
+		signatures[i] = calloc(1, sizeof (SECItem *));
+		if (!signatures[i])
+			goto err;
+
+		signatures[i]->data = calloc(1, datalen);
+		if (!signatures[i]->data)
+			goto err;
+
+		memcpy(signatures[i]->data, data, datalen);
+		signatures[i]->len = datalen;
+		signatures[i]->type = siBuffer;
+		i++;
+	}
+
+	ctx->cms_ctx.num_signatures = nsigs;
+	ctx->cms_ctx.signatures = signatures;
+
+	return 0;
+err:
+	if (signatures) {
+		for (i = 0; i < nsigs; i++) {
+			if (signatures[i]) {
+				if (signatures[i]->data)
+					free(signatures[i]->data);
+				free(signatures[i]);
+			}
+		}
+		free(signatures);
+	}
+	return -1;
+}
+
+int
+insert_signature(pesign_context *ctx, SECItem *sig)
+{
+	if (ctx->signum == -1)
+		ctx->signum = ctx->cms_ctx.num_signatures;
+
+	SECItem **signatures = realloc(ctx->cms_ctx.signatures,
+		sizeof (SECItem *) * ctx->cms_ctx.num_signatures + 1);
+	if (!signatures)
+		return -1;
+	ctx->cms_ctx.signatures = signatures;
+	if (ctx->signum != ctx->cms_ctx.num_signatures) {
+		memmove(ctx->cms_ctx.signatures[ctx->signum+1],
+			ctx->cms_ctx.signatures[ctx->signum],
+			sizeof(SECItem *) * (ctx->cms_ctx.num_signatures -
+						ctx->signum));
+	}
+	ctx->cms_ctx.signatures[ctx->signum] = sig;
+	ctx->cms_ctx.num_signatures++;
+	return 0;
 }
 
 int
@@ -251,49 +349,6 @@ static const char *sig_begin_marker ="-----BEGIN AUTHENTICODE SIGNATURE-----\n";
 static const char *sig_end_marker = "\n-----END AUTHENTICODE SIGNATURE-----\n";
 
 void
-find_signature(pesign_context *p_ctx)
-{
-	cert_iter iter;
-	cms_context *ctx = &p_ctx->cms_ctx;
-
-	int rc = cert_iter_init(&iter, p_ctx->inpe);
-
-	if (rc < 0) {
-		printf("No certificate list found.\n");
-		return;
-	}
-
-	void *data;
-	ssize_t datalen;
-	int nsigs = 0;
-
-	if (p_ctx->signum < 0)
-		p_ctx->signum = 0;
-
-	rc = 0;
-	while (1) {
-		rc = next_cert(&iter, &data, &datalen);
-		if (rc <= 0)
-			break;
-
-		if (nsigs < p_ctx->signum) {
-			nsigs++;
-			continue;
-		}
-
-		ctx->signature.type = siBuffer;
-		ctx->signature.data = data;
-		ctx->signature.len = datalen;
-		break;
-	}
-
-	if (!ctx->signature.data) {
-		fprintf(stderr, "Could not find signature.\n");
-		exit(1);
-	}
-}
-
-void
 export_pubkey(pesign_context *p_ctx)
 {
 	cms_context *ctx = &p_ctx->cms_ctx;
@@ -323,17 +378,12 @@ export_cert(pesign_context *p_ctx)
 
 
 void
-export_signature(pesign_context *p_ctx)
+export_signature(pesign_context *p_ctx, SECItem *sig)
 {
-	cms_context *ctx = &p_ctx->cms_ctx;
 	int rc = 0;
 
-	if (!ctx->signature.data) {
-		fprintf(stderr, "Could not find signature.\n");
-		exit(1);
-	}
-	unsigned char *data = ctx->signature.data;
-	int datalen = ctx->signature.len;
+	unsigned char *data = sig->data;
+	int datalen = sig->len;
 	if (p_ctx->ascii) {
 		char *ascii = BTOA_DataToAscii(data, datalen);
 		if (!ascii) {
@@ -374,8 +424,8 @@ failure:
 	}
 }
 
-void
-parse_signature(pesign_context *ctx)
+static void
+parse_signature(pesign_context *ctx, uint8_t **data, unsigned int *datalen)
 {
 	int rc;
 	char *sig;
@@ -414,6 +464,10 @@ parse_signature(pesign_context *ctx)
 	}
 	free(sig);
 
+	*data = der;
+	*datalen = derlen;
+
+#if 0
 	SEC_PKCS7DecoderContext *dc = NULL;
 	saw_content = 0;
 	dc = SEC_PKCS7DecoderStart(handle_bytes, NULL, NULL, NULL, NULL, NULL,
@@ -435,6 +489,7 @@ decoder_error:
 
 	ctx->cinfo = cinfo;
 	PORT_Free(der);
+#endif
 }
 
 /* before you run this, you'll need to enroll your CA with:
@@ -443,7 +498,7 @@ decoder_error:
  * pk12util -d /etc/pki/pesign/ -i Peter\ Jones.p12 
  */
 int
-generate_signature(pesign_context *p_ctx)
+generate_signature(pesign_context *p_ctx, SECItem *newsig)
 {
 	int rc = 0;
 	cms_context *ctx = &p_ctx->cms_ctx;
@@ -459,7 +514,7 @@ generate_signature(pesign_context *p_ctx)
 		return -1;
 	}
 
-	ctx->signature = sd_der;
+	memcpy(newsig, &sd_der, sizeof (*newsig));
 	return 0;
 }
 
@@ -615,32 +670,37 @@ error:
 int
 import_signature(pesign_context *ctx)
 {
-	void *clist = NULL;
-	size_t clist_size = 0;
+	SECItem newsig = {
+		.data = NULL,
+		.len = 0,
+	};
 
-	if (generate_cert_list(ctx, &clist, &clist_size) < 0)
-		return -1;
+	parse_signature(ctx, &newsig.data, &newsig.len);
 
-	if (implant_cert_list(ctx, clist, clist_size) < 0) {
-		free(clist);
-		return -1;
+	int rc = insert_signature(ctx, &newsig);
+	if (rc < 0) {
+		fprintf(stderr, "Could not add new signature\n");
+		exit(1);
 	}
 
-	return 0;
+	return finalize_signatures(ctx);
 }
 
-int
-remove_signature(pesign_context *ctx, int signum)
+void
+remove_signature(pesign_context *p_ctx)
 {
-	/* XXX FIXME: right now we clear them all... */
-	data_directory *dd;
+	cms_context *ctx = &p_ctx->cms_ctx;
 
-	int rc = pe_getdatadir(ctx->outpe, &dd);
-	if (rc < 0 || !dd)
-		return -1;
+	if (p_ctx->signum < 0)
+		p_ctx->signum = 0;
 
-	dd->certs.virtual_address = 0;
-	dd->certs.size = 0;
+	free(ctx->signatures[p_ctx->signum]->data);
+	free(ctx->signatures[p_ctx->signum]);
+	if (p_ctx->signum != ctx->num_signatures - 1)
+		memmove(ctx->signatures[p_ctx->signum],
+			ctx->signatures[p_ctx->signum+1],
+			sizeof(SECItem *) *
+				(ctx->num_signatures - p_ctx->signum));
 
-	return 0;
+	ctx->num_signatures--;
 }

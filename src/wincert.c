@@ -19,34 +19,61 @@
 
 #include "pesign.h"
 
-int
+struct cert_list_entry {
+	win_certificate wc;
+	uint8_t data[];
+};
+
+static int
 generate_cert_list(pesign_context *ctx, void **cert_list,
 		size_t *cert_list_size)
 {
-	struct {
-		win_certificate wc;
-		char *data[];
-	} *cl;
+	cms_context *cms = &ctx->cms_ctx;
 
-	size_t cl_size = sizeof (win_certificate) + ctx->cms_ctx.signature.len;
+	size_t cl_size = 0;
+	for (int i = 0; i < cms->num_signatures; i++) {
+		cl_size += sizeof (win_certificate);
+		cl_size += cms->signatures[i]->len;
+	}
 
-	cl = malloc(cl_size);
-	if (!cl)
+	uint8_t *data = malloc(cl_size);
+	if (!data)
 		return -1;
 
-	cl->wc.length = ctx->cms_ctx.signature.len;
-	cl->wc.revision = WIN_CERT_REVISION_2_0;
-	cl->wc.cert_type = WIN_CERT_TYPE_PKCS_SIGNED_DATA;
-	memcpy(cl->data, ctx->cms_ctx.signature.data, cl->wc.length);
-
-	*cert_list = cl;
+	*cert_list = (void *)data;
 	*cert_list_size = cl_size;
+
+	for (int i = 0; i < cms->num_signatures; i++) {
+		struct cert_list_entry *cle = (struct cert_list_entry *)data;
+		cle->wc.length = cms->signatures[i]->len;
+		cle->wc.revision = WIN_CERT_REVISION_2_0;
+		cle->wc.cert_type = WIN_CERT_TYPE_PKCS_SIGNED_DATA;
+		memcpy(&cle->data[0], cms->signatures[i]->data,
+					cms->signatures[i]->len);
+		data += sizeof (win_certificate) + cms->signatures[i]->len;
+	}
 
 	return 0;
 }
 
-int
+static int
 implant_cert_list(pesign_context *ctx, void *cert_list, size_t cert_list_size)
 {
 	return pe_addcert(ctx->outpe, cert_list, cert_list_size);
+}
+
+int
+finalize_signatures(pesign_context *ctx)
+{
+	void *clist = NULL;
+	size_t clist_size = 0;
+
+	if (generate_cert_list(ctx, &clist, &clist_size) < 0)
+		return -1;
+
+	if (implant_cert_list(ctx, clist, clist_size) < 0) {
+		free(clist);
+		return -1;
+	}
+	return 0;
 }

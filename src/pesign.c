@@ -93,6 +93,12 @@ open_input(pesign_context *ctx)
 			pe_errmsg(pe_errno()));
 		exit(1);
 	}
+
+	int rc = parse_signatures(ctx);
+	if (rc < 0) {
+		fprintf(stderr, "pesign: could not parse signature data\n");
+		exit(1);
+	}
 }
 
 static void
@@ -109,6 +115,8 @@ static void
 close_output(pesign_context *ctx)
 {
 	Pe_Cmd cmd = ctx->outfd == STDOUT_FILENO ? PE_C_RDWR : PE_C_RDWR_MMAP;
+
+	finalize_signatures(ctx);
 	pe_update(ctx->outpe, cmd);
 	pe_end(ctx->outpe);
 	ctx->outpe = NULL;
@@ -332,7 +340,7 @@ main(int argc, char *argv[])
 	pesign_context ctx, *ctxp = &ctx;
 
 	int list = 0;
-	int remove = -1;
+	int remove = 0;
 
 	char *digest_name = "sha256";
 
@@ -348,10 +356,10 @@ main(int argc, char *argv[])
 			"<certificate nickname>" },
 		{"privkey", 'p', POPT_ARG_STRING, &ctx.privkeyfile, 0,
 			"specify private key file", "<privkey>" },
-		{"force", 'f', POPT_ARG_NONE|POPT_ARG_VAL, &ctx.force,  1,
+		{"force", 'f', POPT_ARG_VAL, &ctx.force,  1,
 			"force overwriting of output file", NULL },
 		{"nogaps", 'n',
-			POPT_ARG_NONE|POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
+			POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
 			&ctx.hashgaps, 0,
 			"skip gaps between sections when signing", NULL },
 		{"sign", 's', POPT_ARG_VAL, &ctx.sign, 1,
@@ -362,19 +370,14 @@ main(int argc, char *argv[])
 		{"import-signature", 'm',
 			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
 			&ctx.insig, 0,"import signature from file", "<insig>" },
-#if 0 /* there's not concensus that this is really a thing... */
 		{"signature-number", 'u', POPT_ARG_INT, &ctx.signum, -1,
 			"specify which signature to operate on","<sig-number>"},
-#endif
 		{"list-signatures", 'l',
-			POPT_ARG_NONE|POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
+			POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
 			&list, 1, "list signatures", NULL },
-		{"show-signature", 'S', POPT_ARG_NONE|POPT_ARG_VAL, &list, 1,
+		{"show-signature", 'S', POPT_ARG_VAL, &list, 1,
 			"show signature", NULL },
-		{"remove-signature-n", 'R',
-			POPT_ARG_INT|POPT_ARGFLAG_DOC_HIDDEN, &remove, -1,
-			"remove signature", "<sig-number>" },
-		{"remove-signature", 'r', POPT_ARG_NONE, &remove, -1,
+		{"remove-signature", 'r', POPT_ARG_VAL, &remove, 1,
 			"remove signature" },
 		{"export-signature", 'e',
 			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
@@ -439,7 +442,7 @@ main(int argc, char *argv[])
 	if (ctx.outsig)
 		action |= EXPORT_SIGNATURE;
 
-	if (remove != -1)
+	if (remove != 0)
 		action |= REMOVE_SIGNATURE;
 
 	if (list != 0)
@@ -454,6 +457,8 @@ main(int argc, char *argv[])
 	if (ctx.hash)
 		action |= GENERATE_DIGEST|PRINT_DIGEST;
 
+	SECItem newsig;
+
 	switch (action) {
 		case NO_FLAGS:
 			fprintf(stderr, "pesign: Nothing to do.\n");
@@ -466,7 +471,6 @@ main(int argc, char *argv[])
 			open_output(ctxp);
 			close_input(ctxp);
 			open_sig_input(ctxp);
-			parse_signature(ctxp);
 			import_signature(ctxp);
 			close_sig_input(ctxp);
 			close_output(ctxp);
@@ -497,8 +501,12 @@ main(int argc, char *argv[])
 		case EXPORT_SIGNATURE:
 			open_input(ctxp);
 			open_sig_output(ctxp);
-			find_signature(ctxp);
-			export_signature(ctxp);
+			if (ctx.signum > ctx.cms_ctx.num_signatures) {
+				fprintf(stderr, "Invalid signature number.\n");
+				exit(1);
+			}
+			SECItem *sig = ctx.cms_ctx.signatures[ctx.signum];
+			export_signature(ctxp, sig);
 			close_input(ctxp);
 			close_sig_output(ctxp);
 			break;
@@ -508,7 +516,11 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			rc = remove_signature(&ctx, remove);
+			if (ctx.signum > ctx.cms_ctx.num_signatures) {
+				fprintf(stderr, "Invalid signature number.\n");
+				exit(1);
+			}
+			remove_signature(&ctx);
 			close_output(ctxp);
 			break;
 		/* list signatures in the binary */
@@ -533,8 +545,8 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_sig_output(ctxp);
 			generate_digest(ctxp, ctx.inpe);
-			generate_signature(ctxp);
-			export_signature(ctxp);
+			generate_signature(ctxp, &newsig);
+			export_signature(ctxp, &newsig);
 			break;
 		/* generate a signature and embed it in the binary */
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
@@ -550,8 +562,8 @@ main(int argc, char *argv[])
 			open_output(ctxp);
 			close_input(ctxp);
 			generate_digest(ctxp, ctx.outpe);
-			generate_signature(ctxp);
-			import_signature(ctxp);
+			generate_signature(ctxp, &newsig);
+			insert_signature(ctxp, &newsig);
 			close_output(ctxp);
 			break;
 		default:
