@@ -23,6 +23,20 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 
+#define adjust(x,y) ((x) = (typeof (x))(((uint8_t *)(x)) + (y)))
+static void
+pe_fix_addresses(Pe *pe, int64_t offset)
+{
+	pe->map_address += offset;
+
+	adjust(pe->state.pe.mzhdr, offset);
+	adjust(pe->state.pe.pehdr, offset);
+	adjust(pe->state.pe.reserved0, offset);
+	adjust(pe->state.pe.reserved1, offset);
+	adjust(pe->state.pe.shdr, offset);
+}
+#undef adjust
+
 static int
 pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 {
@@ -36,12 +50,15 @@ pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 	if (rc < 0)
 		return -1;
 
+	ftruncate(pe->fildes, pe->maximum_size + extra);
 	new = mremap(pe->map_address, pe->maximum_size,
-		pe->maximum_size + extra, 0);
+		pe->maximum_size + extra, MREMAP_MAYMOVE);
 	if (new == MAP_FAILED) {
 		__libpe_seterrno (PE_E_NOMEM);
 		return -1;
 	}
+	if (new != pe->map_address)
+		pe_fix_addresses(pe, (uint8_t *)new-(uint8_t *)pe->map_address);
 
 	char *addr = compute_mem_addr(pe, pe->maximum_size);
 	memset(addr, '\0', extra);
@@ -49,7 +66,6 @@ pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 	*new_space = compute_file_addr(pe, addr + align);
 
 	pe->maximum_size = pe->maximum_size + extra;
-	ftruncate(pe->fildes, pe->maximum_size);
 
 	return 0;
 }

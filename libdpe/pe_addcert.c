@@ -43,19 +43,21 @@ pe_addcert(Pe *pe, void *cert, size_t size)
 	int rc;
 	data_directory *dd = NULL;
 
-	rc = pe_getdatadir(pe, &dd);
-	if (rc < 0)
-		return rc;
-
 	pe_clearcert(pe);
 
 	uint32_t new_space = 0;
 	rc = pe_allocspace(pe, size, &new_space);
 	if (rc < 0)
 		return rc;
+
+	rc = pe_getdatadir(pe, &dd);
+	if (rc < 0)
+		return rc;
 	
 	void *addr = compute_mem_addr(pe, new_space);
 	memcpy(addr, cert, size);
+
+	msync(addr, size, MS_SYNC);
 
 	dd->certs.virtual_address = compute_file_addr(pe, addr);
 	dd->certs.size = size;
