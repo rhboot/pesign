@@ -119,7 +119,7 @@ done:
 			return -1;
 
 		n += sizeof (*tmpcert);
-		//length -= sizeof (*tmpcert);
+		length -= sizeof (*tmpcert);
 
 		if (n + length > size)
 			goto done;

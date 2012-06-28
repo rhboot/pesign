@@ -45,7 +45,8 @@ generate_cert_list(pesign_context *ctx, void **cert_list,
 
 	for (int i = 0; i < cms->num_signatures; i++) {
 		struct cert_list_entry *cle = (struct cert_list_entry *)data;
-		cle->wc.length = cms->signatures[i]->len;
+		cle->wc.length = cms->signatures[i]->len +
+			sizeof (win_certificate);
 		cle->wc.revision = WIN_CERT_REVISION_2_0;
 		cle->wc.cert_type = WIN_CERT_TYPE_PKCS_SIGNED_DATA;
 		memcpy(&cle->data[0], cms->signatures[i]->data,
