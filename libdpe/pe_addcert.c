@@ -38,7 +38,7 @@ pe_clearcert(Pe *pe)
 }
 
 int
-pe_addcert(Pe *pe, void *cert, size_t size)
+pe_alloccert(Pe *pe, size_t size)
 {
 	int rc;
 	data_directory *dd = NULL;
@@ -55,12 +55,32 @@ pe_addcert(Pe *pe, void *cert, size_t size)
 		return rc;
 	
 	void *addr = compute_mem_addr(pe, new_space);
-	memcpy(addr, cert, size);
-
-	msync(addr, size, MS_SYNC);
+	/* We leave the whole list empty until finalize...*/
+	memset(addr, '\0', size);
 
 	dd->certs.virtual_address = compute_file_addr(pe, addr);
 	dd->certs.size = size;
 
 	return 0;
+}
+
+int
+pe_populatecert(Pe *pe, void *cert, size_t size)
+{
+	int rc;
+	data_directory *dd = NULL;
+	rc = pe_getdatadir(pe, &dd);
+	if (rc < 0)
+		return rc;
+
+	if (size != dd->certs.size)
+		return -1;
+
+	void *addr = compute_mem_addr(pe, dd->certs.virtual_address);
+	if (!addr)
+		return -1;
+
+	memcpy(addr, cert, size);
+	msync(addr, size, MS_SYNC);
+
 }

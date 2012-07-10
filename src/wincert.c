@@ -60,7 +60,7 @@ generate_cert_list(pesign_context *ctx, void **cert_list,
 static int
 implant_cert_list(pesign_context *ctx, void *cert_list, size_t cert_list_size)
 {
-	return pe_addcert(ctx->outpe, cert_list, cert_list_size);
+	return pe_populatecert(ctx->outpe, cert_list, cert_list_size);
 }
 
 int

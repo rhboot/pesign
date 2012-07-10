@@ -78,6 +78,7 @@ pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 	*new_space = compute_file_addr(pe, addr + align);
 
 	pe->maximum_size = pe->maximum_size + extra;
+	pe->state.pe32plus_exe.opthdr->image_size = pe->maximum_size;
 
 	return 0;
 }
