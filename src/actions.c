@@ -578,19 +578,41 @@ error:
 	exit(1);
 }
 
-int
-import_signature(pesign_context *ctx)
+void
+check_signature_space(pesign_context *ctx)
 {
 	parse_signature(ctx);
 
+	ssize_t available = available_cert_space(ctx);
 
-	int rc = insert_signature(ctx, &ctx->cms_ctx.newsig);
+	if (available < ctx->cms_ctx.newsig.len) {
+		fprintf(stderr, "Could not add new signature: insufficient space.\n");
+		exit(1);
+	}
+}
+
+int
+import_signature(pesign_context *ctx)
+{
+	int rc = insert_signature(ctx);
 	if (rc < 0) {
 		fprintf(stderr, "Could not add new signature\n");
 		exit(1);
 	}
 
 	return finalize_signatures(ctx);
+}
+
+void
+allocate_signature_space(pesign_context *ctx, ssize_t sigspace)
+{
+	int rc;
+
+	rc = pe_alloccert(ctx->outpe, sigspace);
+	if (rc < 0) {
+		fprintf(stderr, "Could not allocate space for signature: %m\n");
+		exit(1);
+	}
 }
 
 void

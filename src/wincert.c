@@ -193,3 +193,29 @@ available_cert_space(pesign_context *ctx)
 
 	return totalsize - foundsize;
 }
+
+ssize_t calculate_signature_space(pesign_context *ctx)
+{
+	int rc;
+
+	SECItem sig = { 0, };
+
+	rc = generate_spc_signed_data(&sig, &ctx->cms_ctx);
+	if (rc < 0) {
+err:
+		fprintf(stderr, "Could not generate signature.\n");
+		exit(1);
+	}
+
+	data_directory *dd = NULL;
+	rc = pe_getdatadir(ctx->outpe, &dd);
+	if (rc < 0)
+		goto err;
+
+	ssize_t ret = sig.len + dd->certs.size + sizeof(win_certificate) -
+						available_cert_space(ctx);
+
+	//free(sig.data);
+
+	return ret;
+}

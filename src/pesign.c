@@ -469,6 +469,7 @@ main(int argc, char *argv[])
 			open_output(ctxp);
 			close_input(ctxp);
 			open_sig_input(ctxp);
+			check_signature_space(ctxp);
 			import_signature(ctxp);
 			close_sig_input(ctxp);
 			close_output(ctxp);
@@ -562,8 +563,12 @@ main(int argc, char *argv[])
 			open_output(ctxp);
 			close_input(ctxp);
 			generate_digest(ctxp, ctx.outpe);
+			ssize_t sigspace = calculate_signature_space(ctxp);
+			allocate_signature_space(ctxp, sigspace);
+			generate_digest(ctxp, ctx.outpe);
 			generate_signature(ctxp);
 			insert_signature(ctxp);
+			finalize_signatures(ctxp);
 			close_output(ctxp);
 			break;
 		default:
