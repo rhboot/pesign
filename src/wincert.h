@@ -34,4 +34,16 @@ typedef struct win_certificate {
 
 extern int finalize_signatures(pesign_context *ctx);
 
+typedef struct cert_iter {
+	Pe *pe;
+	off_t n;
+	void *certs;
+	size_t size;
+} cert_iter;
+
+extern int cert_iter_init(cert_iter *iter, Pe *pe);
+extern int next_cert(cert_iter *iter, void **cert, ssize_t *cert_size);
+extern ssize_t available_cert_space(pesign_context *ctx);
+extern ssize_t calculate_signature_space(pesign_context *ctx);
+
 #endif /* PESIGN_WINCERT_H */
