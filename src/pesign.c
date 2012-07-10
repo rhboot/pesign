@@ -457,8 +457,6 @@ main(int argc, char *argv[])
 	if (ctx.hash)
 		action |= GENERATE_DIGEST|PRINT_DIGEST;
 
-	SECItem newsig;
-
 	switch (action) {
 		case NO_FLAGS:
 			fprintf(stderr, "pesign: Nothing to do.\n");
@@ -505,8 +503,10 @@ main(int argc, char *argv[])
 				fprintf(stderr, "Invalid signature number.\n");
 				exit(1);
 			}
-			SECItem *sig = ctx.cms_ctx.signatures[ctx.signum];
-			export_signature(ctxp, sig);
+			memcpy(&ctx.cms_ctx.newsig,
+				ctx.cms_ctx.signatures[ctx.signum],
+				sizeof (ctx.cms_ctx.newsig));
+			export_signature(ctxp);
 			close_input(ctxp);
 			close_sig_output(ctxp);
 			break;
@@ -545,8 +545,8 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_sig_output(ctxp);
 			generate_digest(ctxp, ctx.inpe);
-			generate_signature(ctxp, &newsig);
-			export_signature(ctxp, &newsig);
+			generate_signature(ctxp);
+			export_signature(ctxp);
 			break;
 		/* generate a signature and embed it in the binary */
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
@@ -562,8 +562,8 @@ main(int argc, char *argv[])
 			open_output(ctxp);
 			close_input(ctxp);
 			generate_digest(ctxp, ctx.outpe);
-			generate_signature(ctxp, &newsig);
-			insert_signature(ctxp, &newsig);
+			generate_signature(ctxp);
+			insert_signature(ctxp);
 			close_output(ctxp);
 			break;
 		default:

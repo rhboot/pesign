@@ -123,8 +123,10 @@ err:
 }
 
 int
-insert_signature(pesign_context *ctx, SECItem *sig)
+insert_signature(pesign_context *ctx)
 {
+	SECItem *sig = &ctx->cms_ctx.newsig;
+
 	if (ctx->signum == -1)
 		ctx->signum = ctx->cms_ctx.num_signatures;
 
@@ -261,7 +263,7 @@ export_pubkey(pesign_context *p_ctx)
 {
 	cms_context *ctx = &p_ctx->cms_ctx;
 	int rc;
-	
+
 	SECItem derPublicKey = ctx->cert->derPublicKey;
 	rc = write(p_ctx->outkeyfd, derPublicKey.data, derPublicKey.len);
 	close(p_ctx->outkeyfd);
@@ -275,7 +277,7 @@ export_cert(pesign_context *p_ctx)
 {
 	cms_context *ctx = &p_ctx->cms_ctx;
 	int rc;
-	
+
 	SECItem derCert = ctx->cert->derCert;
 	rc = write(p_ctx->outcertfd, derCert.data, derCert.len);
 	close(p_ctx->outcertfd);
@@ -286,9 +288,11 @@ export_cert(pesign_context *p_ctx)
 
 
 void
-export_signature(pesign_context *p_ctx, SECItem *sig)
+export_signature(pesign_context *p_ctx)
 {
 	int rc = 0;
+
+	SECItem *sig = &p_ctx->cms_ctx.newsig;
 
 	unsigned char *data = sig->data;
 	int datalen = sig->len;
@@ -333,7 +337,7 @@ failure:
 }
 
 static void
-parse_signature(pesign_context *ctx, uint8_t **data, unsigned int *datalen)
+parse_signature(pesign_context *ctx)
 {
 	int rc;
 	char *sig;
@@ -349,7 +353,6 @@ parse_signature(pesign_context *ctx, uint8_t **data, unsigned int *datalen)
 
 	unsigned char *der;
 	unsigned int derlen;
-	
 
 	/* XXX FIXME: ignoring length for now */
 	char *base64 = strstr(sig, sig_begin_marker);
@@ -360,7 +363,7 @@ parse_signature(pesign_context *ctx, uint8_t **data, unsigned int *datalen)
 			fprintf(stderr, "pesign: Invalid signature.\n");
 			exit(1);
 		}
-	
+
 		derlen = end - base64;
 		base64[derlen] = '\0';
 
@@ -372,8 +375,8 @@ parse_signature(pesign_context *ctx, uint8_t **data, unsigned int *datalen)
 	}
 	free(sig);
 
-	*data = der;
-	*datalen = derlen;
+	ctx->cms_ctx.newsig.data = der;
+	ctx->cms_ctx.newsig.len = derlen;
 
 #if 0
 	SEC_PKCS7DecoderContext *dc = NULL;
@@ -406,7 +409,7 @@ decoder_error:
  * pk12util -d /etc/pki/pesign/ -i Peter\ Jones.p12 
  */
 int
-generate_signature(pesign_context *p_ctx, SECItem *newsig)
+generate_signature(pesign_context *p_ctx)
 {
 	int rc = 0;
 	cms_context *ctx = &p_ctx->cms_ctx;
@@ -422,7 +425,7 @@ generate_signature(pesign_context *p_ctx, SECItem *newsig)
 		return -1;
 	}
 
-	memcpy(newsig, &sd_der, sizeof (*newsig));
+	memcpy(&ctx->newsig, &sd_der, sizeof (ctx->newsig));
 	return 0;
 }
 
@@ -578,14 +581,10 @@ error:
 int
 import_signature(pesign_context *ctx)
 {
-	SECItem newsig = {
-		.data = NULL,
-		.len = 0,
-	};
+	parse_signature(ctx);
 
-	parse_signature(ctx, &newsig.data, &newsig.len);
 
-	int rc = insert_signature(ctx, &newsig);
+	int rc = insert_signature(ctx, &ctx->cms_ctx.newsig);
 	if (rc < 0) {
 		fprintf(stderr, "Could not add new signature\n");
 		exit(1);

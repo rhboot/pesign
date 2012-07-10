@@ -33,6 +33,8 @@ typedef struct {
 	SECOidTag signature_oid_tag;
 	int digest_size;
 
+	SECItem newsig;
+
 	SECItem *pe_digest;
 	SECItem *ci_digest;
 

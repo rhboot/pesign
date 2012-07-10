@@ -88,6 +88,11 @@ cms_context_fini(cms_context *ctx)
 		ctx->privkey = NULL;
 	}
 
+	if (ctx->newsig.data) {
+		free_poison(ctx->newsig.data, ctx->newsig.len);
+		memset(&ctx->newsig, '\0', sizeof (ctx->newsig));
+	}
+
 	if (ctx->pe_digest) {
 		free_poison(ctx->pe_digest->data, ctx->pe_digest->len);
 		/* XXX sure seems like we should be freeing it here, but

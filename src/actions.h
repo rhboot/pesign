@@ -26,13 +26,13 @@
 
 extern int list_signatures(pesign_context *ctx);
 extern int parse_signatures(pesign_context *ctx);
-extern void export_signature(pesign_context *ctx, SECItem *sig);
+extern void export_signature(pesign_context *ctx);
 extern int import_signature(pesign_context *ctx);
 extern void remove_signature(pesign_context *ctx);
 extern void export_pubkey(pesign_context *ctx);
 extern void export_cert(pesign_context *ctx);
-extern int generate_signature(pesign_context *ctx, SECItem *newsig);
+extern int generate_signature(pesign_context *ctx);
 extern int generate_digest(pesign_context *ctx, Pe *pe);
-extern int insert_signature(pesign_context *ctx, SECItem *sig);
+extern int insert_signature(pesign_context *ctx);
 
 #endif /* PESIGN_CRYPTO_H */
