@@ -429,6 +429,28 @@ generate_signature(pesign_context *p_ctx)
 	return 0;
 }
 
+static int
+check_pointer_and_size(Pe *pe, void *ptr, size_t size)
+{
+	void *map = NULL;
+	size_t map_size = 0;
+
+	map = pe_rawfile(pe, &map_size);
+	if (!map || map_size < 1)
+		return 0;
+
+	if ((uintptr_t)ptr < (uintptr_t)map)
+		return 0;
+
+	if ((uintptr_t)ptr + size > (uintptr_t)map + map_size)
+		return 0;
+
+	if (ptr <= map && size >= map_size)
+		return 0;
+
+	return 1;
+}
+
 int
 generate_digest(pesign_context *ctx, Pe *pe)
 {
@@ -490,6 +512,10 @@ generate_digest(pesign_context *ctx, Pe *pe)
 	default:
 		goto error;
 	}
+	if (!check_pointer_and_size(pe, hash_base, hash_size)) {
+		fprintf(stderr, "Pe header is invalid.  Aborting.\n");
+		goto error;
+	}
 	PK11_DigestOp(pk11ctx, hash_base, hash_size);
 
 	/* 5. Skip over the image checksum
@@ -501,10 +527,16 @@ generate_digest(pesign_context *ctx, Pe *pe)
 	data_directory *dd;
 
 	rc = pe_getdatadir(pe, &dd);
-	if (rc < 0 || !dd)
+	if (rc < 0 || !dd || !check_pointer_and_size(pe, dd, sizeof(*dd))) {
+		fprintf(stderr, "Data directory is invalid.  Aborting.\n");
 		goto error;
+	}
 
 	hash_size = (uintptr_t)&dd->certs - (uintptr_t)hash_base;
+	if (!check_pointer_and_size(pe, hash_base, hash_size)) {
+		fprintf(stderr, "Data directory is invalid.  Aborting.\n");
+		goto error;
+	}
 	PK11_DigestOp(pk11ctx, hash_base, hash_size);
 
 	/* 8. Skip over the crt dir
@@ -513,6 +545,11 @@ generate_digest(pesign_context *ctx, Pe *pe)
 	hash_size = (pe32opthdr ? pe32opthdr->header_size
 				: pe64opthdr->header_size) -
 		((uintptr_t)&dd->base_relocations - (uintptr_t)map);
+
+	if (!check_pointer_and_size(pe, hash_base, hash_size)) {
+		fprintf(stderr, "Relocations table is invalid.  Aborting.\n");
+		goto error;
+	}
 	PK11_DigestOp(pk11ctx, hash_base, hash_size);
 
 	/* 10. Set SUM_OF_BYTES_HASHED to the size of the header. */
@@ -532,8 +569,18 @@ generate_digest(pesign_context *ctx, Pe *pe)
 	sort_shdrs(shdrs, pehdr.sections - 1);
 
 	for (int i = 0; i < pehdr.sections; i++) {
+		if (shdrs[i].raw_data_size == 0)
+			continue;
+
 		hash_base = (void *)((uintptr_t)map + shdrs[i].data_addr);
 		hash_size = shdrs[i].raw_data_size;
+
+		if (!check_pointer_and_size(pe, hash_base, hash_size)) {
+			fprintf(stderr, "Section \"%s\" has invalid address."
+				"  Aborting.\n", shdrs[i].name);
+			goto error_shdrs;
+		}
+
 		PK11_DigestOp(pk11ctx, hash_base, hash_size);
 
 		hashed_bytes += hash_size;
@@ -542,6 +589,11 @@ generate_digest(pesign_context *ctx, Pe *pe)
 	if (map_size > hashed_bytes) {
 		hash_base = (void *)((uintptr_t)map + hashed_bytes);
 		hash_size = map_size - dd->certs.size - hashed_bytes;
+
+		if (!check_pointer_and_size(pe, hash_base, hash_size)) {
+			fprintf(stderr, "Invalid trailing data.  Aborting.\n");
+			goto error_shdrs;
+		}
 		PK11_DigestOp(pk11ctx, hash_base, hash_size);
 	}
 
