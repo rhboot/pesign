@@ -83,4 +83,5 @@ pe_populatecert(Pe *pe, void *cert, size_t size)
 	memcpy(addr, cert, size);
 	msync(addr, size, MS_SYNC);
 
+	return 0;
 }
