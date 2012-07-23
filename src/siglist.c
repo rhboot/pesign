@@ -180,7 +180,7 @@ signature_list_realize(signature_list *sl)
 	memcpy(esl, sl, sizeof (*esl));
 
 	uint8_t *pos = ret + sizeof (*esl);
-	for (int i; i < sl->SignatureListSize; i++) {
+	for (int i = 0; i < sl->SignatureListSize; i++) {
 		memcpy(pos, sl->Signatures[i], sl->SignatureSize);
 		pos += sl->SignatureSize;
 	}
@@ -195,7 +195,7 @@ signature_list_free(signature_list *sl)
 	if (sl->realized)
 		free(sl->realized);
 
-	for (int i; i < sl->SignatureListSize; i++)
+	for (int i = 0; i < sl->SignatureListSize; i++)
 		free(sl->Signatures[i]);
 
 	free(sl);
