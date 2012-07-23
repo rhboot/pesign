@@ -195,7 +195,7 @@ static SEC_ASN1Template EmptySequenceTemplate[] = {
 int
 generate_time(cms_context *ctx, SECItem *encoded, time_t when)
 {
-	static char timebuf[14];
+	static char timebuf[32];
 	SECItem whenitem = {.type = SEC_ASN1_UTC_TIME,
 			 .data = (unsigned char *)timebuf,
 			 .len = 0
