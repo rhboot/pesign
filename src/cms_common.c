@@ -45,7 +45,11 @@ struct digest_param {
 };
 
 static struct digest_param digest_params[] = {
+#if 0
 	{"sha256", SEC_OID_SHA256, SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,32},
+#else
+	{"sha256", SEC_OID_SHA256, SEC_OID_PKCS1_RSA_ENCRYPTION, 32},
+#endif
 	{"sha1", SEC_OID_SHA1, SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION, 20 },
 	{NULL,}
 };
