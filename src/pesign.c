@@ -504,6 +504,8 @@ main(int argc, char *argv[])
 				fprintf(stderr, "Invalid signature number.\n");
 				exit(1);
 			}
+			if (ctx.signum < 0)
+				ctx.signum = 0;
 			memcpy(&ctx.cms_ctx.newsig,
 				ctx.cms_ctx.signatures[ctx.signum],
 				sizeof (ctx.cms_ctx.newsig));
