@@ -41,12 +41,23 @@ struct digest_param {
 	char *name;
 	SECOidTag digest_tag;
 	SECOidTag signature_tag;
+	SECOidTag digest_encryption_tag;
 	int size;
 };
 
 static struct digest_param digest_params[] = {
-	{"sha256", SEC_OID_SHA256, SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,32},
-	{"sha1", SEC_OID_SHA1, SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION, 20 },
+	{.name = "sha256",
+	 .digest_tag = SEC_OID_SHA256,
+	 .signature_tag = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
+	 .digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
+	 .size = 32
+	},
+	{.name = "sha1",
+	 .digest_tag = SEC_OID_SHA1,
+	 .signature_tag = SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION,
+	 .digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
+	 .size = 20
+	},
 	{NULL,}
 };
 
@@ -140,6 +151,8 @@ set_digest_parameters(cms_context *ctx, char *name)
 				ctx->digest_size = digest_params[i].size;
 				ctx->signature_oid_tag =
 					digest_params[i].signature_tag;
+				ctx->digest_encryption_oid_tag =
+					digest_params[i].digest_encryption_tag;
 				return 0;
 			}
 		}

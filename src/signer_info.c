@@ -395,15 +395,9 @@ generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx)
 	si.signedAttrs.data[0] = SEC_ASN1_CONTEXT_SPECIFIC | 0 |
 				SEC_ASN1_CONSTRUCTED;
 
-#if 0
 	if (generate_algorithm_id(ctx, &si.signatureAlgorithm,
-				ctx->signature_oid_tag) < 0)
+				ctx->digest_encryption_oid_tag) < 0)
 		goto err;
-#else
-	if (generate_algorithm_id(ctx, &si.signatureAlgorithm,
-				SEC_OID_PKCS1_RSA_ENCRYPTION) < 0)
-		goto err;
-#endif
 
 	if (generate_unsigned_attributes(ctx, &si.unsignedAttrs) < 0)
 		goto err;
