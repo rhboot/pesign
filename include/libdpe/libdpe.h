@@ -87,6 +87,9 @@ extern struct pe_hdr *pe_getpehdr(Pe *pe, struct pe_hdr *pehdr);
 extern char *pe_rawfile(Pe *pe, size_t *ptr);
 extern int pe_getdatadir(Pe *pe, data_directory **dd);
 extern void *pe_getopthdr(Pe *pe);
+extern uint32_t pe_get_file_alignment(Pe *pe);
+extern uint32_t pe_get_scn_alignment(Pe *pe);
+extern int pe_set_image_size(Pe *pe);
 
 extern int pe_allocspace(Pe *pe, size_t size, uint32_t *offset);
 extern int pe_freespace(Pe *pe, uint32_t offset, size_t size);

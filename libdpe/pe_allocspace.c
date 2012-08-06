@@ -50,6 +50,35 @@ pe_fix_addresses(Pe *pe, int64_t offset)
 }
 #undef adjust
 
+#define align(val, align) (((val) + (align) -1 ) & (- (align)))
+
+int
+pe_set_image_size(Pe *pe)
+{
+	uint32_t image_size = 0;
+	struct pe_hdr *pehdr = pe->state.pe.pehdr;
+	struct pe32plus_opt_hdr *opthdr = pe->state.pe32plus_exe.opthdr;
+
+	Pe_Scn *scn = NULL;
+	struct section_header *shdr = NULL;
+	for (int i = 0; i < pehdr->sections; i++) {
+		scn = pe_nextscn(pe, scn);
+		if (scn == NULL)
+			break;
+		pe_getshdr(scn, shdr);
+	}
+	if (!shdr)
+		return -1;
+
+	int falign = pe_get_file_alignment(pe);
+	int salign = pe_get_scn_alignment(pe);
+	image_size = shdr->virtual_address - opthdr->image_base +
+		align(align(shdr->virtual_size, falign), salign);
+
+	pe->state.pe32plus_exe.opthdr->image_size = image_size;
+	return 0;
+}
+
 static int
 pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 {
@@ -78,7 +107,6 @@ pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 	*new_space = compute_file_addr(pe, addr + align);
 
 	pe->maximum_size = pe->maximum_size + extra;
-	pe->state.pe32plus_exe.opthdr->image_size = pe->maximum_size;
 
 	return 0;
 }
