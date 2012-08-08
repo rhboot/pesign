@@ -66,7 +66,7 @@ cms_context_init(cms_context *ctx)
 {
 	SECStatus status;
 	
-	status = NSS_InitReadWrite("/etc/pki/pesign");
+	status = NSS_Init("/etc/pki/pesign");
 	if (status != SECSuccess)
 		return -1;
 
