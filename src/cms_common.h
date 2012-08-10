@@ -26,6 +26,7 @@ typedef struct {
 	PRArenaPool *arena;
 	void *privkey;
 
+	char *tokenname;
 	char *certname;
 	CERTCertificate *cert;
 
@@ -87,5 +88,15 @@ extern int generate_spc_string(PRArenaPool *arena, SECItem *ssp,
 extern int find_certificate(cms_context *ctx);
 
 extern int set_digest_parameters(cms_context *ctx, char *name);
+
+typedef struct {
+	enum {
+		PW_NONE = 0,
+		PW_FROMFILE = 1,
+		PW_PLAINTEXT = 2,
+		PW_EXTERNAL = 3
+	} source;
+	char *data;
+} secuPWData;
 
 #endif /* CMS_COMMON_H */

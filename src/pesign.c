@@ -343,6 +343,7 @@ main(int argc, char *argv[])
 	int remove = 0;
 
 	char *digest_name = "sha256";
+	char *tokenname = "NSS Certificate DB";
 
 	poptContext optCon;
 	struct poptOption options[] = {
@@ -375,6 +376,8 @@ main(int argc, char *argv[])
 		{"list-signatures", 'l',
 			POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
 			&list, 1, "list signatures", NULL },
+		{"nss-token", 't', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
+			&tokenname, 0, "NSS token holding signing key" },
 		{"show-signature", 'S', POPT_ARG_VAL, &list, 1,
 			"show signature", NULL },
 		{"remove-signature", 'r', POPT_ARG_VAL, &remove, 1,
@@ -428,6 +431,8 @@ main(int argc, char *argv[])
 		}
 		exit(!is_help);
 	}
+
+	ctx.cms_ctx.tokenname = tokenname;
 
 	int action = 0;
 	if (ctx.insig)

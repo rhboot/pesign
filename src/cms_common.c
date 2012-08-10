@@ -166,32 +166,98 @@ set_digest_parameters(cms_context *ctx, char *name)
 	return -1;
 }
 
+struct cbdata {
+	CERTCertificate *cert;
+	PK11SlotListElement *psle;
+	secuPWData *pwdata;
+};
+
+static SECStatus 
+is_valid_cert(CERTCertificate *cert, void *data)
+{
+	struct cbdata *cbdata = (struct cbdata *)data;
+
+	PK11SlotInfo *slot = cbdata->psle->slot;
+	void *pwdata = cbdata->pwdata;
+
+	if (PK11_FindPrivateKeyFromCert(slot, cert, pwdata) != NULL) {
+		cbdata->cert = cert;
+		return SECSuccess;
+	}
+
+	return SECFailure;
+}
+
 int
 find_certificate(cms_context *ctx)
 {
 	if (!ctx->certname || !*ctx->certname)
 		return -1;
 
-	typedef struct {
-		enum {
-			PW_NONE = 0,
-			PW_FROMFILE = 1,
-			PW_PLAINTEXT = 2,
-			PW_EXTERNAL = 3
-		} source;
-		char *data;
-	} secuPWData;
 	secuPWData pwdata = { 0, 0 };
-	CERTCertificate *cert = NULL;
+	PK11_SetPasswordFunc(SECU_GetModulePassword);
 
-	cert = CERT_FindUserCertByUsage(CERT_GetDefaultCertDB(), ctx->certname,
-		certUsageObjectSigner, PR_FALSE, &pwdata);
-	if (cert == NULL) {
+	PK11SlotList *slots = NULL;
+	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, &pwdata);
+	if (!slots) {
+err:
 		fprintf(stderr, "Could not find certificate\n");
 		exit(1);
 	}
-	
-	ctx->cert = cert;
+
+	PK11SlotListElement *psle = NULL;
+	psle = PK11_GetFirstSafe(slots);
+	if (!psle) {
+err_slots:
+		PK11_FreeSlotList(slots);
+		goto err;
+	}
+
+	while (psle) {
+		if (!strcmp(ctx->tokenname, PK11_GetTokenName(psle->slot)))
+			break;
+
+		psle = PK11_GetNextSafe(slots, psle, PR_FALSE);
+	}
+
+	if (!psle)
+		goto err_slots;
+
+	SECStatus status;
+	memset(&pwdata, '\0', sizeof (pwdata));
+	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, &pwdata)) {
+		memset(&pwdata, '\0', sizeof (pwdata));
+		status = PK11_Authenticate(psle->slot, PR_TRUE, &pwdata);
+		if (status != SECSuccess) {
+			fprintf(stderr, "Authentication failed.\n");
+			goto err_slots;
+		}
+	}
+
+	CERTCertList *certlist = NULL;
+	certlist = PK11_ListCertsInSlot(psle->slot);
+	if (!certlist)
+		goto err_slots;
+
+	SECItem nickname = {
+		.data = (void *)ctx->certname,
+		.len = strlen(ctx->certname) + 1,
+		.type = siUTF8String,
+	};
+	memset(&pwdata, '\0', sizeof(pwdata));
+	struct cbdata cbdata = {
+		.cert = NULL,
+		.psle = psle,
+		.pwdata = &pwdata,
+	};
+
+	status = PK11_TraverseCertsForNicknameInSlot(&nickname, psle->slot,
+					is_valid_cert, &cbdata);
+
+	if (cbdata.cert == NULL)
+		goto err_slots;
+
+	ctx->cert = cbdata.cert;
 	return 0;
 }
 

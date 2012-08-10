@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2012 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,23 +16,9 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_H
-#define PESIGN_H 1
+#ifndef PASSWORD_H
+#define PASSWORD_H
 
-#include <libdpe/libdpe.h>
-#include <libdpe/pe.h>
+extern char *SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg);
 
-#include "cms_common.h"
-#include "pesign_context.h"
-
-#include "util.h"
-#include "actions.h"
-#include "endian.h"
-#include "oid.h"
-#include "wincert.h"
-#include "content_info.h"
-#include "signer_info.h"
-#include "signed_data.h"
-#include "password.h"
-
-#endif /* PESIGN_H */
+#endif /* PASSWORD_H */
