@@ -5,7 +5,8 @@ pesign \- command line tool for signing UEFI applications
 .SH SYNOPSIS
 \fBpesign\fR [--in=\fIinfile\fR | -i \fIinfile\fR]
        [--out=\fIoutfile\fR | -o \fIoutfile\fR]
-       [--certificate=\fIcertificate nickname\fR | -c \fInickname\fR]
+       [--token=\fItoken\fR | -t \fItoken\fR]
+       [--certificate=\fInickname\fR | -c \fInickname\fR]
        [--privkey=\fIprivkey\fR | -p \fIprivkey\fR] [--force | -f]
        [--sign | -s] [--hash | -h]
        [--digest_type=\fIdigest\fR | -d \fIdigest\fR]
@@ -28,7 +29,11 @@ Specify input binary.
 Specify output binary.
 
 .TP
-\fB-\-certificate\fR=\fIcertificate nickname\fR
+\fB-\-token\fR=\fItoken\fR
+Use the specified NSS token's certificate database.
+
+.TP
+\fB-\-certificate\fR=\fInickname\fR
 Use the certificate database entry with the specified nickname for signing.
 
 .TP
