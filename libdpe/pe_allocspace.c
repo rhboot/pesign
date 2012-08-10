@@ -60,20 +60,20 @@ pe_set_image_size(Pe *pe)
 	struct pe32plus_opt_hdr *opthdr = pe->state.pe32plus_exe.opthdr;
 
 	Pe_Scn *scn = NULL;
-	struct section_header *shdr = NULL;
+	struct section_header shdr, tmp_shdr;
 	for (int i = 0; i < pehdr->sections; i++) {
 		scn = pe_nextscn(pe, scn);
 		if (scn == NULL)
 			break;
-		pe_getshdr(scn, shdr);
+		pe_getshdr(scn, &tmp_shdr);
+		if (tmp_shdr.virtual_size > 0)
+			memcpy (&shdr, &tmp_shdr, sizeof(shdr));
 	}
-	if (!shdr)
-		return -1;
 
 	int falign = pe_get_file_alignment(pe);
 	int salign = pe_get_scn_alignment(pe);
-	image_size = shdr->virtual_address - opthdr->image_base +
-		align(align(shdr->virtual_size, falign), salign);
+	image_size = shdr.virtual_address - opthdr->image_base +
+		align(align(shdr.virtual_size, falign), salign);
 
 	pe->state.pe32plus_exe.opthdr->image_size = image_size;
 	return 0;
