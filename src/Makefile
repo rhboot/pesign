@@ -33,7 +33,8 @@ install :
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pki/pesign/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -m 644 pesign.1 $(INSTALLROOT)/usr/share/man/man1/
-
+	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rpm/
+	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
 
 .PHONY: all clean install
 

@@ -1,0 +1,14 @@
+# macros for use with pesign
+#
+# this makes it possible to invoke your build as:
+# rpmbuild --define 'pe_signing_token test2' --define "pe_signing_cert signing key for test2" -ba shim.spec
+# and then in the spec do:
+# %pesign -s -i shim.orig -o shim.efi
+# And magically get the right thing.
+
+%__pesign_token %{expand: %%{?defined(pe_signing_token):%{nil}}%%{!?defined(pe_signing_token):-t "%%{pe_signing_token}"}}
+%__pesign_cert %{expand: %%{?defined(pe_signing_cert):%{nil}}%%{!?defined(pe_signing_cert):-c "%%{pe_signing_cert}"}}
+
+%_pesign /usr/bin/pesign
+%pesign \
+%{_pesign} %{__pesign_token} %{__pesign_cert}
