@@ -6,8 +6,8 @@
 # %pesign -s -i shim.orig -o shim.efi
 # And magically get the right thing.
 
-%__pesign_token %{expand: %%{?defined(pe_signing_token):%{nil}}%%{!?defined(pe_signing_token):-t "%%{pe_signing_token}"}}
-%__pesign_cert %{expand: %%{?defined(pe_signing_cert):%{nil}}%%{!?defined(pe_signing_cert):-c "%%{pe_signing_cert}"}}
+%__pesign_token %{expand: %%{nil} %%{?pe_signing_token:-t "%%{pe_signing_token}"}}
+%__pesign_cert %{expand: %%{!?pe_signing_cert:-c "Red Hat Test Certificate"} %%{?pe_signing_cert:-c "%%{pe_signing_cert}"}}
 
 %_pesign /usr/bin/pesign
 %pesign \
