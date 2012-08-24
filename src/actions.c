@@ -429,6 +429,55 @@ generate_signature(pesign_context *p_ctx)
 	return 0;
 }
 
+void
+import_raw_signature(pesign_context *pctx)
+{
+	if (pctx->rawsigfd < 0 || pctx->insattrsfd < 0) {
+		fprintf(stderr, "pesign: raw signature and signed attributes "
+			"must both be imported.\n");
+		exit(1);
+	}
+
+	cms_context *ctx = &pctx->cms_ctx;
+
+	ctx->raw_signature = SECITEM_AllocItem(ctx->arena, NULL, 0);
+	ctx->raw_signature->type = siBuffer;
+	int rc = read_file(pctx->rawsigfd,
+				(char **)&ctx->raw_signature->data,
+				(size_t *)&ctx->raw_signature->len);
+	if (rc < 0) {
+		fprintf(stderr, "pesign: could not read raw signature: %m\n");
+		exit(1);
+	}
+
+	ctx->raw_signed_attrs = SECITEM_AllocItem(ctx->arena, NULL, 0);
+	ctx->raw_signed_attrs->type = siBuffer;
+	rc = read_file(pctx->insattrsfd,
+				(char **)&ctx->raw_signed_attrs->data,
+				(size_t *)&ctx->raw_signed_attrs->len);
+	if (rc < 0) {
+		fprintf(stderr, "pesign: could not read raw signed attributes"
+				": %m\n");
+		exit(1);
+	}
+}
+
+int
+generate_sattr_blob(pesign_context *ctx)
+{
+	int rc;
+	SECItem sa;
+
+	rc = generate_signed_attributes(&ctx->cms_ctx, &sa);
+	if (rc < 0) {
+		fprintf(stderr, "Could not generate signed attributes: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		exit(1);
+	}
+
+	return write(ctx->outsattrsfd, sa.data, sa.len);
+}
+
 static int
 check_pointer_and_size(Pe *pe, void *ptr, size_t size)
 {

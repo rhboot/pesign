@@ -35,6 +35,13 @@ typedef struct {
 
 	int force;
 
+	char *rawsig;
+	int rawsigfd;
+	char *insattrs;
+	int insattrsfd;
+	char *outsattrs;
+	int outsattrsfd;
+
 	char *insig;
 	int insigfd;
 	SEC_PKCS7ContentInfo *cinfo;

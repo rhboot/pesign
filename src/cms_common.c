@@ -122,6 +122,26 @@ cms_context_fini(cms_context *ctx)
 		ctx->ci_digest = NULL;
 	}
 
+	if (ctx->raw_signed_attrs) {
+		free_poison(ctx->raw_signed_attrs->data,
+				ctx->raw_signed_attrs->len);
+		/* XXX sure seems like we should be freeing it here, but
+		 * that's segfaulting, and we know it'll get cleaned up with
+		 * PORT_FreeArena a couple of lines down.
+		 */
+		ctx->raw_signed_attrs = NULL;
+	}
+
+	if (ctx->raw_signature) {
+		free_poison(ctx->raw_signature->data,
+				ctx->raw_signature->len);
+		/* XXX sure seems like we should be freeing it here, but
+		 * that's segfaulting, and we know it'll get cleaned up with
+		 * PORT_FreeArena a couple of lines down.
+		 */
+		ctx->raw_signature = NULL;
+	}
+
 #if 0
 	for (int i = 0; i < ctx->num_signatures; i++) {
 		if (ctx->signatures[i]) {

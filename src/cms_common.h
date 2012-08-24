@@ -40,6 +40,9 @@ typedef struct {
 	SECItem *pe_digest;
 	SECItem *ci_digest;
 
+	SECItem *raw_signed_attrs;
+	SECItem *raw_signature;
+
 	int num_signatures;
 	SECItem **signatures;
 } cms_context;

@@ -35,14 +35,17 @@
 #define NO_FLAGS		0x00
 #define GENERATE_DIGEST		0x01
 #define GENERATE_SIGNATURE	0x02
-#define IMPORT_SIGNATURE	0x04
-#define EXPORT_SIGNATURE	0x08
-#define REMOVE_SIGNATURE	0x10
-#define LIST_SIGNATURES		0x20
-#define PRINT_DIGEST		0x40
-#define EXPORT_PUBKEY		0x80
-#define EXPORT_CERT		0x100
-#define FLAG_LIST_END		0x200
+#define IMPORT_RAW_SIGNATURE	0x04
+#define IMPORT_SIGNATURE	0x08
+#define IMPORT_SATTRS		0x10
+#define EXPORT_SATTRS		0x20
+#define EXPORT_SIGNATURE	0x40
+#define REMOVE_SIGNATURE	0x80
+#define LIST_SIGNATURES		0x100
+#define PRINT_DIGEST		0x200
+#define EXPORT_PUBKEY		0x400
+#define EXPORT_CERT		0x800
+#define FLAG_LIST_END		0x1000
 
 static struct {
 	int flag;
@@ -50,7 +53,10 @@ static struct {
 } flag_names[] = {
 	{GENERATE_DIGEST, "hash"},
 	{GENERATE_SIGNATURE, "sign"},
-	{IMPORT_SIGNATURE, "import"},
+	{IMPORT_RAW_SIGNATURE, "import-raw-sig"},
+	{IMPORT_SIGNATURE, "import-sig"},
+	{IMPORT_SATTRS, "import-sattrs" },
+	{EXPORT_SATTRS, "export-sattrs" },
 	{EXPORT_SIGNATURE, "export-sig"},
 	{EXPORT_PUBKEY, "export-pubkey"},
 	{EXPORT_CERT, "export-cert"},
@@ -164,6 +170,83 @@ open_output(pesign_context *ctx)
 	}
 
 	pe_clearcert(ctx->outpe);
+}
+
+static void
+open_rawsig_input(pesign_context *ctx)
+{
+	if (!ctx->rawsig) {
+		fprintf(stderr, "pesign: No input file specified.\n");
+		exit(1);
+	}
+
+	ctx->rawsigfd = open(ctx->rawsig, O_RDONLY|O_CLOEXEC);
+	if (ctx->rawsigfd < 0) {
+		fprintf(stderr, "pesign: Error opening raw signature for input:"
+				" %m\n");
+		exit(1);
+	}
+}
+
+static void
+close_rawsig_input(pesign_context *ctx)
+{
+	close(ctx->rawsigfd);
+	ctx->rawsigfd = -1;
+}
+
+static void
+open_sattr_input(pesign_context *ctx)
+{
+	if (!ctx->insattrs) {
+		fprintf(stderr, "pesign: No input file specified.\n");
+		exit(1);
+	}
+
+	ctx->insattrsfd = open(ctx->insattrs, O_RDONLY|O_CLOEXEC);
+	if (ctx->insattrsfd < 0) {
+		fprintf(stderr, "pesign: Error opening signed attributes "
+				"for input: %m\n");
+		exit(1);
+	}
+}
+
+static void
+close_sattr_input(pesign_context *ctx)
+{
+	close(ctx->insattrsfd);
+	ctx->insattrsfd = -1;
+}
+
+static void
+open_sattr_output(pesign_context *ctx)
+{
+	if (!ctx->outsattrs) {
+		fprintf(stderr, "pesign: No output file specified.\n");
+		exit(1);
+	}
+
+	if (access(ctx->outsattrs, F_OK) == 0 && ctx->force == 0) {
+		fprintf(stderr, "pesign: \"%s\" exists and --force "
+				"was not given.\n", ctx->outsattrs);
+		exit(1);
+	}
+
+	ctx->outsattrsfd = open(ctx->outsattrs,
+			O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
+			ctx->outmode);
+	if (ctx->outsattrsfd < 0) {
+		fprintf(stderr, "pesign: Error opening signed attributes "
+				"for output: %m\n");
+		exit(1);
+	}
+}
+
+static void
+close_sattr_output(pesign_context *ctx)
+{
+	close(ctx->outsattrsfd);
+	ctx->outsattrsfd = -1;
 }
 
 static void
@@ -368,9 +451,20 @@ main(int argc, char *argv[])
 		{"hash", 'h', POPT_ARG_VAL, &ctx.hash, 1, "hash binary", NULL },
 		{"digest_type", 'd', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
 			&digest_name, 0, "digest type to use for pe hash" },
-		{"import-signature", 'm',
+		{"import-signed-certificate", 'm',
 			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
 			&ctx.insig, 0,"import signature from file", "<insig>" },
+		{"export-signed-attributes", 'E',
+			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+			&ctx.outsattrs, 0, "export signed attributes to file",
+			"<signed_attributes_file>" },
+		{"import-signed-attributes", 'I',
+			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+			&ctx.insattrs, 0, "import signed attributes from file",
+			"<signed_attributes_file>" },
+		{"import-raw-signature", 'R',
+			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN, &ctx.rawsig,
+			0, "import raw signature from file", "<inraw>" },
 		{"signature-number", 'u', POPT_ARG_INT, &ctx.signum, -1,
 			"specify which signature to operate on","<sig-number>"},
 		{"list-signatures", 'l',
@@ -435,6 +529,15 @@ main(int argc, char *argv[])
 	ctx.cms_ctx.tokenname = tokenname;
 
 	int action = 0;
+	if (ctx.rawsig)
+		action |= IMPORT_RAW_SIGNATURE;
+
+	if (ctx.insattrs)
+		action |= IMPORT_SATTRS;
+
+	if (ctx.outsattrs)
+		action |= EXPORT_SATTRS;
+		
 	if (ctx.insig)
 		action |= IMPORT_SIGNATURE;
 
@@ -462,10 +565,50 @@ main(int argc, char *argv[])
 	if (ctx.hash)
 		action |= GENERATE_DIGEST|PRINT_DIGEST;
 
+	ssize_t sigspace = 0;
+
 	switch (action) {
 		case NO_FLAGS:
 			fprintf(stderr, "pesign: Nothing to do.\n");
 			exit(0);
+			break;
+		/* in this case we have the actual binary signature and the
+		 * signing cert, but not the pkcs7ish certificate that goes
+		 * with it.
+		 */
+		case IMPORT_RAW_SIGNATURE|IMPORT_SATTRS:
+			check_inputs(ctxp);
+			rc = find_certificate(&ctx.cms_ctx);
+			if (rc < 0) {
+				fprintf(stderr, "pesign: Could not find "
+					"certificate %s\n",
+					ctx.cms_ctx.certname);
+				exit(1);
+			}
+			open_rawsig_input(ctxp);
+			open_sattr_input(ctxp);
+			import_raw_signature(ctxp);
+			close_sattr_input(ctxp);
+			close_rawsig_input(ctxp);
+
+			open_input(ctxp);
+			open_output(ctxp);
+			close_input(ctxp);
+			generate_digest(ctxp, ctx.outpe);
+			sigspace = calculate_signature_space(ctxp);
+			allocate_signature_space(ctxp, sigspace);
+			generate_signature(ctxp);
+			insert_signature(ctxp);
+			finalize_signatures(ctxp);
+			close_output(ctxp);
+			break;
+		case EXPORT_SATTRS:
+			open_input(ctxp);
+			open_sattr_output(ctxp);
+			generate_digest(ctxp, ctx.inpe);
+			generate_sattr_blob(ctxp);
+			close_sattr_output(ctxp);
+			close_input(ctxp);
 			break;
 		/* add a signature from a file */
 		case IMPORT_SIGNATURE:
@@ -511,6 +654,11 @@ main(int argc, char *argv[])
 			}
 			if (ctx.signum < 0)
 				ctx.signum = 0;
+			if (ctx.signum >= ctx.cms_ctx.num_signatures) {
+				fprintf(stderr, "No valid signature #%d.\n",
+					ctx.signum);
+				exit(1);
+			}
 			memcpy(&ctx.cms_ctx.newsig,
 				ctx.cms_ctx.signatures[ctx.signum],
 				sizeof (ctx.cms_ctx.newsig));
@@ -570,7 +718,7 @@ main(int argc, char *argv[])
 			open_output(ctxp);
 			close_input(ctxp);
 			generate_digest(ctxp, ctx.outpe);
-			ssize_t sigspace = calculate_signature_space(ctxp);
+			sigspace = calculate_signature_space(ctxp);
 			allocate_signature_space(ctxp, sigspace);
 			generate_digest(ctxp, ctx.outpe);
 			generate_signature(ctxp);

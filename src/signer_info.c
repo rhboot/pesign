@@ -71,7 +71,7 @@ SEC_ASN1Template SignedAttributesTemplate[] = {
 	}
 };
 
-static int
+int
 generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 {
 	Attribute *attrs[5];
@@ -386,11 +386,18 @@ generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx)
 			ctx->digest_oid_tag) < 0)
 		goto err;
 
-	if (generate_signed_attributes(ctx, &si.signedAttrs) < 0)
-		goto err;
 
-	if (sign_blob(ctx, &si.signature, &si.signedAttrs) < 0)
-		goto err;
+	if (ctx->raw_signature) {
+		memcpy(&si.signedAttrs, ctx->raw_signed_attrs,
+			sizeof (si.signedAttrs));
+		memcpy(&si.signature, ctx->raw_signature, sizeof(si.signature));
+	} else {
+		if (generate_signed_attributes(ctx, &si.signedAttrs) < 0)
+			goto err;
+
+		if (sign_blob(ctx, &si.signature, &si.signedAttrs) < 0)
+			goto err;
+	}
 
 	si.signedAttrs.data[0] = SEC_ASN1_CONTEXT_SPECIFIC | 0 |
 				SEC_ASN1_CONSTRUCTED;

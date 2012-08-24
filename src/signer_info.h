@@ -61,6 +61,7 @@ typedef struct {
 } SpcSignerInfo;
 extern SEC_ASN1Template SpcSignerInfoTemplate[];
 
+extern int generate_signed_attributes(cms_context *ctx, SECItem *sattrs);
 extern int generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx);
 
 #endif /* SIGNER_INFO */
