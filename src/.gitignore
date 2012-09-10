@@ -3,6 +3,7 @@
 *.so
 *.a
 *.efi
+.*.P
 pesign
 authvar
 *.sw?

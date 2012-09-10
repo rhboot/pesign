@@ -10,13 +10,21 @@ all : $(TARGETS)
 
 SOURCES = $(patsubst %.c,%,$(wildcard *.c))
 OBJECTS = $(foreach source,$(SOURCES),$(source).o)
+DEPS = $(foreach source,$(SOURCES),.$(source).P)
 # PEOBJECTS = $(foreach source,$(SOURCES),$(source)_pe.o)
 
 libdpe.a :: $(OBJECTS)
 
 libdpe.so :: $(OBJECTS)
 
-clean : 
+deps : $(DEPS)
+
+-include $(DEPS)
+
+depclean :
+	@rm -fv .*.P
+
+clean : depclean
 	@rm -rfv *~ *.o *.a *.so
 
 install :

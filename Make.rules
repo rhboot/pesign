@@ -10,6 +10,9 @@
 %.o: %.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
+.%.P : %.c
+	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -M -MM -MF $@ $^
+
 %.S: %.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -S $< -o $@
 
