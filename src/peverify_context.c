@@ -53,9 +53,6 @@ peverify_context_init(peverify_context *ctx)
 
 	ctx->infd = -1;
 
-	ctx->dbfd = -1;
-	ctx->dbxfd = -1;
-
 	int rc = cms_context_init(&ctx->cms_ctx);
 	if (rc < 0)
 		return rc;
@@ -77,9 +74,6 @@ peverify_context_fini(peverify_context *ctx)
 		pe_end(ctx->inpe);
 		ctx->inpe = NULL;
 	}
-
-	xfree(ctx->dbfile);
-	xfree(ctx->dbxfile);
 
 	if (!(ctx->flags & PEVERIFY_C_ALLOCATED))
 		peverify_context_init(ctx);

@@ -16,8 +16,8 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef peverify_context_H
-#define peverify_context_H 1
+#ifndef PEVERIFY_CONTEXT_H
+#define PEVERIFY_CONTEXT_H 1
 
 #include <nss3/cert.h>
 #include <nss3/secpkcs7.h>
@@ -30,6 +30,13 @@ struct peverify_context;
 
 typedef int (*get_wincert_list)(struct peverify_context *ctx, void **list, size_t *size);
 
+struct dblist {
+	FILE *f;
+	struct dblist *next;
+};
+
+typedef struct dblist dblist;
+
 typedef struct peverify_context {
 	int flags;
 
@@ -39,14 +46,8 @@ typedef struct peverify_context {
 
 	int quiet;
 
-	char *dbfile;
-	int dbfd;
-
-	char *dbxfile;
-	int dbxfd;
-
-	get_wincert_list getdb;
-	get_wincert_list getdbx;
+	dblist *db;
+	dblist *dbx;
 
 	cms_context cms_ctx;
 } peverify_context;
@@ -57,4 +58,4 @@ extern int peverify_context_init(peverify_context *ctx);
 extern void peverify_context_fini(peverify_context *ctx);
 #define peverify_context_free(ctx) peverify_context_free_private(&(ctx))
 
-#endif /* peverify_context_H */
+#endif /* PEVERIFY_CONTEXT_H */

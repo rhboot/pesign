@@ -29,7 +29,7 @@ pesign_OBJECTS = $(foreach source,$(pesign_SOURCES),$(patsubst %.c,%,$(source)).
 pesign_DEPS = $(foreach source,$(pesign_SOURCES),.$(patsubst %.c,%,$(source)).P)
 pesign : $(pesign_OBJECTS) $(STATIC_LIBS)
 
-peverify_SOURCES = peverify.c peverify_context.c
+peverify_SOURCES = peverify.c peverify_context.c certdb.c
 peverify_OBJECTS = $(foreach source,$(peverify_SOURCES),$(patsubst %.c,%,$(source)).o) generic.a
 peverify_DEPS = $(foreach source,$(peverify_SOURCES),.$(patsubst %.c,%,$(source)).P)
 peverify : $(peverify_OBJECTS) $(STATIC_LIBS)

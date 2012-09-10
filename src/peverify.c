@@ -82,9 +82,60 @@ check_inputs(peverify_context *ctx)
 }
 
 static int
+cert_matches_digest(peverify_context *ctx, void *data, ssize_t datalen)
+{
+	return -1;
+}
+
+static int
 check_signature(peverify_context *ctx)
 {
+	int has_valid_cert = 0;
+	int has_invalid_cert = 0;
+	int rc = 0;
+
+	cert_iter iter;
+
 	generate_digest(&ctx->cms_ctx, ctx->inpe);
+	
+	if (check_db_hash(DBX, ctx) == FOUND)
+		return -1;
+
+	if (check_db_hash(DB, ctx) == FOUND)
+		has_valid_cert = 1;
+
+	rc = cert_iter_init(&iter, ctx->inpe);
+	if (rc < 0)
+		goto err;
+
+	void *data;
+	ssize_t datalen;
+
+	while (1) {
+		rc = next_cert(&iter, &data, &datalen);
+		if (rc <= 0)
+			break;
+
+		if (cert_matches_digest(ctx, data, datalen) < 0) {
+			has_invalid_cert = 1;
+			break;
+		}
+
+		if (check_db_cert(DBX, ctx, data, datalen) == FOUND) {
+			has_invalid_cert = 1;
+			break;
+		}
+
+		if (check_db_cert(DB, ctx, data, datalen) == FOUND)
+			has_valid_cert = 1;
+	}
+
+err:
+	if (has_invalid_cert)
+		return -1;
+
+	if (has_valid_cert)
+		return 0;
 
 	return -1;
 }
@@ -97,6 +148,9 @@ main(int argc, char *argv[])
 	peverify_context ctx, *ctxp = &ctx;
 	char *digest_name = "sha256";
 
+	char *dbfile = NULL;
+	char *dbxfile = NULL;
+
 	poptContext optCon;
 	struct poptOption options[] = {
 		{NULL, '\0', POPT_ARG_INTL_DOMAIN, "pesign" },
@@ -104,9 +158,9 @@ main(int argc, char *argv[])
 			"specify input file", "<infile>"},
 		{"quiet", 'i', POPT_BIT_SET, &ctx.quiet, 1,
 			"return only; no text output.", NULL },
-		{"dbfile", 'D', POPT_ARG_STRING, &ctx.dbfile, 0,
+		{"dbfile", 'D', POPT_ARG_STRING, &dbfile, 0,
 			"use file for allowed certificate list", "<dbfile>" },
-		{"dbxfile", 'X', POPT_ARG_STRING, &ctx.dbxfile, 0,
+		{"dbxfile", 'X', POPT_ARG_STRING, &dbxfile, 0,
 			"use file for disallowed certificate list","<dbxfile>"},
 		{"digest_type", 'd', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
 			&digest_name, 0, "digest type to use for pe hash" },
@@ -159,7 +213,7 @@ main(int argc, char *argv[])
 	close_input(ctxp);
 	if (!ctx.quiet)
 		printf("peverify: \"%s\" is %s.\n", ctx.infile,
-			rc == 0 ? "valid" : "invalid");
+			rc >= 0 ? "valid" : "invalid");
 	peverify_context_fini(&ctx);
 	return (rc < 0);
 }
