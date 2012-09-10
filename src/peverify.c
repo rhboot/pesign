@@ -156,7 +156,7 @@ main(int argc, char *argv[])
 		{NULL, '\0', POPT_ARG_INTL_DOMAIN, "pesign" },
 		{"in", 'i', POPT_ARG_STRING, &ctx.infile, 0,
 			"specify input file", "<infile>"},
-		{"quiet", 'i', POPT_BIT_SET, &ctx.quiet, 1,
+		{"quiet", 'q', POPT_BIT_SET, &ctx.quiet, 1,
 			"return only; no text output.", NULL },
 		{"dbfile", 'D', POPT_ARG_STRING, &dbfile, 0,
 			"use file for allowed certificate list", "<dbfile>" },
