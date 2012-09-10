@@ -26,7 +26,11 @@ enum {
 	PEVERIFY_C_ALLOCATED = 1,
 };
 
-typedef struct {
+struct peverify_context;
+
+typedef int (*get_wincert_list)(struct peverify_context *ctx, void **list, size_t *size);
+
+typedef struct peverify_context {
 	int flags;
 
 	char *infile;
@@ -40,6 +44,9 @@ typedef struct {
 
 	char *dbxfile;
 	int dbxfd;
+
+	get_wincert_list getdb;
+	get_wincert_list getdbx;
 
 	cms_context cms_ctx;
 } peverify_context;
