@@ -81,12 +81,21 @@ check_inputs(peverify_context *ctx)
 	}
 }
 
+static int
+check_signature(peverify_context *ctx)
+{
+	generate_digest(&ctx->cms_ctx, ctx->inpe);
+
+	return -1;
+}
+
 int
 main(int argc, char *argv[])
 {
 	int rc;
 
 	peverify_context ctx, *ctxp = &ctx;
+	char *digest_name = "sha256";
 
 	poptContext optCon;
 	struct poptOption options[] = {
@@ -95,10 +104,12 @@ main(int argc, char *argv[])
 			"specify input file", "<infile>"},
 		{"quiet", 'i', POPT_BIT_SET, &ctx.quiet, 1,
 			"return only; no text output.", NULL },
-		{"dbfile", 'd', POPT_ARG_STRING, &ctx.dbfile, 0,
+		{"dbfile", 'D', POPT_ARG_STRING, &ctx.dbfile, 0,
 			"use file for allowed certificate list", "<dbfile>" },
-		{"dbxfile", 'd', POPT_ARG_STRING, &ctx.dbxfile, 0,
+		{"dbxfile", 'X', POPT_ARG_STRING, &ctx.dbxfile, 0,
 			"use file for disallowed certificate list","<dbxfile>"},
+		{"digest_type", 'd', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
+			&digest_name, 0, "digest type to use for pe hash" },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
@@ -130,11 +141,25 @@ main(int argc, char *argv[])
 
 	poptFreeContext(optCon);
 
+	rc = set_digest_parameters(&ctx.cms_ctx, digest_name);
+	int is_help  = strcmp(digest_name, "help") ? 0 : 1;
+	if (rc < 0) {
+		if (!is_help) {
+			fprintf(stderr, "Digest \"%s\" not found.\n",
+				digest_name);
+		}
+		exit(!is_help);
+	}
+
 	check_inputs(ctxp);
 	open_input(ctxp);
 
+	rc = check_signature(ctxp);
 
 	close_input(ctxp);
+	if (!ctx.quiet)
+		printf("peverify: \"%s\" is %s.\n", ctx.infile,
+			rc == 0 ? "valid" : "invalid");
 	peverify_context_fini(&ctx);
 	return (rc < 0);
 }
