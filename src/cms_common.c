@@ -504,3 +504,200 @@ generate_spc_link(PRArenaPool *arena, SpcLink *slp, SpcLinkType link_type,
 	return 0;
 }
 
+static int
+check_pointer_and_size(Pe *pe, void *ptr, size_t size)
+{
+	void *map = NULL;
+	size_t map_size = 0;
+
+	map = pe_rawfile(pe, &map_size);
+	if (!map || map_size < 1)
+		return 0;
+
+	if ((uintptr_t)ptr < (uintptr_t)map)
+		return 0;
+
+	if ((uintptr_t)ptr + size > (uintptr_t)map + map_size)
+		return 0;
+
+	if (ptr <= map && size >= map_size)
+		return 0;
+
+	return 1;
+}
+
+int
+generate_digest(cms_context *cms, Pe *pe)
+{
+	void *hash_base;
+	size_t hash_size;
+	struct pe32_opt_hdr *pe32opthdr = NULL;
+	struct pe32plus_opt_hdr *pe64opthdr = NULL;
+	PK11Context *pk11ctx;
+	unsigned long hashed_bytes = 0;
+	int rc = -1;
+
+	if (!pe) {
+		fprintf(stderr, "pesign: no output pe ready\n");
+		exit(1);
+	}
+
+	struct pe_hdr pehdr;
+	if (pe_getpehdr(pe, &pehdr) == NULL) {
+		fprintf(stderr, "pesign: invalid output file header\n");
+		exit(1);
+	}
+
+	void *map = NULL;
+	size_t map_size = 0;
+
+	/* 1. Load the image header into memory - should be done
+	 * 2. Initialize SHA hash context. */
+	map = pe_rawfile(pe, &map_size);
+	if (!map) {
+		fprintf(stderr, "pesign: could not get raw output file address\n");
+		exit(1);
+	}
+
+	pk11ctx = PK11_CreateDigestContext(cms->digest_oid_tag);
+	if (!pk11ctx) {
+		fprintf(stderr, "pesign: could not initialize digest\n");
+		exit(1);
+	}
+	PK11_DigestBegin(pk11ctx);
+
+	/* 3. Calculate the distance from the base of the image header to the
+	 * image checksum.
+	 * 4. Hash the image header from start to the beginning of the
+	 * checksum. */
+	hash_base = map;
+	switch (pe_kind(pe)) {
+	case PE_K_PE_EXE: {
+		void *opthdr = pe_getopthdr(pe);
+		pe32opthdr = opthdr;
+		hash_size = (uintptr_t)&pe32opthdr->csum - (uintptr_t)hash_base;
+		break;
+	}
+	case PE_K_PE64_EXE: {
+		void *opthdr = pe_getopthdr(pe);
+		pe64opthdr = opthdr;
+		hash_size = (uintptr_t)&pe64opthdr->csum - (uintptr_t)hash_base;
+		break;
+	}
+	default:
+		goto error;
+	}
+	if (!check_pointer_and_size(pe, hash_base, hash_size)) {
+		fprintf(stderr, "Pe header is invalid.  Aborting.\n");
+		goto error;
+	}
+	PK11_DigestOp(pk11ctx, hash_base, hash_size);
+
+	/* 5. Skip over the image checksum
+	 * 6. Get the address of the beginning of the cert dir entry
+	 * 7. Hash from the end of the csum to the start of the cert dirent. */
+	hash_base += hash_size;
+	hash_base += pe32opthdr ? sizeof(pe32opthdr->csum)
+				: sizeof(pe64opthdr->csum);
+	data_directory *dd;
+
+	rc = pe_getdatadir(pe, &dd);
+	if (rc < 0 || !dd || !check_pointer_and_size(pe, dd, sizeof(*dd))) {
+		fprintf(stderr, "Data directory is invalid.  Aborting.\n");
+		goto error;
+	}
+
+	hash_size = (uintptr_t)&dd->certs - (uintptr_t)hash_base;
+	if (!check_pointer_and_size(pe, hash_base, hash_size)) {
+		fprintf(stderr, "Data directory is invalid.  Aborting.\n");
+		goto error;
+	}
+	PK11_DigestOp(pk11ctx, hash_base, hash_size);
+
+	/* 8. Skip over the crt dir
+	 * 9. Hash everything up to the end of the image header. */
+	hash_base = &dd->base_relocations;
+	hash_size = (pe32opthdr ? pe32opthdr->header_size
+				: pe64opthdr->header_size) -
+		((uintptr_t)&dd->base_relocations - (uintptr_t)map);
+
+	if (!check_pointer_and_size(pe, hash_base, hash_size)) {
+		fprintf(stderr, "Relocations table is invalid.  Aborting.\n");
+		goto error;
+	}
+	PK11_DigestOp(pk11ctx, hash_base, hash_size);
+
+	/* 10. Set SUM_OF_BYTES_HASHED to the size of the header. */
+	hashed_bytes = pe32opthdr ? pe32opthdr->header_size
+				: pe64opthdr->header_size;
+
+	struct section_header *shdrs = calloc(pehdr.sections, sizeof (*shdrs));
+	if (!shdrs)
+		goto error;
+	Pe_Scn *scn = NULL;
+	for (int i = 0; i < pehdr.sections; i++) {
+		scn = pe_nextscn(pe, scn);
+		if (scn == NULL)
+			break;
+		pe_getshdr(scn, &shdrs[i]);
+	}
+	sort_shdrs(shdrs, pehdr.sections - 1);
+
+	for (int i = 0; i < pehdr.sections; i++) {
+		if (shdrs[i].raw_data_size == 0)
+			continue;
+
+		hash_base = (void *)((uintptr_t)map + shdrs[i].data_addr);
+		hash_size = shdrs[i].raw_data_size;
+
+		if (!check_pointer_and_size(pe, hash_base, hash_size)) {
+			fprintf(stderr, "Section \"%s\" has invalid address."
+				"  Aborting.\n", shdrs[i].name);
+			goto error_shdrs;
+		}
+
+		PK11_DigestOp(pk11ctx, hash_base, hash_size);
+
+		hashed_bytes += hash_size;
+	}
+
+	if (map_size > hashed_bytes) {
+		hash_base = (void *)((uintptr_t)map + hashed_bytes);
+		hash_size = map_size - dd->certs.size - hashed_bytes;
+
+		if (!check_pointer_and_size(pe, hash_base, hash_size)) {
+			fprintf(stderr, "Invalid trailing data.  Aborting.\n");
+			goto error_shdrs;
+		}
+		PK11_DigestOp(pk11ctx, hash_base, hash_size);
+	}
+
+	SECItem *digest = PORT_ArenaZAlloc(cms->arena, sizeof (SECItem));
+	if (!digest)
+		goto error_shdrs;
+
+	digest->type = siBuffer;
+	digest->data = PORT_ArenaZAlloc(cms->arena, cms->digest_size);
+	digest->len = cms->digest_size;
+	if (!digest->data)
+		goto error_digest;
+
+	PK11_DigestFinal(pk11ctx, digest->data, &digest->len, cms->digest_size);
+	cms->pe_digest = digest;
+
+	if (shdrs)
+		free(shdrs);
+	PK11_DestroyContext(pk11ctx, PR_TRUE);
+
+	return 0;
+
+error_digest:
+	PORT_Free(digest->data);
+error_shdrs:
+	if (shdrs)
+		free(shdrs);
+error:
+	PK11_DestroyContext(pk11ctx, PR_TRUE);
+	fprintf(stderr, "pesign: could not digest file.\n");
+	exit(1);
+}

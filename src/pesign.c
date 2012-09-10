@@ -594,7 +594,7 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			generate_digest(ctxp, ctx.outpe);
+			generate_digest(&ctx.cms_ctx, ctx.outpe);
 			sigspace = calculate_signature_space(&ctx.cms_ctx,
 								ctx.outpe);
 			allocate_signature_space(ctxp, sigspace);
@@ -606,7 +606,7 @@ main(int argc, char *argv[])
 		case EXPORT_SATTRS:
 			open_input(ctxp);
 			open_sattr_output(ctxp);
-			generate_digest(ctxp, ctx.inpe);
+			generate_digest(&ctx.cms_ctx, ctx.inpe);
 			generate_sattr_blob(ctxp);
 			close_sattr_output(ctxp);
 			close_input(ctxp);
@@ -687,7 +687,7 @@ main(int argc, char *argv[])
 			break;
 		case GENERATE_DIGEST|PRINT_DIGEST:
 			open_input(ctxp);
-			generate_digest(ctxp, ctx.inpe);
+			generate_digest(&ctx.cms_ctx, ctx.inpe);
 			print_digest(ctxp);
 			break;
 		/* generate a signature and save it in a separate file */
@@ -701,7 +701,7 @@ main(int argc, char *argv[])
 			}
 			open_input(ctxp);
 			open_sig_output(ctxp);
-			generate_digest(ctxp, ctx.inpe);
+			generate_digest(&ctx.cms_ctx, ctx.inpe);
 			generate_signature(ctxp);
 			export_signature(ctxp);
 			break;
@@ -718,11 +718,11 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			generate_digest(ctxp, ctx.outpe);
+			generate_digest(&ctx.cms_ctx, ctx.outpe);
 			sigspace = calculate_signature_space(&ctx.cms_ctx,
 							     ctx.outpe);
 			allocate_signature_space(ctxp, sigspace);
-			generate_digest(ctxp, ctx.outpe);
+			generate_digest(&ctx.cms_ctx, ctx.outpe);
 			generate_signature(ctxp);
 			insert_signature(ctxp);
 			finalize_signatures(&ctx.cms_ctx, ctx.outpe);
