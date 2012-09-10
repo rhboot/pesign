@@ -25,11 +25,9 @@ struct cert_list_entry {
 };
 
 static int
-generate_cert_list(pesign_context *ctx, void **cert_list,
+generate_cert_list(cms_context *cms, void **cert_list,
 		size_t *cert_list_size)
 {
-	cms_context *cms = &ctx->cms_ctx;
-
 	size_t cl_size = 0;
 	for (int i = 0; i < cms->num_signatures; i++) {
 		cl_size += sizeof (win_certificate);
@@ -58,21 +56,21 @@ generate_cert_list(pesign_context *ctx, void **cert_list,
 }
 
 static int
-implant_cert_list(pesign_context *ctx, void *cert_list, size_t cert_list_size)
+implant_cert_list(Pe *pe, void *cert_list, size_t cert_list_size)
 {
-	return pe_populatecert(ctx->outpe, cert_list, cert_list_size);
+	return pe_populatecert(pe, cert_list, cert_list_size);
 }
 
 int
-finalize_signatures(pesign_context *ctx)
+finalize_signatures(cms_context *cms, Pe *pe)
 {
 	void *clist = NULL;
 	size_t clist_size = 0;
 
-	if (generate_cert_list(ctx, &clist, &clist_size) < 0)
+	if (generate_cert_list(cms, &clist, &clist_size) < 0)
 		return -1;
 
-	if (implant_cert_list(ctx, clist, clist_size) < 0) {
+	if (implant_cert_list(pe, clist, clist_size) < 0) {
 		free(clist);
 		return -1;
 	}
@@ -165,16 +163,16 @@ done:
 }
 
 ssize_t
-available_cert_space(pesign_context *ctx)
+available_cert_space(Pe *pe)
 {
 	cert_iter iter;
-	int rc = cert_iter_init(&iter, ctx->outpe);
+	int rc = cert_iter_init(&iter, pe);
 	if (rc < 0)
 		return -1;
 
 	data_directory *dd;
 
-	rc = pe_getdatadir(ctx->outpe, &dd);
+	rc = pe_getdatadir(pe, &dd);
 	if (rc < 0)
 		return -1;
 
@@ -194,13 +192,13 @@ available_cert_space(pesign_context *ctx)
 	return totalsize - foundsize;
 }
 
-ssize_t calculate_signature_space(pesign_context *ctx)
+ssize_t calculate_signature_space(cms_context *cms, Pe *pe)
 {
 	int rc;
 
 	SECItem sig = { 0, };
 
-	rc = generate_spc_signed_data(&sig, &ctx->cms_ctx);
+	rc = generate_spc_signed_data(&sig, cms);
 	if (rc < 0) {
 err:
 		fprintf(stderr, "Could not generate signature.\n");
@@ -208,14 +206,88 @@ err:
 	}
 
 	data_directory *dd = NULL;
-	rc = pe_getdatadir(ctx->outpe, &dd);
+	rc = pe_getdatadir(pe, &dd);
 	if (rc < 0)
 		goto err;
 
 	ssize_t ret = sig.len + dd->certs.size + sizeof(win_certificate) -
-						available_cert_space(ctx);
+						available_cert_space(pe);
 
 	//free(sig.data);
 
 	return ret;
 }
+
+int
+parse_signatures(cms_context *cms, Pe *pe)
+{
+	cert_iter iter;
+	int rc = cert_iter_init(&iter, pe);
+	if (rc < 0)
+		return -1;
+
+	void *data;
+	ssize_t datalen;
+	int nsigs = 0;
+
+	rc = 0;
+	while (1) {
+		rc = next_cert(&iter, &data, &datalen);
+		if (rc <= 0)
+			break;
+		nsigs++;
+	}
+
+	if (nsigs == 0) {
+		cms->num_signatures = 0;
+		cms->signatures = NULL;
+		return 0;
+	}
+
+	SECItem **signatures = calloc(nsigs, sizeof (SECItem *));
+	if (!signatures)
+		return -1;
+
+	rc = cert_iter_init(&iter, pe);
+	if (rc < 0)
+		goto err;
+
+	int i = 0;
+	while (1) {
+		rc = next_cert(&iter, &data, &datalen);
+		if (rc <= 0)
+			break;
+
+		signatures[i] = calloc(1, sizeof (SECItem *));
+		if (!signatures[i])
+			goto err;
+
+		signatures[i]->data = calloc(1, datalen);
+		if (!signatures[i]->data)
+			goto err;
+
+		memcpy(signatures[i]->data, data, datalen);
+		signatures[i]->len = datalen;
+		signatures[i]->type = siBuffer;
+		i++;
+	}
+
+	cms->num_signatures = nsigs;
+	cms->signatures = signatures;
+
+	return 0;
+err:
+	if (signatures) {
+		for (i = 0; i < nsigs; i++) {
+			if (signatures[i]) {
+				if (signatures[i]->data)
+					free(signatures[i]->data);
+				free(signatures[i]);
+			}
+		}
+		free(signatures);
+	}
+	return -1;
+}
+
+

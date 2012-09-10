@@ -100,7 +100,7 @@ open_input(pesign_context *ctx)
 		exit(1);
 	}
 
-	int rc = parse_signatures(ctx);
+	int rc = parse_signatures(&ctx->cms_ctx, ctx->inpe);
 	if (rc < 0) {
 		fprintf(stderr, "pesign: could not parse signature data\n");
 		exit(1);
@@ -122,7 +122,7 @@ close_output(pesign_context *ctx)
 {
 	Pe_Cmd cmd = ctx->outfd == STDOUT_FILENO ? PE_C_RDWR : PE_C_RDWR_MMAP;
 
-	finalize_signatures(ctx);
+	finalize_signatures(&ctx->cms_ctx, ctx->outpe);
 	pe_update(ctx->outpe, cmd);
 	pe_end(ctx->outpe);
 	ctx->outpe = NULL;
@@ -595,11 +595,12 @@ main(int argc, char *argv[])
 			open_output(ctxp);
 			close_input(ctxp);
 			generate_digest(ctxp, ctx.outpe);
-			sigspace = calculate_signature_space(ctxp);
+			sigspace = calculate_signature_space(&ctx.cms_ctx,
+								ctx.outpe);
 			allocate_signature_space(ctxp, sigspace);
 			generate_signature(ctxp);
 			insert_signature(ctxp);
-			finalize_signatures(ctxp);
+			finalize_signatures(&ctx.cms_ctx, ctx.outpe);
 			close_output(ctxp);
 			break;
 		case EXPORT_SATTRS:
@@ -718,12 +719,13 @@ main(int argc, char *argv[])
 			open_output(ctxp);
 			close_input(ctxp);
 			generate_digest(ctxp, ctx.outpe);
-			sigspace = calculate_signature_space(ctxp);
+			sigspace = calculate_signature_space(&ctx.cms_ctx,
+							     ctx.outpe);
 			allocate_signature_space(ctxp, sigspace);
 			generate_digest(ctxp, ctx.outpe);
 			generate_signature(ctxp);
 			insert_signature(ctxp);
-			finalize_signatures(ctxp);
+			finalize_signatures(&ctx.cms_ctx, ctx.outpe);
 			close_output(ctxp);
 			break;
 		default:

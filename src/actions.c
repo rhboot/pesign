@@ -51,78 +51,6 @@ decryption_allowed(SECAlgorithmID *algid, PK11SymKey *key)
 }
 
 int
-parse_signatures(pesign_context *ctx)
-{
-	cert_iter iter;
-	int rc = cert_iter_init(&iter, ctx->inpe);
-	if (rc < 0)
-		return -1;
-
-	void *data;
-	ssize_t datalen;
-	int nsigs = 0;
-
-	rc = 0;
-	while (1) {
-		rc = next_cert(&iter, &data, &datalen);
-		if (rc <= 0)
-			break;
-		nsigs++;
-	}
-
-	if (nsigs == 0) {
-		ctx->cms_ctx.num_signatures = 0;
-		ctx->cms_ctx.signatures = NULL;
-		return 0;
-	}
-
-	SECItem **signatures = calloc(nsigs, sizeof (SECItem *));
-	if (!signatures)
-		return -1;
-
-	rc = cert_iter_init(&iter, ctx->inpe);
-	if (rc < 0)
-		goto err;
-
-	int i = 0;
-	while (1) {
-		rc = next_cert(&iter, &data, &datalen);
-		if (rc <= 0)
-			break;
-
-		signatures[i] = calloc(1, sizeof (SECItem *));
-		if (!signatures[i])
-			goto err;
-
-		signatures[i]->data = calloc(1, datalen);
-		if (!signatures[i]->data)
-			goto err;
-
-		memcpy(signatures[i]->data, data, datalen);
-		signatures[i]->len = datalen;
-		signatures[i]->type = siBuffer;
-		i++;
-	}
-
-	ctx->cms_ctx.num_signatures = nsigs;
-	ctx->cms_ctx.signatures = signatures;
-
-	return 0;
-err:
-	if (signatures) {
-		for (i = 0; i < nsigs; i++) {
-			if (signatures[i]) {
-				if (signatures[i]->data)
-					free(signatures[i]->data);
-				free(signatures[i]);
-			}
-		}
-		free(signatures);
-	}
-	return -1;
-}
-
-int
 insert_signature(pesign_context *ctx)
 {
 	SECItem *sig = &ctx->cms_ctx.newsig;
@@ -684,7 +612,7 @@ check_signature_space(pesign_context *ctx)
 {
 	parse_signature(ctx);
 
-	ssize_t available = available_cert_space(ctx);
+	ssize_t available = available_cert_space(ctx->outpe);
 
 	if (available < ctx->cms_ctx.newsig.len) {
 		fprintf(stderr, "Could not add new signature: insufficient space.\n");
@@ -701,7 +629,7 @@ import_signature(pesign_context *ctx)
 		exit(1);
 	}
 
-	return finalize_signatures(ctx);
+	return finalize_signatures(&ctx->cms_ctx, ctx->outpe);
 }
 
 void
