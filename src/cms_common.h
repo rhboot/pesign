@@ -22,6 +22,11 @@
 #include <nss3/cert.h>
 #include <nss3/secpkcs7.h>
 
+struct digest {
+	PK11Context *pk11ctx;
+	SECItem *pe_digest;
+};
+
 typedef struct {
 	PRArenaPool *arena;
 	void *privkey;
@@ -30,14 +35,11 @@ typedef struct {
 	char *certname;
 	CERTCertificate *cert;
 
-	SECOidTag digest_oid_tag;
-	SECOidTag signature_oid_tag;
-	SECOidTag digest_encryption_oid_tag;
-	int digest_size;
+	struct digest *digests;
+	int selected_digest;
 
 	SECItem newsig;
 
-	SECItem *pe_digest;
 	SECItem *ci_digest;
 
 	SECItem *raw_signed_attrs;
@@ -90,6 +92,11 @@ extern int generate_spc_string(PRArenaPool *arena, SECItem *ssp,
 extern int generate_digest(cms_context *cms, Pe *pe);
 
 extern int find_certificate(cms_context *ctx);
+
+extern SECOidTag digest_get_digest_oid(cms_context *cms);
+extern SECOidTag digest_get_encryption_oid(cms_context *cms);
+extern SECOidTag digest_get_signature_oid(cms_context *cms);
+extern int digest_get_digest_size(cms_context *cms);
 
 extern int set_digest_parameters(cms_context *ctx, char *name);
 

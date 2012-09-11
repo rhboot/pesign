@@ -42,7 +42,7 @@ generate_algorithm_id_list(SECAlgorithmID ***algorithm_list_p, cms_context *ctx)
 	}
 
 	if (generate_algorithm_id(ctx, algorithms[0],
-			ctx->digest_oid_tag) < 0) {
+			digest_get_digest_oid(ctx)) < 0) {
 		err = PORT_GetError();
 		goto err_item;
 	}

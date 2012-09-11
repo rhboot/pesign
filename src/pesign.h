@@ -26,6 +26,7 @@
 #include "pesign_context.h"
 
 #include "util.h"
+#include "efitypes.h"
 #include "actions.h"
 #include "endian.h"
 #include "oid.h"

@@ -190,9 +190,10 @@ generate_spc_digest_info(PRArenaPool *arena, SECItem *dip, cms_context *ctx)
 	memset(&di, '\0', sizeof (di));
 
 	if (generate_algorithm_id(ctx, &di.digestAlgorithm,
-			ctx->digest_oid_tag) < 0)
+			digest_get_digest_oid(ctx)) < 0)
 		return -1;
-	memcpy(&di.digest, ctx->pe_digest, sizeof (di.digest));
+	int i = ctx->selected_digest;
+	memcpy(&di.digest, ctx->digests[i].pe_digest, sizeof (di.digest));
 
 	if (SEC_ASN1EncodeItem(arena, dip, &di, DigestInfoTemplate) == NULL) {
 		fprintf(stderr, "Could not encode DigestInfo: %s\n",
@@ -302,12 +303,12 @@ generate_cinfo_digest(cms_context *cms_ctx, SpcContentInfo *cip)
 	};
 	
 	PK11Context *ctx = NULL;
-	SECOidData *oid = SECOID_FindOIDByTag(cms_ctx->digest_oid_tag);
+	SECOidData *oid = SECOID_FindOIDByTag(digest_get_digest_oid(cms_ctx));
 	if (oid == NULL)
 		return -1;
 
 	cms_ctx->ci_digest = SECITEM_AllocItem(cms_ctx->arena, NULL,
-						cms_ctx->digest_size);
+					digest_get_digest_size(cms_ctx));
 	if (!cms_ctx->ci_digest)
 		goto err;
 
@@ -321,9 +322,9 @@ generate_cinfo_digest(cms_context *cms_ctx, SpcContentInfo *cip)
 		goto err;
 	if (PK11_DigestFinal(ctx, cms_ctx->ci_digest->data,
 				&cms_ctx->ci_digest->len,
-				cms_ctx->digest_size) != SECSuccess)
+				digest_get_digest_size(cms_ctx)) != SECSuccess)
 		goto err;
-	if (cms_ctx->ci_digest->len > cms_ctx->digest_size)
+	if (cms_ctx->ci_digest->len > digest_get_digest_size(cms_ctx))
 		goto err;
 
 	PK11_DestroyContext(ctx, PR_TRUE);

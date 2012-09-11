@@ -342,7 +342,7 @@ generate_signature(pesign_context *p_ctx)
 	int rc = 0;
 	cms_context *ctx = &p_ctx->cms_ctx;
 
-	assert(ctx->pe_digest != NULL);
+	assert(ctx->digests[ctx->selected_digest].pe_digest != NULL);
 
 	SECItem sd_der;
 	memset(&sd_der, '\0', sizeof(sd_der));

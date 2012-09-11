@@ -203,7 +203,7 @@ sign_blob(cms_context *ctx, SECItem *sigitem, SECItem *sign_content)
 	if (!sign_content)
 		return -1;
 
-	SECOidData *oid = SECOID_FindOIDByTag(ctx->signature_oid_tag);
+	SECOidData *oid = SECOID_FindOIDByTag(digest_get_signature_oid(ctx));
 	if (!oid)
 		goto err;
 
@@ -383,7 +383,7 @@ generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx)
 	si.sid.signerValue.iasn.serial = ctx->cert->serialNumber;
 
 	if (generate_algorithm_id(ctx, &si.digestAlgorithm,
-			ctx->digest_oid_tag) < 0)
+			digest_get_digest_oid(ctx)) < 0)
 		goto err;
 
 
@@ -403,7 +403,7 @@ generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx)
 				SEC_ASN1_CONSTRUCTED;
 
 	if (generate_algorithm_id(ctx, &si.signatureAlgorithm,
-				ctx->digest_encryption_oid_tag) < 0)
+				digest_get_encryption_oid(ctx)) < 0)
 		goto err;
 
 	if (generate_unsigned_attributes(ctx, &si.unsignedAttrs) < 0)

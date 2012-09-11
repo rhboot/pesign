@@ -42,6 +42,7 @@ struct digest_param {
 	SECOidTag digest_tag;
 	SECOidTag signature_tag;
 	SECOidTag digest_encryption_tag;
+	efi_guid_t efi_guid;
 	int size;
 };
 
@@ -50,16 +51,105 @@ static struct digest_param digest_params[] = {
 	 .digest_tag = SEC_OID_SHA256,
 	 .signature_tag = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
 	 .digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
+	 .efi_guid = EFI_CERT_SHA256_GUID,
 	 .size = 32
 	},
+#if 1
 	{.name = "sha1",
 	 .digest_tag = SEC_OID_SHA1,
 	 .signature_tag = SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION,
 	 .digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
+	 .efi_guid = EFI_CERT_SHA1_GUID,
 	 .size = 20
 	},
-	{NULL,}
+#endif
 };
+static int n_digest_params = sizeof (digest_params) / sizeof (digest_params[0]);
+
+SECOidTag
+digest_get_digest_oid(cms_context *cms)
+{
+	int i = cms->selected_digest;
+	return digest_params[i].digest_tag;
+}
+
+SECOidTag
+digest_get_encryption_oid(cms_context *cms)
+{
+	int i = cms->selected_digest;
+	return digest_params[i].digest_encryption_tag;
+}
+
+SECOidTag
+digest_get_signature_oid(cms_context *cms)
+{
+	int i = cms->selected_digest;
+	return digest_params[i].signature_tag;
+}
+
+int
+digest_get_digest_size(cms_context *cms)
+{
+	int i = cms->selected_digest;
+	return digest_params[i].size;
+}
+
+
+static int
+setup_digests(cms_context *cms)
+{
+	struct digest *digests = NULL;
+	
+	digests = calloc(n_digest_params, sizeof (*digests));
+	if (!digests)
+		return -1;
+
+	for (int i = 0; i < n_digest_params; i++) {
+		digests[i].pk11ctx = PK11_CreateDigestContext(
+						digest_params[i].digest_tag);
+		if (!digests[i].pk11ctx)
+			goto err;
+
+		PK11_DigestBegin(digests[i].pk11ctx);
+	}
+
+	cms->digests = digests;
+	return 0;
+err:
+	for (int i = 0; i < n_digest_params; i++) {
+		if (digests[i].pk11ctx)
+			PK11_DestroyContext(digests[i].pk11ctx, PR_TRUE);
+	}
+
+	free(digests);
+	return -1;
+}
+
+static void
+teardown_digests(cms_context *ctx)
+{
+	struct digest *digests = ctx->digests;
+
+	if (!digests)
+		return;
+
+	for (int i = 0; i < n_digest_params; i++) {
+		if (digests[i].pk11ctx)
+			PK11_DestroyContext(digests[i].pk11ctx, PR_TRUE);
+		if (digests[i].pe_digest) {
+			free_poison(digests[i].pe_digest->data,
+				    digests[i].pe_digest->len);
+			/* XXX sure seems like we should be freeing it here,
+			 * but that's segfaulting, and we know it'll get
+			 * cleaned up with PORT_FreeArena a couple of lines
+			 * down.
+			 */
+			digests[i].pe_digest = NULL;
+		}
+	}
+	free(digests);
+	ctx->digests = NULL;
+}
 
 int
 cms_context_init(cms_context *ctx)
@@ -83,6 +173,14 @@ cms_context_init(cms_context *ctx)
 		return -1;
 	}
 
+	int rc = setup_digests(ctx);
+	if (rc < 0) {
+		fprintf(stderr, "Could not initialize cryptographic digest "
+			"functions.\n");
+		return -1;
+	}
+	ctx->selected_digest = -1;
+
 	return 0;
 }
 
@@ -104,14 +202,8 @@ cms_context_fini(cms_context *ctx)
 		memset(&ctx->newsig, '\0', sizeof (ctx->newsig));
 	}
 
-	if (ctx->pe_digest) {
-		free_poison(ctx->pe_digest->data, ctx->pe_digest->len);
-		/* XXX sure seems like we should be freeing it here, but
-		 * that's segfaulting, and we know it'll get cleaned up with
-		 * PORT_FreeArena a couple of lines down.
-		 */
-		ctx->pe_digest = NULL;
-	}
+	teardown_digests(ctx);
+	ctx->selected_digest = -1;
 
 	if (ctx->ci_digest) {
 		free_poison(ctx->ci_digest->data, ctx->ci_digest->len);
@@ -154,7 +246,6 @@ cms_context_fini(cms_context *ctx)
 #endif
 	ctx->signatures = NULL;
 
-
 	PORT_FreeArena(ctx->arena, PR_TRUE);
 	memset(ctx, '\0', sizeof(*ctx));
 
@@ -165,16 +256,9 @@ int
 set_digest_parameters(cms_context *ctx, char *name)
 {
 	if (strcmp(name, "help")) {
-		for (int i = 0; digest_params[i].name != NULL; i++) {
-			if (!strcmp(name, digest_params[i].name)) {
-				ctx->digest_oid_tag = digest_params[i].digest_tag;
-				ctx->digest_size = digest_params[i].size;
-				ctx->signature_oid_tag =
-					digest_params[i].signature_tag;
-				ctx->digest_encryption_oid_tag =
-					digest_params[i].digest_encryption_tag;
-				return 0;
-			}
+		for (int i = 0; i < n_digest_params; i++) {
+			if (!strcmp(name, digest_params[i].name))
+				ctx->selected_digest = i;
 		}
 	} else {
 		printf("Supported digests: ");
@@ -526,6 +610,48 @@ check_pointer_and_size(Pe *pe, void *ptr, size_t size)
 	return 1;
 }
 
+void
+generate_digest_step(cms_context *cms, void *data, size_t len)
+{
+	for (int i = 0; i < n_digest_params; i++)
+		PK11_DigestOp(cms->digests[i].pk11ctx, data, len);
+}
+
+int
+generate_digest_finish(cms_context *cms)
+{
+	for (int i = 0; i < n_digest_params; i++) {
+		SECItem *digest = PORT_ArenaZAlloc(cms->arena,
+						   sizeof (SECItem));
+		if (!digest)
+			goto err;
+
+		digest->type = siBuffer;
+		digest->data = PORT_ArenaZAlloc(cms->arena, digest_params[i].size);
+		digest->len = digest_params[i].size;
+		
+		if (!digest->data)
+			goto err;
+
+		PK11_DigestFinal(cms->digests[i].pk11ctx,
+			digest->data, &digest->len, digest_params[i].size);
+		cms->digests[i].pe_digest = digest;
+	}
+
+	return 0;
+err:
+	for (int i = 0; i < n_digest_params; i++) {
+		if (cms->digests[i].pk11ctx)
+			PK11_DestroyContext(cms->digests[i].pk11ctx, PR_TRUE);
+
+		if (cms->digests[i].pe_digest) {
+			PORT_Free(cms->digests[i].pe_digest->data);
+			PORT_Free(cms->digests[i].pe_digest);
+		}
+	}
+	return -1;
+}
+
 int
 generate_digest(cms_context *cms, Pe *pe)
 {
@@ -559,7 +685,8 @@ generate_digest(cms_context *cms, Pe *pe)
 		exit(1);
 	}
 
-	pk11ctx = PK11_CreateDigestContext(cms->digest_oid_tag);
+	pk11ctx = PK11_CreateDigestContext(
+			digest_params[cms->selected_digest].digest_tag);
 	if (!pk11ctx) {
 		fprintf(stderr, "pesign: could not initialize digest\n");
 		exit(1);
@@ -591,7 +718,7 @@ generate_digest(cms_context *cms, Pe *pe)
 		fprintf(stderr, "Pe header is invalid.  Aborting.\n");
 		goto error;
 	}
-	PK11_DigestOp(pk11ctx, hash_base, hash_size);
+	generate_digest_step(cms, hash_base, hash_size);
 
 	/* 5. Skip over the image checksum
 	 * 6. Get the address of the beginning of the cert dir entry
@@ -612,7 +739,7 @@ generate_digest(cms_context *cms, Pe *pe)
 		fprintf(stderr, "Data directory is invalid.  Aborting.\n");
 		goto error;
 	}
-	PK11_DigestOp(pk11ctx, hash_base, hash_size);
+	generate_digest_step(cms, hash_base, hash_size);
 
 	/* 8. Skip over the crt dir
 	 * 9. Hash everything up to the end of the image header. */
@@ -625,7 +752,7 @@ generate_digest(cms_context *cms, Pe *pe)
 		fprintf(stderr, "Relocations table is invalid.  Aborting.\n");
 		goto error;
 	}
-	PK11_DigestOp(pk11ctx, hash_base, hash_size);
+	generate_digest_step(cms, hash_base, hash_size);
 
 	/* 10. Set SUM_OF_BYTES_HASHED to the size of the header. */
 	hashed_bytes = pe32opthdr ? pe32opthdr->header_size
@@ -656,7 +783,7 @@ generate_digest(cms_context *cms, Pe *pe)
 			goto error_shdrs;
 		}
 
-		PK11_DigestOp(pk11ctx, hash_base, hash_size);
+		generate_digest_step(cms, hash_base, hash_size);
 
 		hashed_bytes += hash_size;
 	}
@@ -669,30 +796,20 @@ generate_digest(cms_context *cms, Pe *pe)
 			fprintf(stderr, "Invalid trailing data.  Aborting.\n");
 			goto error_shdrs;
 		}
-		PK11_DigestOp(pk11ctx, hash_base, hash_size);
+		generate_digest_step(cms, hash_base, hash_size);
 	}
 
-	SECItem *digest = PORT_ArenaZAlloc(cms->arena, sizeof (SECItem));
-	if (!digest)
+	rc = generate_digest_finish(cms);
+	if (rc < 0)
 		goto error_shdrs;
 
-	digest->type = siBuffer;
-	digest->data = PORT_ArenaZAlloc(cms->arena, cms->digest_size);
-	digest->len = cms->digest_size;
-	if (!digest->data)
-		goto error_digest;
-
-	PK11_DigestFinal(pk11ctx, digest->data, &digest->len, cms->digest_size);
-	cms->pe_digest = digest;
-
-	if (shdrs)
+	if (shdrs) {
 		free(shdrs);
-	PK11_DestroyContext(pk11ctx, PR_TRUE);
+		shdrs = NULL;
+	}
 
 	return 0;
 
-error_digest:
-	PORT_Free(digest->data);
 error_shdrs:
 	if (shdrs)
 		free(shdrs);
