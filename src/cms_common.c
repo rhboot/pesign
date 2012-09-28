@@ -257,8 +257,10 @@ set_digest_parameters(cms_context *ctx, char *name)
 {
 	if (strcmp(name, "help")) {
 		for (int i = 0; i < n_digest_params; i++) {
-			if (!strcmp(name, digest_params[i].name))
+			if (!strcmp(name, digest_params[i].name)) {
 				ctx->selected_digest = i;
+				return 0;
+			}
 		}
 	} else {
 		printf("Supported digests: ");
