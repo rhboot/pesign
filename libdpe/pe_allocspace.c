@@ -46,6 +46,7 @@ pe_fix_addresses(Pe *pe, int64_t offset)
 			&pe->state.pe.shdr[cnt];
 
 		adjust(pe->state.pe.scns.data[cnt].rawdata_base, offset);
+		adjust(pe->state.pe.scns.data[cnt].data_base, offset);
 	}
 }
 #undef adjust
