@@ -100,7 +100,7 @@ open_input(pesign_context *ctx)
 		exit(1);
 	}
 
-	int rc = parse_signatures(&ctx->cms_ctx, ctx->inpe);
+	int rc = parse_signatures(ctx->cms_ctx, ctx->inpe);
 	if (rc < 0) {
 		fprintf(stderr, "pesign: could not parse signature data\n");
 		exit(1);
@@ -122,7 +122,7 @@ close_output(pesign_context *ctx)
 {
 	Pe_Cmd cmd = ctx->outfd == STDOUT_FILENO ? PE_C_RDWR : PE_C_RDWR_MMAP;
 
-	finalize_signatures(&ctx->cms_ctx, ctx->outpe);
+	finalize_signatures(ctx->cms_ctx, ctx->outpe);
 	pe_update(ctx->outpe, cmd);
 	pe_end(ctx->outpe);
 	ctx->outpe = NULL;
@@ -405,7 +405,7 @@ print_digest(pesign_context *pctx)
 	if (!pctx)
 		return;
 
-	cms_context *ctx = &pctx->cms_ctx;
+	cms_context *ctx = pctx->cms_ctx;
 	if (!ctx)
 		return;
 
@@ -437,7 +437,7 @@ main(int argc, char *argv[])
 			"specify input file", "<infile>"},
 		{"out", 'o', POPT_ARG_STRING, &ctx.outfile, 0,
 			"specify output file", "<outfile>" },
-		{"certficate", 'c', POPT_ARG_STRING, &ctx.cms_ctx.certname, 0,
+		{"certficate", 'c', POPT_ARG_STRING, ctx.cms_ctx->certname, 0,
 			"specify certificate nickname",
 			"<certificate nickname>" },
 		{"privkey", 'p', POPT_ARG_STRING, &ctx.privkeyfile, 0,
@@ -514,7 +514,7 @@ main(int argc, char *argv[])
 
 	poptFreeContext(optCon);
 
-	rc = set_digest_parameters(&ctx.cms_ctx, digest_name);
+	rc = set_digest_parameters(ctx.cms_ctx, digest_name);
 	int is_help  = strcmp(digest_name, "help") ? 0 : 1;
 	if (rc < 0) {
 		if (!is_help) {
@@ -524,7 +524,7 @@ main(int argc, char *argv[])
 		exit(!is_help);
 	}
 
-	ctx.cms_ctx.tokenname = tokenname;
+	ctx.cms_ctx->tokenname = tokenname;
 
 	int action = 0;
 	if (ctx.rawsig)
@@ -576,11 +576,11 @@ main(int argc, char *argv[])
 		 */
 		case IMPORT_RAW_SIGNATURE|IMPORT_SATTRS:
 			check_inputs(ctxp);
-			rc = find_certificate(&ctx.cms_ctx);
+			rc = find_certificate(ctx.cms_ctx);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
-					ctx.cms_ctx.certname);
+					ctx.cms_ctx->certname);
 				exit(1);
 			}
 			open_rawsig_input(ctxp);
@@ -592,19 +592,19 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			generate_digest(&ctx.cms_ctx, ctx.outpe);
-			sigspace = calculate_signature_space(&ctx.cms_ctx,
+			generate_digest(ctx.cms_ctx, ctx.outpe);
+			sigspace = calculate_signature_space(ctx.cms_ctx,
 								ctx.outpe);
 			allocate_signature_space(ctxp, sigspace);
 			generate_signature(ctxp);
 			insert_signature(ctxp);
-			finalize_signatures(&ctx.cms_ctx, ctx.outpe);
+			finalize_signatures(ctx.cms_ctx, ctx.outpe);
 			close_output(ctxp);
 			break;
 		case EXPORT_SATTRS:
 			open_input(ctxp);
 			open_sattr_output(ctxp);
-			generate_digest(&ctx.cms_ctx, ctx.inpe);
+			generate_digest(ctx.cms_ctx, ctx.inpe);
 			generate_sattr_blob(ctxp);
 			close_sattr_output(ctxp);
 			close_input(ctxp);
@@ -622,22 +622,22 @@ main(int argc, char *argv[])
 			close_output(ctxp);
 			break;
 		case EXPORT_PUBKEY:
-			rc = find_certificate(&ctx.cms_ctx);
+			rc = find_certificate(ctx.cms_ctx);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
-					ctx.cms_ctx.certname);
+					ctx.cms_ctx->certname);
 				exit(1);
 			}
 			open_pubkey_output(ctxp);
 			export_pubkey(ctxp);
 			break;
 		case EXPORT_CERT:
-			rc = find_certificate(&ctx.cms_ctx);
+			rc = find_certificate(ctx.cms_ctx);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
-					ctx.cms_ctx.certname);
+					ctx.cms_ctx->certname);
 				exit(1);
 			}
 			open_cert_output(ctxp);
@@ -647,20 +647,20 @@ main(int argc, char *argv[])
 		case EXPORT_SIGNATURE:
 			open_input(ctxp);
 			open_sig_output(ctxp);
-			if (ctx.signum > ctx.cms_ctx.num_signatures) {
+			if (ctx.signum > ctx.cms_ctx->num_signatures) {
 				fprintf(stderr, "Invalid signature number.\n");
 				exit(1);
 			}
 			if (ctx.signum < 0)
 				ctx.signum = 0;
-			if (ctx.signum >= ctx.cms_ctx.num_signatures) {
+			if (ctx.signum >= ctx.cms_ctx->num_signatures) {
 				fprintf(stderr, "No valid signature #%d.\n",
 					ctx.signum);
 				exit(1);
 			}
-			memcpy(&ctx.cms_ctx.newsig,
-				ctx.cms_ctx.signatures[ctx.signum],
-				sizeof (ctx.cms_ctx.newsig));
+			memcpy(&ctx.cms_ctx->newsig,
+				ctx.cms_ctx->signatures[ctx.signum],
+				sizeof (ctx.cms_ctx->newsig));
 			export_signature(ctxp);
 			close_input(ctxp);
 			close_sig_output(ctxp);
@@ -671,7 +671,7 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			if (ctx.signum > ctx.cms_ctx.num_signatures) {
+			if (ctx.signum > ctx.cms_ctx->num_signatures) {
 				fprintf(stderr, "Invalid signature number.\n");
 				exit(1);
 			}
@@ -685,45 +685,45 @@ main(int argc, char *argv[])
 			break;
 		case GENERATE_DIGEST|PRINT_DIGEST:
 			open_input(ctxp);
-			generate_digest(&ctx.cms_ctx, ctx.inpe);
+			generate_digest(ctx.cms_ctx, ctx.inpe);
 			print_digest(ctxp);
 			break;
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:
-			rc = find_certificate(&ctx.cms_ctx);
+			rc = find_certificate(ctx.cms_ctx);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
-					ctx.cms_ctx.certname);
+					ctx.cms_ctx->certname);
 				exit(1);
 			}
 			open_input(ctxp);
 			open_sig_output(ctxp);
-			generate_digest(&ctx.cms_ctx, ctx.inpe);
+			generate_digest(ctx.cms_ctx, ctx.inpe);
 			generate_signature(ctxp);
 			export_signature(ctxp);
 			break;
 		/* generate a signature and embed it in the binary */
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
 			check_inputs(ctxp);
-			rc = find_certificate(&ctx.cms_ctx);
+			rc = find_certificate(ctx.cms_ctx);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
-					ctx.cms_ctx.certname);
+					ctx.cms_ctx->certname);
 				exit(1);
 			}
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			generate_digest(&ctx.cms_ctx, ctx.outpe);
-			sigspace = calculate_signature_space(&ctx.cms_ctx,
+			generate_digest(ctx.cms_ctx, ctx.outpe);
+			sigspace = calculate_signature_space(ctx.cms_ctx,
 							     ctx.outpe);
 			allocate_signature_space(ctxp, sigspace);
-			generate_digest(&ctx.cms_ctx, ctx.outpe);
+			generate_digest(ctx.cms_ctx, ctx.outpe);
 			generate_signature(ctxp);
 			insert_signature(ctxp);
-			finalize_signatures(&ctx.cms_ctx, ctx.outpe);
+			finalize_signatures(ctx.cms_ctx, ctx.outpe);
 			close_output(ctxp);
 			break;
 		default:

@@ -53,24 +53,24 @@ decryption_allowed(SECAlgorithmID *algid, PK11SymKey *key)
 int
 insert_signature(pesign_context *ctx)
 {
-	SECItem *sig = &ctx->cms_ctx.newsig;
+	SECItem *sig = &ctx->cms_ctx->newsig;
 
 	if (ctx->signum == -1)
-		ctx->signum = ctx->cms_ctx.num_signatures;
+		ctx->signum = ctx->cms_ctx->num_signatures;
 
-	SECItem **signatures = realloc(ctx->cms_ctx.signatures,
-		sizeof (SECItem *) * ctx->cms_ctx.num_signatures + 1);
+	SECItem **signatures = realloc(ctx->cms_ctx->signatures,
+		sizeof (SECItem *) * ctx->cms_ctx->num_signatures + 1);
 	if (!signatures)
 		return -1;
-	ctx->cms_ctx.signatures = signatures;
-	if (ctx->signum != ctx->cms_ctx.num_signatures) {
-		memmove(ctx->cms_ctx.signatures[ctx->signum+1],
-			ctx->cms_ctx.signatures[ctx->signum],
-			sizeof(SECItem *) * (ctx->cms_ctx.num_signatures -
+	ctx->cms_ctx->signatures = signatures;
+	if (ctx->signum != ctx->cms_ctx->num_signatures) {
+		memmove(ctx->cms_ctx->signatures[ctx->signum+1],
+			ctx->cms_ctx->signatures[ctx->signum],
+			sizeof(SECItem *) * (ctx->cms_ctx->num_signatures -
 						ctx->signum));
 	}
-	ctx->cms_ctx.signatures[ctx->signum] = sig;
-	ctx->cms_ctx.num_signatures++;
+	ctx->cms_ctx->signatures[ctx->signum] = sig;
+	ctx->cms_ctx->num_signatures++;
 	return 0;
 }
 
@@ -189,7 +189,7 @@ static const char *sig_end_marker = "\n-----END AUTHENTICODE SIGNATURE-----\n";
 void
 export_pubkey(pesign_context *p_ctx)
 {
-	cms_context *ctx = &p_ctx->cms_ctx;
+	cms_context *ctx = p_ctx->cms_ctx;
 	int rc;
 
 	SECItem derPublicKey = ctx->cert->derPublicKey;
@@ -203,7 +203,7 @@ export_pubkey(pesign_context *p_ctx)
 void
 export_cert(pesign_context *p_ctx)
 {
-	cms_context *ctx = &p_ctx->cms_ctx;
+	cms_context *ctx = p_ctx->cms_ctx;
 	int rc;
 
 	SECItem derCert = ctx->cert->derCert;
@@ -220,7 +220,7 @@ export_signature(pesign_context *p_ctx)
 {
 	int rc = 0;
 
-	SECItem *sig = &p_ctx->cms_ctx.newsig;
+	SECItem *sig = &p_ctx->cms_ctx->newsig;
 
 	unsigned char *data = sig->data;
 	int datalen = sig->len;
@@ -303,8 +303,8 @@ parse_signature(pesign_context *ctx)
 	}
 	free(sig);
 
-	ctx->cms_ctx.newsig.data = der;
-	ctx->cms_ctx.newsig.len = derlen;
+	ctx->cms_ctx->newsig.data = der;
+	ctx->cms_ctx->newsig.len = derlen;
 
 #if 0
 	SEC_PKCS7DecoderContext *dc = NULL;
@@ -340,7 +340,7 @@ int
 generate_signature(pesign_context *p_ctx)
 {
 	int rc = 0;
-	cms_context *ctx = &p_ctx->cms_ctx;
+	cms_context *ctx = p_ctx->cms_ctx;
 
 	assert(ctx->digests[ctx->selected_digest].pe_digest != NULL);
 
@@ -366,7 +366,7 @@ import_raw_signature(pesign_context *pctx)
 		exit(1);
 	}
 
-	cms_context *ctx = &pctx->cms_ctx;
+	cms_context *ctx = pctx->cms_ctx;
 
 	ctx->raw_signature = SECITEM_AllocItem(ctx->arena, NULL, 0);
 	ctx->raw_signature->type = siBuffer;
@@ -396,7 +396,7 @@ generate_sattr_blob(pesign_context *ctx)
 	int rc;
 	SECItem sa;
 
-	rc = generate_signed_attributes(&ctx->cms_ctx, &sa);
+	rc = generate_signed_attributes(ctx->cms_ctx, &sa);
 	if (rc < 0) {
 		fprintf(stderr, "Could not generate signed attributes: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
@@ -413,7 +413,7 @@ check_signature_space(pesign_context *ctx)
 
 	ssize_t available = available_cert_space(ctx->outpe);
 
-	if (available < ctx->cms_ctx.newsig.len) {
+	if (available < ctx->cms_ctx->newsig.len) {
 		fprintf(stderr, "Could not add new signature: insufficient space.\n");
 		exit(1);
 	}
@@ -428,7 +428,7 @@ import_signature(pesign_context *ctx)
 		exit(1);
 	}
 
-	return finalize_signatures(&ctx->cms_ctx, ctx->outpe);
+	return finalize_signatures(ctx->cms_ctx, ctx->outpe);
 }
 
 void
@@ -446,7 +446,7 @@ allocate_signature_space(pesign_context *ctx, ssize_t sigspace)
 void
 remove_signature(pesign_context *p_ctx)
 {
-	cms_context *ctx = &p_ctx->cms_ctx;
+	cms_context *ctx = p_ctx->cms_ctx;
 
 	if (p_ctx->signum < 0)
 		p_ctx->signum = 0;

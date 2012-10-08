@@ -70,7 +70,7 @@ pesign_context_init(pesign_context *ctx)
 	ctx->sign = 0;
 	ctx->hash = 0;
 
-	int rc = cms_context_init(&ctx->cms_ctx);
+	int rc = cms_context_alloc(&ctx->cms_ctx);
 	if (rc < 0)
 		return rc;
 
@@ -83,7 +83,10 @@ pesign_context_fini(pesign_context *ctx)
 	if (!ctx)
 		return;
 
-	cms_context_fini(&ctx->cms_ctx);
+	if (ctx->cms_ctx) {
+		cms_context_fini(ctx->cms_ctx);
+		free(ctx->cms_ctx);
+	}
 
 	xfree(ctx->certname);
 	xfree(ctx->privkeyfile);

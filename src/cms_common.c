@@ -253,6 +253,22 @@ cms_context_fini(cms_context *ctx)
 }
 
 int
+cms_context_alloc(cms_context **ctxp)
+{
+	cms_context *ctx = calloc(1, sizeof (*ctx));
+	if (!ctx)
+		return -1;
+
+	int rc = cms_context_init(ctx);
+	if (rc < 0) {
+		save_errno(free(ctx));
+		return -1;
+	}
+	*ctxp = ctx;
+	return 0;
+}
+
+int
 set_digest_parameters(cms_context *ctx, char *name)
 {
 	if (strcmp(name, "help")) {
