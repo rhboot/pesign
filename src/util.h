@@ -23,8 +23,16 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #define xfree(x) ({if (x) { free(x); x = NULL; }})
+
+#define save_errno(x)					\
+	({						\
+		typeof (errno) __saved_errno = errno;	\
+		x;					\
+		errno = __saved_errno;			\
+	})
 
 static inline int
 __attribute__ ((unused))
