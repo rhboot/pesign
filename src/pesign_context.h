@@ -66,7 +66,6 @@ typedef struct {
 	int signum;
 
 	int ascii;
-	int hashgaps;
 	int sign;
 	int hash;
 } pesign_context;

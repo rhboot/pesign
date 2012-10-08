@@ -67,7 +67,6 @@ pesign_context_init(pesign_context *ctx)
 	ctx->signum = -1;
 
 	ctx->ascii = 0;
-	ctx->hashgaps = 1;
 	ctx->sign = 0;
 	ctx->hash = 0;
 
