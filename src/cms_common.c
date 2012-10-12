@@ -101,7 +101,7 @@ static int
 setup_digests(cms_context *cms)
 {
 	struct digest *digests = NULL;
-	
+
 	digests = calloc(n_digest_params, sizeof (*digests));
 	if (!digests) {
 		cms->log(cms, LOG_ERR, "cannot allocate memory: %m");
@@ -736,7 +736,7 @@ generate_digest_finish(cms_context *cms)
 		digest->type = siBuffer;
 		digest->data = PORT_ArenaZAlloc(cms->arena, digest_params[i].size);
 		digest->len = digest_params[i].size;
-		
+
 		if (!digest->data) {
 			cms->log(cms, LOG_ERR, "could not allocate memory");
 			goto err;
@@ -768,7 +768,6 @@ generate_digest(cms_context *cms, Pe *pe)
 	size_t hash_size;
 	struct pe32_opt_hdr *pe32opthdr = NULL;
 	struct pe32plus_opt_hdr *pe64opthdr = NULL;
-	PK11Context *pk11ctx;
 	unsigned long hashed_bytes = 0;
 	int rc = -1;
 
@@ -794,15 +793,6 @@ generate_digest(cms_context *cms, Pe *pe)
 					"file address");
 		return -1;
 	}
-
-	pk11ctx = PK11_CreateDigestContext(
-			digest_params[cms->selected_digest].digest_tag);
-	if (!pk11ctx) {
-		cms->log(cms, LOG_ERR, "pesign: could not get raw output "
-					"file address");
-		return -1;
-	}
-	PK11_DigestBegin(pk11ctx);
 
 	/* 3. Calculate the distance from the base of the image header to the
 	 * image checksum.
