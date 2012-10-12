@@ -28,6 +28,7 @@
 
 #include <popt.h>
 
+#include <nspr4/prerror.h>
 #include <nss3/cert.h>
 #include <nss3/pkcs7t.h>
 
@@ -505,9 +506,14 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	SECStatus status = NSS_Init("/etc/pki/pesign");
-	if (status != SECSuccess)
-		return -1;
+	if (!daemon) {
+		SECStatus status = NSS_Init("/etc/pki/pesign");
+		if (status != SECSuccess) {
+			fprintf(stderr, "Could not initialize nss: %s\n",
+				PORT_ErrorToString(PORT_GetError()));
+			exit(1);
+		}
+	}
 
 	rc = pesign_context_init(ctxp);
 	if (rc < 0) {

@@ -33,6 +33,7 @@
 
 #include "pesign.h"
 
+#include <nspr4/prerror.h>
 #include <nss3/nss.h>
 
 static int should_exit = 0;
@@ -61,26 +62,26 @@ steal_from_cms(cms_context *old, cms_context *new)
 }
 
 static void
-hide_stolen_goods_from_cms(cms_context *cms)
+hide_stolen_goods_from_cms(cms_context *new, cms_context *old)
 {
-	cms->tokenname = NULL;
-	cms->certname = NULL;
+	new->tokenname = NULL;
+	new->certname = NULL;
 }
 
 static void
-send_response(context *ctx, struct pollfd *pollfd, int rc, char *errmsg)
+send_response(context *ctx, cms_context *cms, struct pollfd *pollfd, int rc)
 {	
 	struct msghdr msg;
 	struct iovec iov;
 	ssize_t n;
-	int msglen = errmsg ? strlen(errmsg) + 1 : 0;
+	int msglen = ctx->errstr ? strlen(ctx->errstr) + 1 : 0;
 
 	iov.iov_len = sizeof(pesignd_msghdr) + sizeof(pesignd_cmd_response)
 			+ msglen;
 
 	void *buffer = calloc(1, iov.iov_len);
 	if (!buffer) {
-		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+		cms->log(cms, ctx->priority|LOG_ERR,
 			"pesignd: could not allocate memory: %m");
 		exit(1);
 	}
@@ -101,12 +102,12 @@ send_response(context *ctx, struct pollfd *pollfd, int rc, char *errmsg)
 	msg.msg_iovlen = 1;
 
 	resp->rc = rc;
-	if (errmsg)
-		memcpy(resp->errmsg, errmsg, msglen);
+	if (ctx->errstr)
+		memcpy(resp->errmsg, ctx->errstr, msglen);
 
 	n = sendmsg(pollfd->fd, &msg, 0);
 	if (n < 0)
-		ctx->cms->log(ctx->cms, ctx->priority|LOG_WARNING,
+		cms->log(cms, ctx->priority|LOG_WARNING,
 			"pesignd: could not send response to client: %m");
 
 	free(buffer);
@@ -137,8 +138,10 @@ handle_unlock_token(context *ctx, struct pollfd *pollfd, socklen_t size)
 	char *buffer = malloc(size);
 
 	int rc = cms_context_alloc(&ctx->cms);
-	if (rc < 0)
+	if (rc < 0) {
+		send_response(ctx, ctx->backup_cms, pollfd, rc);
 		return;
+	}
 
 	steal_from_cms(ctx->backup_cms, ctx->cms);
 
@@ -215,10 +218,10 @@ malformed:
 		ctx->cms->log(ctx->cms, LOG_NOTICE, "pesignd: Authentication "
 			"succeeded for token \"%s\"", tn->value);
 
-	send_response(ctx, pollfd, rc, ctx->errstr);
+	send_response(ctx, ctx->cms, pollfd, rc);
 	free(buffer);
 
-	hide_stolen_goods_from_cms(ctx->cms);
+	hide_stolen_goods_from_cms(ctx->cms, ctx->backup_cms);
 	cms_context_fini(ctx->cms);
 }
 
@@ -475,7 +478,7 @@ finish:
 	close(infd);
 	close(outfd);
 
-	send_response(ctx, pollfd, rc, ctx->errstr);
+	send_response(ctx, ctx->cms, pollfd, rc);
 }
 
 static void
@@ -489,7 +492,7 @@ handle_sign_attached(context *ctx, struct pollfd *pollfd, socklen_t size)
 
 	handle_signing(ctx, pollfd, size, 1);
 
-	hide_stolen_goods_from_cms(ctx->cms);
+	hide_stolen_goods_from_cms(ctx->cms, ctx->backup_cms);
 	cms_context_fini(ctx->cms);
 }
 
@@ -504,20 +507,21 @@ handle_sign_detached(context *ctx, struct pollfd *pollfd, socklen_t size)
 
 	handle_signing(ctx, pollfd, size, 0);
 
-	hide_stolen_goods_from_cms(ctx->cms);
+	hide_stolen_goods_from_cms(ctx->cms, ctx->backup_cms);
 	cms_context_fini(ctx->cms);
 }
 
 static void
+#if 0
 __attribute__((noreturn))
+#endif
 handle_invalid_input(pesignd_cmd cmd, context *ctx, struct pollfd *pollfd,
 			socklen_t size)
 {
-		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
 			"pesignd: got unexpected command 0x%x", cmd);
-		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: possible exploit attempt. exiting.");
-		exit(1);
+		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
+			"pesignd: possible exploit attempt");
 }
 
 typedef void (*cmd_handler)(context *ctx, struct pollfd *pollfd,
@@ -559,18 +563,18 @@ handle_event(context *ctx, struct pollfd *pollfd)
 
 	n = recvmsg(pollfd->fd, &msg, MSG_WAITALL);
 	if (n < 0) {
-		ctx->cms->log(ctx->cms, ctx->priority|LOG_WARNING,
+		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_WARNING,
 			"pesignd: recvmsg failed: %m");
 		return n;
 	}
 
 	if (pm.version != PESIGND_VERSION) {
-		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
 			"pesignd: got version %d, expected version %d",
 			pm.version, PESIGND_VERSION);
-		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: possible exploit attempt. exiting.");
-		exit(1);
+		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
+			"pesignd: possible exploit attempt");
+		return -1;
 	}
 
 	for (int i = 0; cmd_table[i].cmd != CMD_LIST_END; i++) {
@@ -857,7 +861,6 @@ daemonize(cms_context *cms_ctx, int do_fork)
 
 	openlog("pesignd", LOG_PID, LOG_DAEMON);
 
-
 	if (do_fork) {
 		pid_t pid;
 
@@ -870,6 +873,14 @@ daemonize(cms_context *cms_ctx, int do_fork)
 		"pesignd starting (pid %d)", ctx.pid);
 	daemon_logger(ctx.backup_cms, ctx.priority|LOG_NOTICE,
 		"pesignd starting (pid %d)", ctx.pid);
+
+
+	SECStatus status = NSS_Init("/etc/pki/pesign");
+	if (status != SECSuccess) {
+		fprintf(stderr, "Could not initialize nss: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		exit(1);
+	}
 
 	int fd = open("/dev/zero", O_RDONLY);
 	close(STDIN_FILENO);

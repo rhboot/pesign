@@ -46,7 +46,7 @@ typedef enum {
 	CMD_LIST_END
 } pesignd_cmd;
 
-#define PESIGND_VERSION 0
+#define PESIGND_VERSION 0xa3cf41cb
 #define SOCKPATH	"/var/run/pesign/socket"
 
 #endif /* DAEMON_H */

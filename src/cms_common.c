@@ -30,7 +30,6 @@
 #include "pesign.h"
 
 #include <nspr4/prerror.h>
-
 #include <nss3/nss.h>
 #include <nss3/secport.h>
 #include <nss3/secpkcs7.h>
@@ -186,6 +185,8 @@ cms_context_init(cms_context *cms)
 	if (status != SECSuccess)
 		return -1;
 
+	cms->log = cms_common_log;
+
 	cms->arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
 	if (!cms->arena) {
 		cms->log(cms, LOG_ERR,
@@ -196,14 +197,10 @@ cms_context_init(cms_context *cms)
 
 	int rc = setup_digests(cms);
 	if (rc < 0) {
-		cms->log(cms, LOG_ERR,
-			"Could not initialize cryptographic digest functions.");
 		PORT_FreeArena(cms->arena, PR_TRUE);
 		return -1;
 	}
 	cms->selected_digest = -1;
-
-	cms->log = cms_common_log;
 
 	return 0;
 }
