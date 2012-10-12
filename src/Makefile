@@ -65,6 +65,10 @@ install :
 	$(INSTALL) -m 644 peverify.1 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
+	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/lib/tmpfiles.d/
+	$(INSTALL) -m 644 tmpfiles.conf $(INSTALLROOT)/usr/lib/tmpfiles.d/pesign.conf
+	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/lib/systemd/system/
+	$(INSTALL) -m 644 pesign.service $(INSTALLROOT)/usr/lib/systemd/system/
 
 .PHONY: all deps clean install
 
