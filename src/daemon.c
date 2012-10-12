@@ -115,6 +115,16 @@ send_response(context *ctx, struct pollfd *pollfd, int rc, char *errmsg)
 static void
 handle_kill_daemon(context *ctx, struct pollfd *pollfd, socklen_t size)
 {
+	if (ctx->sd >= 0) {
+		close(ctx->sd);
+		unlink(SOCKPATH);
+	}
+	xfree(ctx->errstr);
+
+	ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_NOTICE,
+			"pesignd exiting (pid %d)", getpid());
+
+	cms_context_fini(ctx->backup_cms);
 	exit(0);
 }
 
@@ -543,24 +553,6 @@ quit_handler(int signal)
 	should_exit = 1;
 }
 
-static void
-announce_exit(int status, void *private)
-{
-	context *ctx = (context *)private;
-	if (ctx->sd >= 0) {
-		close(ctx->sd);
-		unlink(SOCKPATH);
-	}
-	if (ctx->errstr)
-		ctx->cms->log(ctx->cms,
-			ctx->priority | (status == 0 ? LOG_NOTICE : LOG_ERR),
-			ctx->errstr);
-
-	ctx->cms->log(ctx->cms,
-		ctx->priority | (status == 0 ? LOG_NOTICE : LOG_ERR),
-		"pesignd exiting (pid %d)", getpid());
-}
-
 static int
 set_up_socket(context *ctx)
 {
@@ -715,13 +707,6 @@ daemonize(cms_context *cms_ctx, int do_fork)
 		"pesignd starting (pid %d)", ctx.pid);
 	daemon_logger(ctx.backup_cms, ctx.priority|LOG_NOTICE,
 		"pesignd starting (pid %d)", ctx.pid);
-
-	rc = on_exit(announce_exit, &ctx);
-	if (rc < 0) {
-		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_ERR,
-			"pesignd: could not register exit handler: %m");
-		exit(1);
-	}
 
 	int fd = open("/dev/zero", O_RDONLY);
 	close(STDIN_FILENO);
