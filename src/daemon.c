@@ -339,7 +339,8 @@ set_up_outpe(context *ctx, int fd, Pe *inpe, Pe **outpe)
 }
 
 static void
-handle_sign_attached(context *ctx, struct pollfd *pollfd, socklen_t size)
+handle_signing(context *ctx, struct pollfd *pollfd, socklen_t size,
+	int attached)
 {
 	struct msghdr msg;
 	struct iovec iov;
@@ -417,11 +418,79 @@ malformed:
 		goto finish;
 	}
 
+	Pe *inpe = NULL;
+	rc = set_up_inpe(ctx, infd, &inpe);
+	if (rc < 0)
+		goto finish;
+
+	rc = 0;
+	if (attached) {
+		Pe *outpe = NULL;
+		rc = set_up_outpe(ctx, outfd, inpe, &outpe);
+		if (rc < 0)
+			goto finish;
+
+		rc = generate_digest(ctx->cms, outpe);
+		if (rc < 0) {
+err_attached:
+			pe_end(outpe);
+			ftruncate(outfd, 0);
+			goto finish;
+		}
+		ssize_t sigspace = calculate_signature_space(ctx->cms, outpe);
+		if (sigspace < 0)
+			goto err_attached;
+		allocate_signature_space(outpe, sigspace);
+		rc = generate_digest(ctx->cms, outpe);
+		if (rc < 0)
+			goto err_attached;
+		rc = generate_signature(ctx->cms);
+		if (rc < 0)
+			goto err_attached;
+		insert_signature(ctx->cms, ctx->cms->num_signatures);
+		finalize_signatures(ctx->cms, outpe);
+		pe_end(outpe);
+	} else {
+		ftruncate(outfd, 0);
+		rc = generate_digest(ctx->cms, inpe);
+		if (rc < 0) {
+err_detached:
+			ftruncate(outfd, 0);
+			goto finish;
+		}
+		rc = generate_signature(ctx->cms);
+		if (rc < 0)
+			goto err_detached;
+		rc = export_signature(ctx->cms, outfd, 0);
+		if (rc >= 0)
+			ftruncate(outfd, rc);
+		else if (rc < 0)
+			goto err_detached;
+	}
+
 finish:
+	if (inpe)
+		pe_end(inpe);
+
 	close(infd);
 	close(outfd);
 
 	send_response(ctx, pollfd, rc, ctx->errstr);
+}
+
+static void
+handle_sign_attached(context *ctx, struct pollfd *pollfd, socklen_t size)
+{
+	int rc = cms_context_alloc(&ctx->cms);
+	if (rc < 0)
+		return;
+
+	steal_from_cms(ctx->backup_cms, ctx->cms);
+
+	handle_signing(ctx, pollfd, size, 1);
+
+	hide_stolen_goods_from_cms(ctx->cms);
+	cms_context_fini(ctx->cms);
 }
 
 static void
@@ -433,7 +502,7 @@ handle_sign_detached(context *ctx, struct pollfd *pollfd, socklen_t size)
 
 	steal_from_cms(ctx->backup_cms, ctx->cms);
 
-	/* XXX actually handle signing here */
+	handle_signing(ctx, pollfd, size, 0);
 
 	hide_stolen_goods_from_cms(ctx->cms);
 	cms_context_fini(ctx->cms);
