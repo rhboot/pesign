@@ -23,8 +23,8 @@
 #include <string.h>
 #include <syslog.h>
 #include <termios.h>
-#include <unistd.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <nspr4/prerror.h>
 #include <nss3/cms.h>
