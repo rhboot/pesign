@@ -58,28 +58,6 @@ struct efi_variable {
 	uint32_t Attributes;
 };
 
-struct win_certificate {
-	uint32_t	dwLength;
-	uint16_t	wRevision;
-	uint16_t	wCertificateType;
-	uint8_t		wCertificate[];
-};
-
-struct win_certificate_uefi_guid {
-	struct win_certificate	Hdr;
-	efi_guid_t		CertType;
-};
-
-struct efi_variable_authentication {
-	uint64_t				MonotonicCount;
-	struct win_certificate_uefi_guid	AuthInfo;
-};
-
-struct efi_variable_authentication_2 {
-	efi_time_t				TimeStamp;
-	struct win_certificate_uefi_guid	AuthInfo;
-};
-
 #define EFI_VARIABLE_NON_VOLATILE	0x0000000000000001
 #define EFI_VARIABLE_BOOTSERVICE_ACCESS	0x0000000000000002
 #define EFI_VARIABLE_RUNTIME_ACCESS	0x0000000000000004
