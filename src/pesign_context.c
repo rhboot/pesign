@@ -85,7 +85,7 @@ pesign_context_fini(pesign_context *ctx)
 
 	if (ctx->cms_ctx) {
 		cms_context_fini(ctx->cms_ctx);
-		free(ctx->cms_ctx);
+		ctx->cms_ctx = NULL;
 	}
 
 	xfree(ctx->certname);

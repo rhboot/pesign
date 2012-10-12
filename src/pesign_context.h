@@ -59,7 +59,7 @@ typedef struct {
 
 	char *privkeyfile;
 	char *certname;
-	cms_context cms_ctx;
+	cms_context *cms_ctx;
 
 	int flags;
 
