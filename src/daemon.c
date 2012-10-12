@@ -39,6 +39,7 @@ static int should_exit = 0;
 
 typedef struct {
 	cms_context *cms;
+	cms_context *backup_cms;
 	uid_t uid;
 	gid_t gid;
 	pid_t pid;
@@ -46,6 +47,25 @@ typedef struct {
 	int priority;
 	char *errstr;
 } context;
+
+static void
+steal_from_cms(cms_context *old, cms_context *new)
+{
+	new->tokenname = old->tokenname;
+	new->certname = old->certname;
+
+	new->selected_digest = old->selected_digest;
+
+	new->log = old->log;
+	new->log_priv = old->log_priv;
+}
+
+static void
+hide_stolen_goods_from_cms(cms_context *cms)
+{
+	cms->tokenname = NULL;
+	cms->certname = NULL;
+}
 
 static void
 send_response(context *ctx, struct pollfd *pollfd, int rc, char *errmsg)
@@ -105,6 +125,12 @@ handle_unlock_token(context *ctx, struct pollfd *pollfd, socklen_t size)
 	struct iovec iov;
 	ssize_t n;
 	char *buffer = malloc(size);
+
+	int rc = cms_context_alloc(&ctx->cms);
+	if (rc < 0)
+		return;
+
+	steal_from_cms(ctx->backup_cms, ctx->cms);
 
 	if (!buffer) {
 oom:
@@ -168,7 +194,7 @@ malformed:
 	cms_set_pw_callback(ctx->cms, get_password_passthrough);
 	cms_set_pw_data(ctx->cms, pin);
 
-	int rc = unlock_nss_token(ctx->cms);
+	rc = unlock_nss_token(ctx->cms);
 
 	cms_set_pw_callback(ctx->cms, get_password_fail);
 	cms_set_pw_data(ctx->cms, NULL);
@@ -179,6 +205,9 @@ malformed:
 
 	send_response(ctx, pollfd, rc, ctx->errstr);
 	free(buffer);
+
+	hide_stolen_goods_from_cms(ctx->cms);
+	cms_context_fini(ctx->cms);
 }
 
 static void
@@ -316,7 +345,16 @@ finish:
 static void
 handle_sign_detached(context *ctx, struct pollfd *pollfd, socklen_t size)
 {
+	int rc = cms_context_alloc(&ctx->cms);
+	if (rc < 0)
+		return;
 
+	steal_from_cms(ctx->backup_cms, ctx->cms);
+
+	/* XXX actually handle signing here */
+
+	hide_stolen_goods_from_cms(ctx->cms);
+	cms_context_fini(ctx->cms);
 }
 
 static void
@@ -407,7 +445,7 @@ handle_events(context *ctx)
 	struct pollfd *pollfds = calloc(1, sizeof(struct pollfd));
 
 	if (!pollfds) {
-		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
 			"pesignd: could not allocate memory: %m");
 		exit(1);
 	}
@@ -420,7 +458,8 @@ handle_events(context *ctx)
 		if (should_exit != 0)
 			exit(0);
 		if (rc < 0) {
-			ctx->cms->log(ctx->cms, ctx->priority|LOG_WARNING,
+			ctx->backup_cms->log(ctx->backup_cms,
+				ctx->priority|LOG_WARNING,
 				"pesignd: ppoll: %m");
 			continue;
 		}
@@ -431,7 +470,8 @@ handle_events(context *ctx)
 				nsockets * sizeof(struct pollfd));
 
 			if (!newpollfds) {
-				ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+				ctx->backup_cms->log(ctx->backup_cms,
+					ctx->priority|LOG_ERR,
 					"pesignd: could not allocate memory: "
 					"%m");
 				exit(1);
@@ -485,7 +525,7 @@ get_uid_and_gid(context *ctx, char **homedir)
 	ctx->gid = passwd->pw_gid;
 
 	if (ctx->uid == 0 || ctx->gid == 0) {
-		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
 			"pesignd: cowardly refusing to start with uid = %d "
 			"and gid = %d", ctx->uid, ctx->gid);
 		errno = EINVAL;
@@ -645,13 +685,13 @@ daemonize(cms_context *cms_ctx, int do_fork)
 {
 	int rc = 0;
 	context ctx = { 
-		.cms = cms_ctx,
+		.backup_cms = cms_ctx,
 		.priority = do_fork ? LOG_PID
 				    : LOG_PID|LOG_PERROR,
 	};
 
-	ctx.cms = cms_ctx;
-	ctx.cms->log_priv = &ctx;
+	ctx.backup_cms = cms_ctx;
+	ctx.backup_cms->log_priv = &ctx;
 	ctx.sd = -1;
 
 	if (getuid() != 0) {
@@ -671,14 +711,14 @@ daemonize(cms_context *cms_ctx, int do_fork)
 			return 0;
 	}
 	ctx.pid = getpid();
-	ctx.cms->log(ctx.cms, ctx.priority|LOG_NOTICE,
+	ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_NOTICE,
 		"pesignd starting (pid %d)", ctx.pid);
-	daemon_logger(ctx.cms, ctx.priority|LOG_NOTICE,
+	daemon_logger(ctx.backup_cms, ctx.priority|LOG_NOTICE,
 		"pesignd starting (pid %d)", ctx.pid);
 
 	rc = on_exit(announce_exit, &ctx);
 	if (rc < 0) {
-		ctx.cms->log(ctx.cms, ctx.priority|LOG_ERR,
+		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_ERR,
 			"pesignd: could not register exit handler: %m");
 		exit(1);
 	}
@@ -687,7 +727,7 @@ daemonize(cms_context *cms_ctx, int do_fork)
 	close(STDIN_FILENO);
 	rc = dup2(fd, STDIN_FILENO);
 	if (rc < 0) {
-		ctx.cms->log(ctx.cms, ctx.priority|LOG_ERR,
+		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_ERR,
 			"pesignd: could not set up standard input: %m");
 		exit(1);
 	}
@@ -697,7 +737,7 @@ daemonize(cms_context *cms_ctx, int do_fork)
 	close(STDOUT_FILENO);
 	rc = dup2(fd, STDOUT_FILENO);
 	if (rc < 0) {
-		ctx.cms->log(ctx.cms, ctx.priority|LOG_ERR,
+		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_ERR,
 			"pesignd: could not set up standard output: %m");
 		exit(1);
 	}
@@ -705,7 +745,7 @@ daemonize(cms_context *cms_ctx, int do_fork)
 	close(STDERR_FILENO);
 	rc = dup2(fd, STDERR_FILENO);
 	if (rc < 0) {
-		ctx.cms->log(ctx.cms, ctx.priority|LOG_ERR,
+		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_ERR,
 			"pesignd: could not set up standard error: %m");
 		exit(1);
 	}
@@ -728,7 +768,7 @@ daemonize(cms_context *cms_ctx, int do_fork)
 
 	rc = get_uid_and_gid(&ctx, &homedir);
 	if (rc < 0) {
-		ctx.cms->log(ctx.cms, ctx.priority|LOG_ERR,
+		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_ERR,
 			"pesignd: could not get group and user information "
 			"for pesign: %m");
 		exit(1);
@@ -739,12 +779,14 @@ daemonize(cms_context *cms_ctx, int do_fork)
 	if (getuid() == 0) {
 		/* process is running as root, drop privileges */
 		if (setgid(ctx.gid) != 0) {
-			ctx.cms->log(ctx.cms, ctx.priority|LOG_ERR,
+			ctx.backup_cms->log(ctx.backup_cms,
+				ctx.priority|LOG_ERR,
 				"pesignd: unable to drop group privileges: %m");
 			exit(1);
 		}
 		if (setuid(ctx.uid) != 0) {
-			ctx.cms->log(ctx.cms, ctx.priority|LOG_ERR,
+			ctx.backup_cms->log(ctx.backup_cms,
+				ctx.priority|LOG_ERR,
 				"pesignd: unable to drop user privileges: %m");
 			exit(1);
 		}
@@ -752,9 +794,9 @@ daemonize(cms_context *cms_ctx, int do_fork)
 
 	set_up_socket(&ctx);
 
-	cms_set_pw_callback(ctx.cms, get_password_fail);
-	cms_set_pw_data(ctx.cms, NULL);
-	ctx.cms->log = daemon_logger;
+	cms_set_pw_callback(ctx.backup_cms, get_password_fail);
+	cms_set_pw_data(ctx.backup_cms, NULL);
+	ctx.backup_cms->log = daemon_logger;
 
 	rc = handle_events(&ctx);
 

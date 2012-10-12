@@ -194,6 +194,7 @@ cms_context_init(cms_context *cms)
 	if (rc < 0) {
 		cms->log(cms, LOG_ERR,
 			"Could not initialize cryptographic digest functions.");
+		PORT_FreeArena(cms->arena, PR_TRUE);
 		return -1;
 	}
 	cms->selected_digest = -1;
