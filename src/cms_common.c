@@ -258,16 +258,14 @@ cms_context_fini(cms_context *cms)
 		cms->raw_signature = NULL;
 	}
 
-#if 0
-	for (int i = 0; i < ctx->num_signatures; i++) {
-		if (ctx->signatures[i]) {
-			if (ctx->signatures[i]->data)
-				free(ctx->signatures[i]->data);
-			free(ctx->signatures[i]);
-		}
+	for (int i = 0; i < cms->num_signatures; i++) {
+		/* signature[i] and signature[i]->data() are freed when
+		 * the nss arena is cleaned up */
+		cms->signatures[i] = NULL;
 	}
-	free(ctx->signatures);
-#endif
+
+	xfree(cms->signatures);
+	cms->num_signatures = 0;
 
 	PORT_FreeArena(cms->arena, PR_TRUE);
 	memset(cms, '\0', sizeof(*cms));

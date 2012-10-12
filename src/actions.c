@@ -51,28 +51,29 @@ decryption_allowed(SECAlgorithmID *algid, PK11SymKey *key)
 	return PR_TRUE;
 }
 
-int
-insert_signature(pesign_context *ctx)
+void
+insert_signature(cms_context *cms, int signum)
 {
-	SECItem *sig = &ctx->cms_ctx->newsig;
+	SECItem *sig = &cms->newsig;
 
-	if (ctx->signum == -1)
-		ctx->signum = ctx->cms_ctx->num_signatures;
+	if (signum == -1)
+		signum = cms->num_signatures;
 
-	SECItem **signatures = realloc(ctx->cms_ctx->signatures,
-		sizeof (SECItem *) * ctx->cms_ctx->num_signatures + 1);
-	if (!signatures)
-		return -1;
-	ctx->cms_ctx->signatures = signatures;
-	if (ctx->signum != ctx->cms_ctx->num_signatures) {
-		memmove(ctx->cms_ctx->signatures[ctx->signum+1],
-			ctx->cms_ctx->signatures[ctx->signum],
-			sizeof(SECItem *) * (ctx->cms_ctx->num_signatures -
-						ctx->signum));
+	SECItem **signatures = realloc(cms->signatures,
+		sizeof (SECItem *) * (cms->num_signatures + 1));
+	if (!signatures) {
+		cms->log(cms, LOG_ERR, "insert signature: could not allocate "
+					"memory: %m");
+		exit(1);
 	}
-	ctx->cms_ctx->signatures[ctx->signum] = sig;
-	ctx->cms_ctx->num_signatures++;
-	return 0;
+	cms->signatures = signatures;
+	if (signum != cms->num_signatures) {
+		memmove(cms->signatures[signum+1],
+			cms->signatures[signum],
+			sizeof(SECItem *) * (cms->num_signatures - signum));
+	}
+	cms->signatures[signum] = sig;
+	cms->num_signatures++;
 }
 
 int
@@ -423,11 +424,7 @@ check_signature_space(pesign_context *ctx)
 int
 import_signature(pesign_context *ctx)
 {
-	int rc = insert_signature(ctx);
-	if (rc < 0) {
-		fprintf(stderr, "Could not add new signature\n");
-		exit(1);
-	}
+	insert_signature(ctx->cms_ctx, ctx->signum);
 
 	return finalize_signatures(ctx->cms_ctx, ctx->outpe);
 }

@@ -608,7 +608,7 @@ main(int argc, char *argv[])
 								ctx.outpe);
 			allocate_signature_space(ctxp, sigspace);
 			generate_signature(ctxp);
-			insert_signature(ctxp);
+			insert_signature(ctx.cms_ctx, ctx.signum);
 			finalize_signatures(ctx.cms_ctx, ctx.outpe);
 			close_output(ctxp);
 			break;
@@ -733,7 +733,7 @@ main(int argc, char *argv[])
 			allocate_signature_space(ctxp, sigspace);
 			generate_digest(ctx.cms_ctx, ctx.outpe);
 			generate_signature(ctxp);
-			insert_signature(ctxp);
+			insert_signature(ctx.cms_ctx, ctx.signum);
 			finalize_signatures(ctx.cms_ctx, ctx.outpe);
 			close_output(ctxp);
 			break;
