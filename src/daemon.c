@@ -33,6 +33,8 @@
 
 #include "pesign.h"
 
+#include <nss3/nss.h>
+
 static int should_exit = 0;
 
 typedef struct {
@@ -755,5 +757,7 @@ daemonize(cms_context *cms_ctx, int do_fork)
 	ctx.cms->log = daemon_logger;
 
 	rc = handle_events(&ctx);
+
+	NSS_Shutdown();
 	return rc;
 }

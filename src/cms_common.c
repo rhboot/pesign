@@ -176,14 +176,9 @@ cms_common_log(cms_context *ctx, int priority, char *fmt, ...)
 int
 cms_context_init(cms_context *cms)
 {
-	SECStatus status;
-	
-	status = NSS_Init("/etc/pki/pesign");
-	if (status != SECSuccess)
-		return -1;
 	memset(cms, '\0', sizeof (*cms));
 
-	status = register_oids();
+	SECStatus status = register_oids(cms);
 	if (status != SECSuccess)
 		return -1;
 
@@ -269,8 +264,7 @@ cms_context_fini(cms_context *cms)
 
 	PORT_FreeArena(cms->arena, PR_TRUE);
 	memset(cms, '\0', sizeof(*cms));
-
-	NSS_Shutdown();
+	xfree(cms);
 }
 
 int

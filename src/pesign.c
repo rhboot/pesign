@@ -497,6 +497,10 @@ main(int argc, char *argv[])
 		POPT_TABLEEND
 	};
 
+	SECStatus status = NSS_Init("/etc/pki/pesign");
+	if (status != SECSuccess)
+		return -1;
+
 	rc = pesign_context_init(ctxp);
 	if (rc < 0) {
 		fprintf(stderr, "Could not initialize context: %m\n");
@@ -750,5 +754,7 @@ main(int argc, char *argv[])
 			exit(1);
 	}
 	pesign_context_fini(&ctx);
+
+	NSS_Shutdown();
 	return (rc < 0);
 }
