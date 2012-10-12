@@ -946,7 +946,7 @@ error:
 /* before you run this, you'll need to enroll your CA with:
  * certutil -A -n 'my CA' -d /etc/pki/pesign -t CT,CT,CT -i ca.crt
  * And you'll need to enroll the private key like this:
- * pk12util -d /etc/pki/pesign/ -i Peter\ Jones.p12 
+ * pk12util -d /etc/pki/pesign/ -i Peter\ Jones.p12
  */
 int
 generate_signature(cms_context *cms)
