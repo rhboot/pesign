@@ -1,0 +1,1384 @@
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:NSSRWLock_New_Util
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:_Znwm
+   obj:*
+   fun:secmod_ModuleInit
+   fun:secmod_LoadPKCS11Module
+   fun:SECMOD_LoadModule
+   fun:SECMOD_LoadModule
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:_Znwm
+   obj:*
+   fun:secmod_ModuleInit
+   fun:secmod_LoadPKCS11Module
+   fun:SECMOD_LoadModule
+   fun:SECMOD_LoadModule
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:pkix_pl_PrimHashTable_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:pkix_pl_PrimHashTable_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:pkix_pl_PrimHashTable_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:pkix_pl_PrimHashTable_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:pkix_pl_PrimHashTable_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:pkix_pl_PrimHashTable_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:nssList_CreateIterator
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:pkix_pl_PrimHashTable_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_MonitorLock_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:_Znwm
+   obj:*
+   fun:secmod_ModuleInit
+   fun:secmod_LoadPKCS11Module
+   fun:SECMOD_LoadModule
+   fun:SECMOD_LoadModule
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:NSSRWLock_New_Util
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PR_NewCondVar
+   fun:NSSRWLock_New_Util
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PR_NewCondVar
+   fun:NSSRWLock_New_Util
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewMonitor
+   fun:PKIX_PL_MonitorLock_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PORT_ZAlloc_Util
+   fun:PORT_NewArena_Util
+   fun:SECMOD_CreateModule
+   fun:SECMOD_LoadModule
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:PL_NewHashTable
+   fun:nssHash_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:PL_NewHashTable
+   fun:nssHash_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:PL_NewHashTable
+   fun:nssHash_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:PL_NewHashTable
+   fun:nssHash_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:PL_NewHashTable
+   fun:nssHash_Create
+   fun:nssCertificateStore_Create
+   fun:nssCryptoContext_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:PL_NewHashTable
+   fun:nssHash_Create
+   fun:nssCertificateStore_Create
+   fun:nssCryptoContext_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:error_get_my_stack
+   fun:nss_ClearErrorStack
+   fun:NSSArena_Create
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:nssArena_Create
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:nssArena_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:nssArena_Create
+   fun:nssList_Create
+   fun:nssList_Clone
+   fun:nssList_CreateIterator
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:nssArena_Create
+   fun:nssCryptoContext_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   obj:*
+   obj:*
+   obj:*
+   fun:secmod_ModuleInit
+   fun:secmod_LoadPKCS11Module
+   fun:SECMOD_LoadModule
+   fun:SECMOD_LoadModule
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:PL_NewHashTable
+   fun:nssHash_Create
+   fun:nssCertificateStore_Create
+   fun:nssCryptoContext_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:PL_NewHashTable
+   fun:nssHash_Create
+   fun:nssCertificateStore_Create
+   fun:nssCryptoContext_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PORT_ZAlloc_Util
+   fun:PORT_NewArena_Util
+   fun:SECMOD_CreateModule
+   fun:SECMOD_LoadModule
+   fun:SECMOD_LoadModule
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:nssArena_Create
+   fun:nssToken_CreateFromPK11SlotInfo
+   fun:STAN_InitTokenForSlotInfo
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:nssArena_Create
+   fun:nssToken_CreateFromPK11SlotInfo
+   fun:STAN_InitTokenForSlotInfo
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PORT_NewArena_Util
+   fun:SECMOD_CreateModule
+   fun:SECMOD_LoadModule
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:SECMOD_CreateModule
+   fun:SECMOD_LoadModule
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssArena_Create
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:NSSRWLock_New_Util
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssArena_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssHash_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssHash_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssHash_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssHash_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssList_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssArena_Create
+   fun:nssList_Create
+   fun:nssList_Clone
+   fun:nssList_CreateIterator
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssList_Create
+   fun:nssList_Clone
+   fun:nssList_CreateIterator
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssList_CreateIterator
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssArena_Create
+   fun:nssCryptoContext_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssCertificateStore_Create
+   fun:nssCryptoContext_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssHash_Create
+   fun:nssCertificateStore_Create
+   fun:nssCryptoContext_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssHash_Create
+   fun:nssCertificateStore_Create
+   fun:nssCryptoContext_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Mutex_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PKIX_PL_Object_Alloc
+   fun:PKIX_PL_MonitorLock_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewMonitor
+   fun:PKIX_PL_MonitorLock_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:pkix_pl_PrimHashTable_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:pkix_pl_PrimHashTable_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:pkix_pl_PrimHashTable_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:pkix_pl_PrimHashTable_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PKIX_PL_Malloc
+   fun:pkix_pl_PrimHashTable_Create
+   fun:PKIX_PL_HashTable_Create
+   fun:PKIX_Initialize
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:PL_NewHashTable
+   fun:nssHash_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:PL_NewHashTable
+   fun:nssHash_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:PL_NewHashTable
+   fun:nssHash_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:PL_NewHashTable
+   fun:nssHash_Create
+   fun:nssTrustDomain_InitializeCache
+   fun:NSSTrustDomain_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:PORT_NewArena_Util
+   fun:SECMOD_CreateModule
+   fun:SECMOD_LoadModule
+   fun:SECMOD_LoadModule
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:SECMOD_CreateModule
+   fun:SECMOD_LoadModule
+   fun:SECMOD_LoadModule
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssArena_Create
+   fun:nssToken_CreateFromPK11SlotInfo
+   fun:STAN_InitTokenForSlotInfo
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssToken_CreateFromPK11SlotInfo
+   fun:STAN_InitTokenForSlotInfo
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssArena_Create
+   fun:nssToken_CreateFromPK11SlotInfo
+   fun:STAN_InitTokenForSlotInfo
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:PR_NewLock
+   fun:nssToken_CreateFromPK11SlotInfo
+   fun:STAN_InitTokenForSlotInfo
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PL_ArenaAllocate
+   fun:PORT_ArenaAlloc_Util
+   fun:SECMOD_CreateModule
+   fun:SECMOD_LoadModule
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PL_ArenaAllocate
+   fun:PORT_ArenaAlloc_Util
+   fun:legacy_ReadSecmodDB
+   fun:sftkdb_ReadSecmodDB
+   fun:NSC_ModuleDBFunc
+   fun:SECMOD_LoadModule
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PL_ArenaAllocate
+   fun:PORT_ArenaAlloc_Util
+   fun:PORT_ArenaZAlloc_Util
+   fun:nsslowcert_GetVersionNumber
+   fun:nsslowcert_OpenCertDB
+   fun:legacy_Open
+   fun:sftk_DBInit
+   fun:SFTK_SlotReInit
+   fun:SFTK_SlotInit
+   fun:nsc_CommonInitialize
+   fun:NSC_Initialize
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PL_ArenaAllocate
+   fun:PORT_ArenaAlloc_Util
+   fun:nsslowcert_GetVersionNumber
+   fun:nsslowcert_OpenCertDB
+   fun:legacy_Open
+   fun:sftk_DBInit
+   fun:SFTK_SlotReInit
+   fun:SFTK_SlotInit
+   fun:nsc_CommonInitialize
+   fun:NSC_Initialize
+   fun:secmod_ModuleInit
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PL_ArenaAllocate
+   fun:PORT_ArenaAlloc_Util
+   fun:PORT_ArenaZAlloc_Util
+   fun:SEC_ASN1EncoderStart_Util
+   fun:SEC_ASN1Encode_Util
+   fun:SEC_ASN1EncodeItem_Util
+   fun:lg_GetMetaData
+   fun:sftkdb_HasPasswordSet
+   fun:SFTK_SlotReInit
+   fun:SFTK_SlotInit
+   fun:nsc_CommonInitialize
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PL_ArenaAllocate
+   fun:nss_zalloc_arena_locked
+   fun:nss_ZAlloc
+   fun:nssList_Create
+   fun:nssList_Clone
+   fun:nssList_CreateIterator
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PL_ArenaAllocate
+   fun:nss_zalloc_arena_locked
+   fun:nss_ZAlloc
+   fun:nssCryptoContext_Create
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PL_ArenaAllocate
+   fun:nss_zalloc_arena_locked
+   fun:nss_ZAlloc
+   fun:nssToken_CreateFromPK11SlotInfo
+   fun:STAN_InitTokenForSlotInfo
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:PL_ArenaAllocate
+   fun:nss_zalloc_arena_locked
+   fun:nss_ZAlloc
+   fun:nssToken_CreateFromPK11SlotInfo
+   fun:STAN_InitTokenForSlotInfo
+   fun:STAN_LoadDefaultNSS3TrustDomain
+   fun:nss_Init
+   fun:NSS_Init
+   fun:main
+}
