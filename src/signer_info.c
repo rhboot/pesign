@@ -159,6 +159,9 @@ err:
 	return -1;
 }
 
+#if 0
+#warning investigate killing getpw
+#endif
 static char *getpw(PK11SlotInfo *slot, PRBool retry, void *arg)
 {
 	struct termios sio, tio;
@@ -217,11 +220,11 @@ sign_blob(cms_context *cms, SECItem *sigitem, SECItem *sign_content)
 		goto err;
 	}
 	
-	SECItem signature;
-	memset (&signature, '\0', sizeof (signature));
+	SECItem *signature, tmp;
+	memset (&tmp, '\0', sizeof (tmp));
 
 	SECStatus status;
-	status = SEC_SignData(&signature, sign_content->data, sign_content->len,
+	status = SEC_SignData(&tmp, sign_content->data, sign_content->len,
 			privkey, oid->offset);
 	SECKEY_DestroyPrivateKey(privkey);
 	privkey = NULL;
@@ -229,10 +232,27 @@ sign_blob(cms_context *cms, SECItem *sigitem, SECItem *sign_content)
 	if (status != SECSuccess) {
 		cms->log(cms, LOG_ERR, "error signing data: %s",
 			PORT_ErrorToString(PORT_GetError()));
-		SECITEM_FreeItem(&signature, PR_FALSE);
+		PORT_Free(tmp.data);
 		return -1;
 	}
-	*sigitem = signature;
+
+	/* SEC_SignData awesomely allocates a SECItem and its contents for
+	 * the signature, meaning they're not in our nss arena.  Fix it. */
+	signature = SECITEM_AllocItem(cms->arena, NULL, tmp.len);
+	if (!signature) {
+		cms->log(cms, LOG_ERR, "error signing data: %s",
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+	memcpy(signature->data, tmp.data, tmp.len);
+	PORT_Free(tmp.data);
+
+	if (status != SECSuccess) {
+		cms->log(cms, LOG_ERR, "error signing data: %s",
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+	memcpy(sigitem, signature, sizeof(*sigitem));
 
 	//SECITEM_FreeItem(sign_content, PR_TRUE);
 	return 0;
