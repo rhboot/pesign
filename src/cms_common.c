@@ -340,6 +340,53 @@ is_valid_cert(CERTCertificate *cert, void *data)
 }
 
 int
+unlock_nss_token(cms_context *ctx)
+{
+	secuPWData pwdata_val = { 0, 0 };
+	void *pwdata = ctx->pwdata ? ctx->pwdata : &pwdata_val;
+	PK11_SetPasswordFunc(ctx->func ? ctx->func : SECU_GetModulePassword);
+
+	PK11SlotList *slots = NULL;
+	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, pwdata);
+	if (!slots) {
+		ctx->log(ctx, LOG_ERR, "Could not find certificate \"%s\"",
+			ctx->tokenname);
+err:
+		return -1;
+	}
+
+	PK11SlotListElement *psle = NULL;
+	psle = PK11_GetFirstSafe(slots);
+	if (!psle) {
+err_slots:
+		PK11_FreeSlotList(slots);
+		goto err;
+	}
+
+	while (psle) {
+		if (!strcmp(ctx->tokenname, PK11_GetTokenName(psle->slot)))
+			break;
+
+		psle = PK11_GetNextSafe(slots, psle, PR_FALSE);
+	}
+
+	if (!psle)
+		goto err_slots;
+
+	SECStatus status;
+	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, pwdata)) {
+		status = PK11_Authenticate(psle->slot, PR_TRUE, pwdata);
+		if (status != SECSuccess) {
+			ctx->log(ctx, LOG_ERR, "Authentication failed for "
+				"token \"%s\"", ctx->tokenname);
+			goto err_slots;
+		}
+	}
+
+	return 0;
+}
+
+int
 find_certificate(cms_context *ctx)
 {
 	if (!ctx->certname || !*ctx->certname)

@@ -103,7 +103,7 @@ extern int generate_spc_link(PRArenaPool *arena, SpcLink *slp,
 extern int generate_spc_string(PRArenaPool *arena, SECItem *ssp,
 				char *str, int len);
 extern int generate_digest(cms_context *cms, Pe *pe);
-
+extern int unlock_nss_token(cms_context *ctx);
 extern int find_certificate(cms_context *ctx);
 
 extern SECOidTag digest_get_digest_oid(cms_context *cms);
