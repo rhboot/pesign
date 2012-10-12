@@ -114,7 +114,8 @@ setup_digests(cms_context *cms)
 						digest_params[i].digest_tag);
 		if (!digests[i].pk11ctx) {
 			cms->log(cms, LOG_ERR, "could not create digest "
-						"context");
+				"context: %s",
+				PORT_ErrorToString(PORT_GetError()));
 			goto err;
 		}
 
