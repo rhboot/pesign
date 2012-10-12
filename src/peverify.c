@@ -146,7 +146,6 @@ main(int argc, char *argv[])
 	int rc;
 
 	peverify_context ctx, *ctxp = &ctx;
-	char *digest_name = "sha256";
 
 	char *dbfile = NULL;
 	char *dbxfile = NULL;
@@ -162,8 +161,6 @@ main(int argc, char *argv[])
 			"use file for allowed certificate list", "<dbfile>" },
 		{"dbxfile", 'X', POPT_ARG_STRING, &dbxfile, 0,
 			"use file for disallowed certificate list","<dbxfile>"},
-		{"digest_type", 'd', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
-			&digest_name, 0, "digest type to use for pe hash" },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
@@ -195,18 +192,10 @@ main(int argc, char *argv[])
 
 	poptFreeContext(optCon);
 
-	rc = set_digest_parameters(&ctx.cms_ctx, digest_name);
-	int is_help  = strcmp(digest_name, "help") ? 0 : 1;
-	if (rc < 0) {
-		if (!is_help) {
-			fprintf(stderr, "Digest \"%s\" not found.\n",
-				digest_name);
-		}
-		exit(!is_help);
-	}
-
 	check_inputs(ctxp);
 	open_input(ctxp);
+
+	init_cert_db(ctxp, dbfile, dbxfile);
 
 	rc = check_signature(ctxp);
 

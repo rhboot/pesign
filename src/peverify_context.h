@@ -26,16 +26,22 @@ enum {
 	PEVERIFY_C_ALLOCATED = 1,
 };
 
-struct peverify_context;
-
-typedef int (*get_wincert_list)(struct peverify_context *ctx, void **list, size_t *size);
-
 struct dblist {
-	FILE *f;
+	int fd;
 	struct dblist *next;
+	size_t size;
+	void *map;
 };
 
 typedef struct dblist dblist;
+
+struct hashlist {
+	efi_guid_t *hash_type;
+	void *data;
+	size_t datalen;
+	struct hashlist *next;
+};
+typedef struct hashlist hashlist;
 
 typedef struct peverify_context {
 	int flags;
@@ -45,6 +51,8 @@ typedef struct peverify_context {
 	Pe *inpe;
 
 	int quiet;
+
+	hashlist *hashes;
 
 	dblist *db;
 	dblist *dbx;

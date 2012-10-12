@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <sys/mman.h>
 #include <unistd.h>
 
 #include "peverify.h"
@@ -77,6 +78,29 @@ peverify_context_fini(peverify_context *ctx)
 
 	if (!(ctx->flags & PEVERIFY_C_ALLOCATED))
 		peverify_context_init(ctx);
+
+	while (ctx->db) {
+		dblist *db = ctx->db;
+
+		munmap(db->map, db->size);
+		close(db->fd);
+		ctx->db = db->next;
+		free(db);
+	}
+	while (ctx->dbx) {
+		dblist *db = ctx->dbx;
+
+		munmap(db->map, db->size);
+		close(db->fd);
+		ctx->dbx = db->next;
+		free(db);
+	}
+	while (ctx->hashes) {
+		hashlist *hashes = ctx->hashes;
+		free(hashes->data);
+		ctx->hashes = hashes->next;
+		free(hashes);
+	}
 }
 
 void

@@ -29,8 +29,22 @@ typedef enum {
 	NOT_FOUND = 1
 } db_status;
 
-extern db_status check_db_hash(db_specifier, peverify_context *ctx);
-extern db_status check_db_cert(db_specifier, peverify_context *ctx,
+typedef struct {
+	efi_guid_t	SignatureOwner;
+	uint8_t		SignatureData[1];
+} EFI_SIGNATURE_DATA;
+
+typedef struct {
+	efi_guid_t	SignatureType;
+	uint32_t	SignatureListSize;
+	uint32_t	SignatureHeaderSize;
+	uint32_t	SignatureSize;
+} EFI_SIGNATURE_LIST;
+
+extern db_status check_db_hash(db_specifier which, peverify_context *ctx);
+extern db_status check_db_cert(db_specifier which, peverify_context *ctx,
 				void *data, ssize_t datalen);
+
+extern void init_cert_db(peverify_context *ctx, char *dbfile, char *dbxfile);
 
 #endif /* CERTDB_H */
