@@ -335,32 +335,6 @@ decoder_error:
 #endif
 }
 
-/* before you run this, you'll need to enroll your CA with:
- * certutil -A -n 'my CA' -d /etc/pki/pesign -t CT,CT,CT -i ca.crt
- * And you'll need to enroll the private key like this:
- * pk12util -d /etc/pki/pesign/ -i Peter\ Jones.p12 
- */
-int
-generate_signature(pesign_context *p_ctx)
-{
-	int rc = 0;
-	cms_context *ctx = p_ctx->cms_ctx;
-
-	assert(ctx->digests[ctx->selected_digest].pe_digest != NULL);
-
-	SECItem sd_der;
-	memset(&sd_der, '\0', sizeof(sd_der));
-	rc = generate_spc_signed_data(&sd_der, ctx);
-	if (rc < 0) {
-		fprintf(stderr, "Could not create signed data: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
-	}
-
-	memcpy(&ctx->newsig, &sd_der, sizeof (ctx->newsig));
-	return 0;
-}
-
 void
 import_raw_signature(pesign_context *pctx)
 {

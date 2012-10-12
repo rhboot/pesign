@@ -915,3 +915,28 @@ error_shdrs:
 error:
 	return -1;
 }
+
+/* before you run this, you'll need to enroll your CA with:
+ * certutil -A -n 'my CA' -d /etc/pki/pesign -t CT,CT,CT -i ca.crt
+ * And you'll need to enroll the private key like this:
+ * pk12util -d /etc/pki/pesign/ -i Peter\ Jones.p12 
+ */
+int
+generate_signature(cms_context *cms)
+{
+	int rc = 0;
+
+	assert(cms->digests[cms->selected_digest].pe_digest != NULL);
+
+	SECItem sd_der;
+	memset(&sd_der, '\0', sizeof(sd_der));
+	rc = generate_spc_signed_data(cms, &sd_der);
+	if (rc < 0) {
+		cms->log(cms, LOG_ERR, "could not create signed data: %s",
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	memcpy(&cms->newsig, &sd_der, sizeof (cms->newsig));
+	return 0;
+}

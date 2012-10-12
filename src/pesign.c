@@ -607,7 +607,7 @@ main(int argc, char *argv[])
 			sigspace = calculate_signature_space(ctx.cms_ctx,
 								ctx.outpe);
 			allocate_signature_space(ctxp, sigspace);
-			generate_signature(ctxp);
+			generate_signature(ctx.cms_ctx);
 			insert_signature(ctx.cms_ctx, ctx.signum);
 			finalize_signatures(ctx.cms_ctx, ctx.outpe);
 			close_output(ctxp);
@@ -711,7 +711,7 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_sig_output(ctxp);
 			generate_digest(ctx.cms_ctx, ctx.inpe);
-			generate_signature(ctxp);
+			generate_signature(ctx.cms_ctx);
 			export_signature(ctx.cms_ctx, ctx.outsigfd, ctx.ascii);
 			break;
 		/* generate a signature and embed it in the binary */
@@ -732,7 +732,7 @@ main(int argc, char *argv[])
 							     ctx.outpe);
 			allocate_signature_space(ctxp, sigspace);
 			generate_digest(ctx.cms_ctx, ctx.outpe);
-			generate_signature(ctxp);
+			generate_signature(ctx.cms_ctx);
 			insert_signature(ctx.cms_ctx, ctx.signum);
 			finalize_signatures(ctx.cms_ctx, ctx.outpe);
 			close_output(ctxp);

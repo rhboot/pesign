@@ -34,7 +34,6 @@ extern void remove_signature(pesign_context *ctx);
 extern void export_pubkey(pesign_context *ctx);
 extern void export_cert(pesign_context *ctx);
 extern int generate_sattr_blob(pesign_context *pctx);
-extern int generate_signature(pesign_context *ctx);
 extern void insert_signature(cms_context *cms, int signum);
 
 #endif /* PESIGN_CRYPTO_H */
