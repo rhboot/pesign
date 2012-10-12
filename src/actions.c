@@ -406,11 +406,11 @@ import_signature(pesign_context *ctx)
 }
 
 void
-allocate_signature_space(pesign_context *ctx, ssize_t sigspace)
+allocate_signature_space(Pe *pe, ssize_t sigspace)
 {
 	int rc;
 
-	rc = pe_alloccert(ctx->outpe, sigspace);
+	rc = pe_alloccert(pe, sigspace);
 	if (rc < 0) {
 		fprintf(stderr, "Could not allocate space for signature: %m\n");
 		exit(1);
