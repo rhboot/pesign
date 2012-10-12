@@ -216,54 +216,56 @@ export_cert(pesign_context *p_ctx)
 	exit(1);
 }
 
-
-void
-export_signature(pesign_context *p_ctx)
+off_t
+export_signature(cms_context *cms, int fd, int ascii_armor)
 {
+	off_t ret = 0;
 	int rc = 0;
 
-	SECItem *sig = &p_ctx->cms_ctx->newsig;
+	SECItem *sig = &cms->newsig;
 
 	unsigned char *data = sig->data;
 	int datalen = sig->len;
-	if (p_ctx->ascii) {
+	if (ascii_armor) {
 		char *ascii = BTOA_DataToAscii(data, datalen);
 		if (!ascii) {
 			cms->log(cms, LOG_ERR, "error exporting signature");
 failure:
-			close(p_ctx->outsigfd);
-			unlink(p_ctx->outsig);
-			exit(1);
+			close(fd);
+			return -1;
 		}
 
-		rc = write(p_ctx->outsigfd, sig_begin_marker,
-				strlen(sig_begin_marker));
+		rc = write(fd, sig_begin_marker, strlen(sig_begin_marker));
 		if (rc < 0) {
 			cms->log(cms, LOG_ERR, "error exporting signature: %m");
 			goto failure;
 		}
+		ret += rc;
 
-		rc = write(p_ctx->outsigfd, ascii, strlen(ascii));
+		rc = write(fd, ascii, strlen(ascii));
 		if (rc < 0) {
 			cms->log(cms, LOG_ERR, "error exporting signature: %m");
 			goto failure;
 		}
+		ret += rc;
 
-		rc = write(p_ctx->outsigfd, sig_end_marker,
-			strlen(sig_end_marker));
+		rc = write(fd, sig_end_marker, strlen(sig_end_marker));
 		if (rc < 0) {
 			cms->log(cms, LOG_ERR, "error exporting signature: %m");
 			goto failure;
 		}
+		ret += rc;
 
 		PORT_Free(ascii);
 	} else {
-		rc = write(p_ctx->outsigfd, data, datalen);
+		rc = write(fd, data, datalen);
 		if (rc < 0) {
 			cms->log(cms, LOG_ERR, "error exporting signature: %m");
 			goto failure;
 		}
+		ret += rc;
 	}
+	return ret;
 }
 
 static void

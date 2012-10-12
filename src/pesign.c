@@ -672,7 +672,7 @@ main(int argc, char *argv[])
 			memcpy(&ctx.cms_ctx->newsig,
 				ctx.cms_ctx->signatures[ctx.signum],
 				sizeof (ctx.cms_ctx->newsig));
-			export_signature(ctxp);
+			export_signature(ctx.cms_ctx, ctx.outsigfd, ctx.ascii);
 			close_input(ctxp);
 			close_sig_output(ctxp);
 			break;
@@ -712,7 +712,7 @@ main(int argc, char *argv[])
 			open_sig_output(ctxp);
 			generate_digest(ctx.cms_ctx, ctx.inpe);
 			generate_signature(ctxp);
-			export_signature(ctxp);
+			export_signature(ctx.cms_ctx, ctx.outsigfd, ctx.ascii);
 			break;
 		/* generate a signature and embed it in the binary */
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
