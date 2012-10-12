@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -214,6 +215,28 @@ SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
     return phrase;
 }
 
+char *
+get_password_passthrough(PK11SlotInfo *slot, PRBool retry, void *arg)
+{
+	if (retry)
+		return NULL;
+
+	if (!arg)
+		return arg;
+
+	char *ret = strdup(arg);
+	if (!ret) {
+		fprintf(stderr, "Failed to allocate memory\n");
+		exit(1);
+	}
+	return ret;
+}
+
+char *
+get_password_fail(PK11SlotInfo *slot, PRBool retry, void *arg)
+{
+	return NULL;
+}
 
 char *
 SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg) 

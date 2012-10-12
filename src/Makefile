@@ -24,7 +24,7 @@ authvar_OBJECTS = $(foreach source,$(authvar_SOURCES),$(patsubst %.c,%,$(source)
 authvar_DEPS = $(foreach source,$(authvar_SOURCES),.$(patsubst %.c,%,$(source)).P)
 authvar : $(authvar_OBJECTS) $(STATIC_LIBS)
 
-pesign_SOURCES = pesign.c pesign_context.c actions.c
+pesign_SOURCES = pesign.c pesign_context.c actions.c daemon.c
 pesign_OBJECTS = $(foreach source,$(pesign_SOURCES),$(patsubst %.c,%,$(source)).o) generic.a
 pesign_DEPS = $(foreach source,$(pesign_SOURCES),.$(patsubst %.c,%,$(source)).P)
 pesign : $(pesign_OBJECTS) $(STATIC_LIBS)
@@ -46,6 +46,7 @@ clean : depclean
 
 install :
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pki/pesign/
+	$(INSTALL) -d -m 770 $(INSTALLROOT)/var/run/pesign/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(PREFIX)/bin/
 	$(INSTALL) -m 755 pesign $(INSTALLROOT)$(PREFIX)/bin/
 	$(INSTALL) -m 755 peverify $(INSTALLROOT)$(PREFIX)/bin/

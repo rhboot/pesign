@@ -45,12 +45,14 @@
 #define PRINT_DIGEST		0x200
 #define EXPORT_PUBKEY		0x400
 #define EXPORT_CERT		0x800
-#define FLAG_LIST_END		0x1000
+#define DAEMONIZE		0x1000
+#define FLAG_LIST_END		0x2000
 
 static struct {
 	int flag;
 	const char *name;
 } flag_names[] = {
+	{DAEMONIZE, "daemonize"},
 	{GENERATE_DIGEST, "hash"},
 	{GENERATE_SIGNATURE, "sign"},
 	{IMPORT_RAW_SIGNATURE, "import-raw-sig"},
@@ -426,6 +428,8 @@ main(int argc, char *argv[])
 
 	int list = 0;
 	int remove = 0;
+	int daemon = 0;
+	int fork = 1;
 
 	char *digest_name = "sha256";
 	char *tokenname = "NSS Certificate DB";
@@ -484,6 +488,10 @@ main(int argc, char *argv[])
 			"<outcert>" },
 		{"ascii-armor", 'a', POPT_ARG_VAL, &ctx.ascii, 1,
 			"use ascii armoring", NULL },
+		{"daemonize", 'D', POPT_ARG_VAL, &daemon, 1,
+			"run as a daemon process", NULL },
+		{"nofork", 'N', POPT_ARG_VAL, &fork, 0,
+			"don't fork when daemonizing", NULL },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
@@ -527,6 +535,9 @@ main(int argc, char *argv[])
 	ctx.cms_ctx->tokenname = tokenname;
 
 	int action = 0;
+	if (daemon)
+		action |= DAEMONIZE;
+
 	if (ctx.rawsig)
 		action |= IMPORT_RAW_SIGNATURE;
 
@@ -725,6 +736,9 @@ main(int argc, char *argv[])
 			insert_signature(ctxp);
 			finalize_signatures(ctx.cms_ctx, ctx.outpe);
 			close_output(ctxp);
+			break;
+		case DAEMONIZE:
+			rc = daemonize(ctx.cms_ctx, fork);
 			break;
 		default:
 			fprintf(stderr, "Incompatible flags (0x%08x): ", action);

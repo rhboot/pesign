@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2012 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,25 +16,37 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_H
-#define PESIGN_H 1
+#ifndef DAEMON_H
+#define DAEMON_H 1
 
-#include <libdpe/libdpe.h>
-#include <libdpe/pe.h>
+extern int daemonize(cms_context *ctx, int do_fork);
 
-#include "cms_common.h"
-#include "pesign_context.h"
+typedef struct {
+	uint32_t version;
+	uint32_t command;
+	uint32_t size;
+} pesignd_msghdr;
 
-#include "daemon.h"
-#include "util.h"
-#include "efitypes.h"
-#include "actions.h"
-#include "endian.h"
-#include "oid.h"
-#include "wincert.h"
-#include "content_info.h"
-#include "signer_info.h"
-#include "signed_data.h"
-#include "password.h"
+typedef struct  {
+	uint32_t rc;
+	uint8_t errmsg[];
+} pesignd_cmd_response;
 
-#endif /* PESIGN_H */
+typedef struct {
+	uint32_t size;
+	uint8_t value[];
+} pesignd_string;
+
+typedef enum {
+	CMD_KILL_DAEMON,
+	CMD_UNLOCK_TOKEN,
+	CMD_SIGN_ATTACHED,
+	CMD_SIGN_DETACHED,
+	CMD_RESPONSE,
+	CMD_LIST_END
+} pesignd_cmd;
+
+#define PESIGND_VERSION 0
+#define SOCKPATH	"/var/run/pesign/socket"
+
+#endif /* DAEMON_H */
