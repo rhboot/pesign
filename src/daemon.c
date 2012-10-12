@@ -441,7 +441,7 @@ handle_events(context *ctx)
 			pollfds[nsockets-1].fd = accept(pollfds[0].fd, &remote,
 							&len);
 			pollfds[nsockets-1].events = POLLIN|POLLPRI|POLLHUP;
-			pollfds[nsockets-1].revents = 0;
+			pollfds[nsockets-1].revents = pollfds[0].revents;
 		}
 		for (int i = 1; i < nsockets; i++) {
 		new_poll_result:
