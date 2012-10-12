@@ -1,1 +1,2 @@
 pesign alias --cert --certificate
+pesign alias --daemon --daemonize
