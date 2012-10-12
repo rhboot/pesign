@@ -22,8 +22,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdarg.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <syslog.h>
 
 #include "pesign.h"
 
@@ -151,6 +153,21 @@ teardown_digests(cms_context *ctx)
 	ctx->digests = NULL;
 }
 
+static int
+__attribute__ ((format (printf, 3, 4)))
+cms_common_log(cms_context *ctx, int priority, char *fmt, ...)
+{
+	va_list ap;
+	FILE *out = priority & LOG_ERR ? stderr : stdout;
+
+	va_start(ap, fmt);
+	int rc = vfprintf(out, fmt, ap);
+	fprintf(out, "\n");
+
+	va_end(ap);
+	return rc;
+}
+
 int
 cms_context_init(cms_context *ctx)
 {
@@ -180,6 +197,8 @@ cms_context_init(cms_context *ctx)
 		return -1;
 	}
 	ctx->selected_digest = -1;
+
+	ctx->log = cms_common_log;
 
 	return 0;
 }
@@ -334,13 +353,16 @@ find_certificate(cms_context *ctx)
 	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, pwdata);
 	if (!slots) {
 err:
-		fprintf(stderr, "Could not find certificate\n");
-		exit(1);
+		ctx->log(ctx, LOG_ERR, "Could not find certificate \"%s:%s\"",
+			ctx->tokenname, ctx->certname);
+		return -1;
 	}
 
 	PK11SlotListElement *psle = NULL;
 	psle = PK11_GetFirstSafe(slots);
 	if (!psle) {
+		ctx->log(ctx, LOG_ERR, "Could not find certificate \"%s:%s\"",
+			ctx->tokenname, ctx->certname);
 err_slots:
 		PK11_FreeSlotList(slots);
 		goto err;
@@ -360,7 +382,9 @@ err_slots:
 	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, pwdata)) {
 		status = PK11_Authenticate(psle->slot, PR_TRUE, pwdata);
 		if (status != SECSuccess) {
-			fprintf(stderr, "Authentication failed.\n");
+			ctx->log(ctx, LOG_ERR, "Authentication failed on "
+				"certificate \"%s:%s\"", ctx->tokenname,
+				ctx->certname);
 			goto err_slots;
 		}
 	}

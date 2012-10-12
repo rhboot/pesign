@@ -19,6 +19,7 @@
 #ifndef CMS_COMMON_H
 #define CMS_COMMON_H 1
 
+#include <stdarg.h>
 #include <nss3/cert.h>
 #include <nss3/secpkcs7.h>
 
@@ -28,6 +29,10 @@ struct digest {
 };
 
 struct cms_context;
+
+typedef int (*cms_common_logger)(struct cms_context *, int priority,
+		char *fmt, ...)
+	__attribute__ ((format (printf, 3, 4)));
 
 typedef struct cms_context {
 	PRArenaPool *arena;
@@ -51,6 +56,9 @@ typedef struct cms_context {
 
 	int num_signatures;
 	SECItem **signatures;
+
+	cms_common_logger log;
+	void *log_priv;
 } cms_context;
 
 typedef struct {
