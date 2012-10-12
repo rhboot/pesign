@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <nss3/nss.h>
 
 #include <popt.h>
 
@@ -433,6 +434,7 @@ main(int argc, char *argv[])
 
 	char *digest_name = "sha256";
 	char *tokenname = "NSS Certificate DB";
+	char *certname = NULL;
 
 	poptContext optCon;
 	struct poptOption options[] = {
@@ -441,7 +443,7 @@ main(int argc, char *argv[])
 			"specify input file", "<infile>"},
 		{"out", 'o', POPT_ARG_STRING, &ctx.outfile, 0,
 			"specify output file", "<outfile>" },
-		{"certficate", 'c', POPT_ARG_STRING, ctx.cms_ctx->certname, 0,
+		{"certficate", 'c', POPT_ARG_STRING, &certname, 0,
 			"specify certificate nickname",
 			"<certificate nickname>" },
 		{"privkey", 'p', POPT_ARG_STRING, &ctx.privkeyfile, 0,
@@ -497,6 +499,12 @@ main(int argc, char *argv[])
 		POPT_TABLEEND
 	};
 
+	tokenname = strdup(tokenname);
+	if (!tokenname) {
+		fprintf(stderr, "could not allocate memory: %m\n");
+		exit(1);
+	}
+
 	SECStatus status = NSS_Init("/etc/pki/pesign");
 	if (status != SECSuccess)
 		return -1;
@@ -506,6 +514,8 @@ main(int argc, char *argv[])
 		fprintf(stderr, "Could not initialize context: %m\n");
 		exit(1);
 	}
+
+	ctx.cms_ctx->certname = certname ? strdup(certname) : NULL;
 
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 

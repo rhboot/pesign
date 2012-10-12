@@ -217,6 +217,12 @@ cms_context_fini(cms_context *cms)
 		cms->privkey = NULL;
 	}
 
+	/* These were freed when the arena was destroyed */
+	if (cms->tokenname)
+		cms->tokenname = NULL;
+	if (cms->certname)
+		cms->certname = NULL;
+
 	if (cms->newsig.data) {
 		free_poison(cms->newsig.data, cms->newsig.len);
 		memset(&cms->newsig, '\0', sizeof (cms->newsig));

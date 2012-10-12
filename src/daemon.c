@@ -192,12 +192,14 @@ malformed:
 	ctx->cms->log(ctx->cms, ctx->priority|LOG_NOTICE,
 		"pesignd: unlocking token \"%s\"", tn->value);
 
-	/* authenticating with nss frees these ... best API ever. */
-	ctx->cms->tokenname = strdup((char *)tn->value);
+	/* authenticating with nss frees this ... best API ever. */
+	ctx->cms->tokenname = PORT_ArenaZAlloc(ctx->cms->arena,
+						strlen((char *)tn->value));
+	strcpy(ctx->cms->tokenname, (char *)tn->value);
 	if (!ctx->cms->tokenname)
 		goto oom;
 
-	char *pin = strdup((char *)tp->value);
+	char *pin = (char *)tp->value;
 	if (!pin)
 		goto oom;
 
@@ -310,7 +312,9 @@ malformed:
 	n -= tn->size;
 
 	/* authenticating with nss frees these ... best API ever. */
-	ctx->cms->tokenname = strdup((char *)tn->value);
+	ctx->cms->tokenname = PORT_ArenaZAlloc(ctx->cms->arena,
+						strlen((char *)tn->value));
+	strcpy(ctx->cms->tokenname, (char *)tn->value);
 	if (!ctx->cms->tokenname)
 		goto oom;
 
@@ -321,7 +325,9 @@ malformed:
 	if (n < cn->size)
 		goto malformed;
 
-	ctx->cms->certname = strdup((char *)cn->value);
+	ctx->cms->certname = PORT_ArenaZAlloc(ctx->cms->arena,
+						strlen((char *)cn->value));
+	strcpy(ctx->cms->certname, (char *)cn->value);
 	if (!ctx->cms->certname)
 		goto oom;
 
