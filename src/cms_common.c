@@ -349,6 +349,15 @@ is_valid_cert(CERTCertificate *cert, void *data)
 	return SECFailure;
 }
 
+/* This is the dumbest function ever, but we need it anyway, because nss
+ * is garbage. */
+static void
+PK11_DestroySlotListElement(PK11SlotList *slots, PK11SlotListElement **psle)
+{
+	while (psle && *psle)
+		*psle = PK11_GetNextSafe(slots, *psle, PR_FALSE);
+}
+
 int
 unlock_nss_token(cms_context *cms)
 {
@@ -389,10 +398,13 @@ err_slots:
 		if (status != SECSuccess) {
 			cms->log(cms, LOG_ERR, "Authentication failed for "
 				"token \"%s\"", cms->tokenname);
+			PK11_DestroySlotListElement(slots, &psle);
 			goto err_slots;
 		}
 	}
 
+	PK11_DestroySlotListElement(slots, &psle);
+	PK11_FreeSlotList(slots);
 	return 0;
 }
 
@@ -434,7 +446,7 @@ err_slots:
 	}
 
 	if (!psle)
-		goto err_slots;
+		goto err_slots_errmsg;
 
 	SECStatus status;
 	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, pwdata)) {
@@ -443,33 +455,40 @@ err_slots:
 			cms->log(cms, LOG_ERR, "Authentication failed on "
 				"certificate \"%s:%s\"", cms->tokenname,
 				cms->certname);
+			PK11_DestroySlotListElement(slots, &psle);
 			goto err_slots;
 		}
 	}
 
 	CERTCertList *certlist = NULL;
 	certlist = PK11_ListCertsInSlot(psle->slot);
-	if (!certlist)
-		goto err_slots;
+	if (!certlist) {
+		PK11_DestroySlotListElement(slots, &psle);
+		goto err_slots_errmsg;
+	}
 
-	SECItem nickname = {
-		.data = (void *)ctx->certname,
-		.len = strlen(ctx->certname) + 1,
-		.type = siUTF8String,
-	};
 	struct cbdata cbdata = {
 		.cert = NULL,
 		.psle = psle,
 		.pwdata = pwdata,
 	};
 
-	status = PK11_TraverseCertsForNicknameInSlot(&nickname, psle->slot,
-					is_valid_cert, &cbdata);
+	CERTCertListNode *node = NULL;
+	for (node = CERT_LIST_HEAD(certlist); !CERT_LIST_END(node,certlist);
+			node = CERT_LIST_NEXT(node)) {
+		if (strcmp(cms->certname, node->cert->nickname))
+			continue;
 
-	if (cbdata.cert == NULL)
-		goto err_slots;
+		if (is_valid_cert(node->cert, &cbdata) == SECSuccess) {
+			cms->cert = CERT_DupCertificate(cbdata.cert);
+			break;
+		}
+	}
 
-	ctx->cert = cbdata.cert;
+	PK11_DestroySlotListElement(slots, &psle);
+	PK11_FreeSlotList(slots);
+	CERT_DestroyCertList(certlist);
+
 	return 0;
 }
 
