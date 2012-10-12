@@ -272,6 +272,72 @@ malformed:
 	free(cm);
 }
 
+static int
+set_up_inpe(context *ctx, int fd, Pe **pe)
+{
+	*pe = pe_begin(fd, PE_C_READ_MMAP, NULL);
+	if (!*pe)
+		*pe = pe_begin(fd, PE_C_READ, NULL);
+	if (!*pe) {
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"pesignd: could not parse PE binary: %s",
+			pe_errmsg(pe_errno()));
+		return -1;
+	}
+
+	int rc = parse_signatures(ctx->cms, *pe);
+	if (rc < 0) {
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"pesignd: could not parse signature list");
+		pe_end(*pe);
+		*pe = NULL;
+		return -1;
+	}
+	return 0;
+}
+
+static int
+set_up_outpe(context *ctx, int fd, Pe *inpe, Pe **outpe)
+{
+	size_t size;
+	char *addr;
+
+	addr = pe_rawfile(inpe, &size);
+
+	off_t offset = lseek(fd, 0, SEEK_SET);
+	if (offset < 0) {
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"pesignd: could not read output file: %m");
+		return -1;
+	}
+
+	int rc = ftruncate(fd, size);
+	if (rc < 0) {
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"pesignd: could not extend output file: %m");
+		return -1;
+	}
+	rc = write(fd, addr, size);
+	if (rc < 0) {
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"pesignd: could not write to output file: %m");
+		return -1;
+	}
+
+	*outpe = pe_begin(fd, PE_C_RDWR_MMAP, NULL);
+	if (!*outpe)
+		*outpe = pe_begin(fd, PE_C_RDWR, NULL);
+	if (!*outpe) {
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"pesignd: could not set up output: %s",
+			pe_errmsg(pe_errno()));
+		return -1;
+	}
+
+	pe_clearcert(*outpe);
+	return 0;
+}
+
 static void
 handle_sign_attached(context *ctx, struct pollfd *pollfd, socklen_t size)
 {
