@@ -207,8 +207,9 @@ sign_blob(cms_context *ctx, SECItem *sigitem, SECItem *sign_content)
 	if (!oid)
 		goto err;
 
-	PK11_SetPasswordFunc(getpw);
-	SECKEYPrivateKey *privkey = PK11_FindKeyByAnyCert(ctx->cert, NULL);
+	PK11_SetPasswordFunc(ctx->func ? ctx->func : getpw);
+	SECKEYPrivateKey *privkey = PK11_FindKeyByAnyCert(ctx->cert,
+				ctx->pwdata ? ctx->pwdata : NULL);
 	if (!privkey) {
 		fprintf(stderr, "Could not get private key.\n");
 		goto err;

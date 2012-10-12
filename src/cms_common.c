@@ -268,6 +268,16 @@ cms_context_alloc(cms_context **ctxp)
 	return 0;
 }
 
+void cms_set_pw_callback(cms_context *cms, PK11PasswordFunc func)
+{
+	cms->func = func;
+}
+
+void cms_set_pw_data(cms_context *cms, void *pwdata)
+{
+	cms->pwdata = pwdata;
+}
+
 int
 set_digest_parameters(cms_context *ctx, char *name)
 {
@@ -316,11 +326,12 @@ find_certificate(cms_context *ctx)
 	if (!ctx->certname || !*ctx->certname)
 		return -1;
 
-	secuPWData pwdata = { 0, 0 };
-	PK11_SetPasswordFunc(SECU_GetModulePassword);
+	secuPWData pwdata_val = { 0, 0 };
+	void *pwdata = ctx->pwdata ? ctx->pwdata : &pwdata_val;
+	PK11_SetPasswordFunc(ctx->func ? ctx->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
-	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, &pwdata);
+	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, pwdata);
 	if (!slots) {
 err:
 		fprintf(stderr, "Could not find certificate\n");
@@ -346,10 +357,8 @@ err_slots:
 		goto err_slots;
 
 	SECStatus status;
-	memset(&pwdata, '\0', sizeof (pwdata));
-	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, &pwdata)) {
-		memset(&pwdata, '\0', sizeof (pwdata));
-		status = PK11_Authenticate(psle->slot, PR_TRUE, &pwdata);
+	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, pwdata)) {
+		status = PK11_Authenticate(psle->slot, PR_TRUE, pwdata);
 		if (status != SECSuccess) {
 			fprintf(stderr, "Authentication failed.\n");
 			goto err_slots;
@@ -366,11 +375,10 @@ err_slots:
 		.len = strlen(ctx->certname) + 1,
 		.type = siUTF8String,
 	};
-	memset(&pwdata, '\0', sizeof(pwdata));
 	struct cbdata cbdata = {
 		.cert = NULL,
 		.psle = psle,
-		.pwdata = &pwdata,
+		.pwdata = pwdata,
 	};
 
 	status = PK11_TraverseCertsForNicknameInSlot(&nickname, psle->slot,

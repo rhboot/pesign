@@ -27,13 +27,17 @@ struct digest {
 	SECItem *pe_digest;
 };
 
-typedef struct {
+struct cms_context;
+
+typedef struct cms_context {
 	PRArenaPool *arena;
 	void *privkey;
 
 	char *tokenname;
 	char *certname;
 	CERTCertificate *cert;
+	PK11PasswordFunc func;
+	void *pwdata;
 
 	struct digest *digests;
 	int selected_digest;
@@ -98,6 +102,8 @@ extern SECOidTag digest_get_digest_oid(cms_context *cms);
 extern SECOidTag digest_get_encryption_oid(cms_context *cms);
 extern SECOidTag digest_get_signature_oid(cms_context *cms);
 extern int digest_get_digest_size(cms_context *cms);
+extern void cms_set_pw_callback(cms_context *cms, PK11PasswordFunc func);
+extern void cms_set_pw_data(cms_context *cms, void *pwdata);
 
 extern int set_digest_parameters(cms_context *ctx, char *name);
 
