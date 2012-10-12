@@ -35,6 +35,7 @@
 #include <nss3/secport.h>
 #include <nss3/secpkcs7.h>
 #include <nss3/secder.h>
+#include <nss3/keyhi.h>
 #include <nss3/base64.h>
 #include <nss3/pk11pub.h>
 #include <nss3/secerr.h>
@@ -328,7 +329,7 @@ struct cbdata {
 	secuPWData *pwdata;
 };
 
-static SECStatus 
+static SECStatus
 is_valid_cert(CERTCertificate *cert, void *data)
 {
 	struct cbdata *cbdata = (struct cbdata *)data;
@@ -336,8 +337,12 @@ is_valid_cert(CERTCertificate *cert, void *data)
 	PK11SlotInfo *slot = cbdata->psle->slot;
 	void *pwdata = cbdata->pwdata;
 
-	if (PK11_FindPrivateKeyFromCert(slot, cert, pwdata) != NULL) {
+	SECKEYPrivateKey *privkey = NULL;
+
+	privkey = PK11_FindPrivateKeyFromCert(slot, cert, pwdata);
+	if (privkey != NULL) {
 		cbdata->cert = cert;
+		SECKEY_DestroyPrivateKey(privkey);
 		return SECSuccess;
 	}
 
