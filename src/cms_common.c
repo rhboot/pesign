@@ -103,14 +103,19 @@ setup_digests(cms_context *cms)
 	struct digest *digests = NULL;
 	
 	digests = calloc(n_digest_params, sizeof (*digests));
-	if (!digests)
+	if (!digests) {
+		cms->log(cms, LOG_ERR, "cannot allocate memory: %m");
 		return -1;
+	}
 
 	for (int i = 0; i < n_digest_params; i++) {
 		digests[i].pk11ctx = PK11_CreateDigestContext(
 						digest_params[i].digest_tag);
-		if (!digests[i].pk11ctx)
+		if (!digests[i].pk11ctx) {
+			cms->log(cms, LOG_ERR, "could not create digest "
+						"context");
 			goto err;
+		}
 
 		PK11_DigestBegin(digests[i].pk11ctx);
 	}
@@ -192,8 +197,8 @@ cms_context_init(cms_context *cms)
 
 	int rc = setup_digests(cms);
 	if (rc < 0) {
-		fprintf(stderr, "Could not initialize cryptographic digest "
-			"functions.\n");
+		cms->log(cms, LOG_ERR,
+			"Could not initialize cryptographic digest functions.");
 		return -1;
 	}
 	cms->selected_digest = -1;
@@ -348,8 +353,8 @@ unlock_nss_token(cms_context *cms)
 	PK11SlotList *slots = NULL;
 	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, pwdata);
 	if (!slots) {
-		ctx->log(ctx, LOG_ERR, "Could not find certificate \"%s\"",
-			ctx->tokenname);
+		cms->log(cms, LOG_ERR, "Could not find certificate \"%s\"",
+			cms->tokenname);
 err:
 		return -1;
 	}
@@ -398,17 +403,18 @@ find_certificate(cms_context *cms)
 	PK11SlotList *slots = NULL;
 	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, pwdata);
 	if (!slots) {
+		cms->log(cms, LOG_ERR, "Could not find certificate \"%s:%s\"",
+			cms->tokenname, cms->certname);
 err:
-		ctx->log(ctx, LOG_ERR, "Could not find certificate \"%s:%s\"",
-			ctx->tokenname, ctx->certname);
 		return -1;
 	}
 
 	PK11SlotListElement *psle = NULL;
 	psle = PK11_GetFirstSafe(slots);
 	if (!psle) {
-		ctx->log(ctx, LOG_ERR, "Could not find certificate \"%s:%s\"",
-			ctx->tokenname, ctx->certname);
+err_slots_errmsg:
+		cms->log(cms, LOG_ERR, "Could not find certificate \"%s:%s\"",
+			cms->tokenname, cms->certname);
 err_slots:
 		PK11_FreeSlotList(slots);
 		goto err;
@@ -612,6 +618,8 @@ generate_spc_string(cms_context *cms, SECItem *ssp, char *str, int len)
 
 	SECITEM_AllocItem(cms->arena, &ss.unicode, len);
 	if (!ss.unicode.data && len != 0) {
+		cms->log(cms, LOG_ERR, "could not allocate memory: %s",
+			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
 
@@ -619,7 +627,7 @@ generate_spc_string(cms_context *cms, SECItem *ssp, char *str, int len)
 	ss.unicode.type = siBMPString;
 
 	if (SEC_ASN1EncodeItem(cms->arena, ssp, &ss, SpcStringTemplate) == NULL) {
-		fprintf(stderr, "Could not encode SpcString: %s\n",
+		cms->log(cms, LOG_ERR, "could not encode SpcString: %s",
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
@@ -677,7 +685,7 @@ generate_spc_link(cms_context *cms, SpcLink *slp, SpcLinkType link_type,
 		sl.url.len = link_data_size;
 		break;
 	default:
-		fprintf(stderr, "Invalid SpcLinkType\n");
+		cms->log(cms, LOG_ERR, "Invalid SpcLinkType");
 		return -1;
 	};
 
@@ -720,15 +728,19 @@ generate_digest_finish(cms_context *cms)
 	for (int i = 0; i < n_digest_params; i++) {
 		SECItem *digest = PORT_ArenaZAlloc(cms->arena,
 						   sizeof (SECItem));
-		if (!digest)
+		if (!digest) {
+			cms->log(cms, LOG_ERR, "could not allocate memory");
 			goto err;
+		}
 
 		digest->type = siBuffer;
 		digest->data = PORT_ArenaZAlloc(cms->arena, digest_params[i].size);
 		digest->len = digest_params[i].size;
 		
-		if (!digest->data)
+		if (!digest->data) {
+			cms->log(cms, LOG_ERR, "could not allocate memory");
 			goto err;
+		}
 
 		PK11_DigestFinal(cms->digests[i].pk11ctx,
 			digest->data, &digest->len, digest_params[i].size);
@@ -761,14 +773,14 @@ generate_digest(cms_context *cms, Pe *pe)
 	int rc = -1;
 
 	if (!pe) {
-		fprintf(stderr, "pesign: no output pe ready\n");
+		cms->log(cms, LOG_ERR, "no output pe ready");
 		exit(1);
 	}
 
 	struct pe_hdr pehdr;
 	if (pe_getpehdr(pe, &pehdr) == NULL) {
-		fprintf(stderr, "pesign: invalid output file header\n");
-		exit(1);
+		cms->log(cms, LOG_ERR, "pesign: invalid output file header");
+		return -1;
 	}
 
 	void *map = NULL;
@@ -778,15 +790,17 @@ generate_digest(cms_context *cms, Pe *pe)
 	 * 2. Initialize SHA hash context. */
 	map = pe_rawfile(pe, &map_size);
 	if (!map) {
-		fprintf(stderr, "pesign: could not get raw output file address\n");
-		exit(1);
+		cms->log(cms, LOG_ERR, "pesign: could not get raw output "
+					"file address");
+		return -1;
 	}
 
 	pk11ctx = PK11_CreateDigestContext(
 			digest_params[cms->selected_digest].digest_tag);
 	if (!pk11ctx) {
-		fprintf(stderr, "pesign: could not initialize digest\n");
-		exit(1);
+		cms->log(cms, LOG_ERR, "pesign: could not get raw output "
+					"file address");
+		return -1;
 	}
 	PK11_DigestBegin(pk11ctx);
 
@@ -812,7 +826,7 @@ generate_digest(cms_context *cms, Pe *pe)
 		goto error;
 	}
 	if (!check_pointer_and_size(pe, hash_base, hash_size)) {
-		fprintf(stderr, "Pe header is invalid.  Aborting.\n");
+		cms->log(cms, LOG_ERR, "Pe header is invalid");
 		goto error;
 	}
 	generate_digest_step(cms, hash_base, hash_size);
@@ -827,13 +841,13 @@ generate_digest(cms_context *cms, Pe *pe)
 
 	rc = pe_getdatadir(pe, &dd);
 	if (rc < 0 || !dd || !check_pointer_and_size(pe, dd, sizeof(*dd))) {
-		fprintf(stderr, "Data directory is invalid.  Aborting.\n");
+		cms->log(cms, LOG_ERR, "Pe data directory is invalid");
 		goto error;
 	}
 
 	hash_size = (uintptr_t)&dd->certs - (uintptr_t)hash_base;
 	if (!check_pointer_and_size(pe, hash_base, hash_size)) {
-		fprintf(stderr, "Data directory is invalid.  Aborting.\n");
+		cms->log(cms, LOG_ERR, "Pe data directory is invalid");
 		goto error;
 	}
 	generate_digest_step(cms, hash_base, hash_size);
@@ -846,7 +860,7 @@ generate_digest(cms_context *cms, Pe *pe)
 		((uintptr_t)&dd->base_relocations - (uintptr_t)map);
 
 	if (!check_pointer_and_size(pe, hash_base, hash_size)) {
-		fprintf(stderr, "Relocations table is invalid.  Aborting.\n");
+		cms->log(cms, LOG_ERR, "Pe relocations table is invalid");
 		goto error;
 	}
 	generate_digest_step(cms, hash_base, hash_size);
@@ -875,8 +889,8 @@ generate_digest(cms_context *cms, Pe *pe)
 		hash_size = shdrs[i].raw_data_size;
 
 		if (!check_pointer_and_size(pe, hash_base, hash_size)) {
-			fprintf(stderr, "Section \"%s\" has invalid address."
-				"  Aborting.\n", shdrs[i].name);
+			cms->log(cms, LOG_ERR, "Pe section \"%s\" has invalid"
+				"address", shdrs[i].name);
 			goto error_shdrs;
 		}
 
@@ -890,7 +904,7 @@ generate_digest(cms_context *cms, Pe *pe)
 		hash_size = map_size - dd->certs.size - hashed_bytes;
 
 		if (!check_pointer_and_size(pe, hash_base, hash_size)) {
-			fprintf(stderr, "Invalid trailing data.  Aborting.\n");
+			cms->log(cms, LOG_ERR, "Pe has invalid trailing data");
 			goto error_shdrs;
 		}
 		generate_digest_step(cms, hash_base, hash_size);
@@ -911,7 +925,5 @@ error_shdrs:
 	if (shdrs)
 		free(shdrs);
 error:
-	PK11_DestroyContext(pk11ctx, PR_TRUE);
-	fprintf(stderr, "pesign: could not digest file.\n");
-	exit(1);
+	return -1;
 }

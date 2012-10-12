@@ -20,6 +20,7 @@
 #include "pesign.h"
 
 #include <stddef.h>
+#include <syslog.h>
 
 #include <nspr4/prerror.h>
 #include <nss3/cms.h>
@@ -88,7 +89,7 @@ generate_spc_pe_image_data(cms_context *cms, SECItem *spidp)
 
 	if (SEC_ASN1EncodeItem(cms->arena, spidp, &spid,
 			SpcPeImageDataTemplate) == NULL) {
-		fprintf(stderr, "Could not encode SpcPeImageData: %s\n",
+		cms->log(cms, LOG_ERR, "could not encode SpcPeImageData: %s",
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
@@ -138,7 +139,7 @@ generate_spc_attribute_yadda_yadda(cms_context *cms, SECItem *ataovp)
 
 	rc = get_ms_oid_secitem(SPC_PE_IMAGE_DATA_OBJID, &ataov.contentType);
 	if (rc < 0) {
-		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
+		cms->log(cms, LOG_ERR, "could not get SPC_PE_IMAGE_DATA_OBJID");
 		return -1;
 	}
 
@@ -148,10 +149,10 @@ generate_spc_attribute_yadda_yadda(cms_context *cms, SECItem *ataovp)
 
 	if (SEC_ASN1EncodeItem(cms->arena, ataovp, &ataov,
 			SpcAttributeTypeAndOptionalValueTemplate) == NULL) {
-		fprintf(stderr,
-			"Could not encode SpcAttributeTypeAndOptionalValue:"
-			"%s\n",
+		cms->log(cms, LOG_ERR, "could not encode "
+			"SpcAttributeTypeAndOptionalValue: %s",
 			PORT_ErrorToString(PORT_GetError()));
+
 		return -1;
 	}
 	return 0;
@@ -198,7 +199,7 @@ generate_spc_digest_info(cms_context *cms, SECItem *dip)
 
 	if (SEC_ASN1EncodeItem(cms->arena, dip, &di,
 						DigestInfoTemplate) == NULL) {
-		fprintf(stderr, "Could not encode DigestInfo: %s\n",
+		cms->log(cms, LOG_ERR, "could not encode DigestInfo: %s",
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
@@ -257,8 +258,8 @@ generate_spc_indirect_data_content(cms_context *cms, SECItem *idcp)
 
 	if (SEC_ASN1EncodeItem(cms->arena, idcp, &idc,
 			SpcIndirectDataContentTemplate) == NULL) {
-		fprintf(stderr,
-			"Could not encode SpcIndirectDataContent: %s\n",
+		cms->log(cms, LOG_ERR, "could not encode "
+			"SpcIndirectDataContent: %s",
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
@@ -358,7 +359,8 @@ generate_spc_content_info(cms_context *cms, SpcContentInfo *cip)
 	int rc;
 	rc = get_ms_oid_secitem(SPC_INDIRECT_DATA_OBJID, &ci.contentType);
 	if (rc < 0) {
-		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
+		cms->log(cms, LOG_ERR, "could not get OID for "
+			"SPC_INDIRECT_DATA_OBJID");
 		return rc;
 	}
 

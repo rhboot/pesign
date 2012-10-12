@@ -18,6 +18,7 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "pesign.h"
 
@@ -270,7 +271,7 @@ generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 	SECItem encoded = { 0, };
 	if (SEC_ASN1EncodeItem(cms->arena, &encoded, &sd, SignedDataTemplate)
 			== NULL) {
-		fprintf(stderr, "Could not encode SignedData: %s\n",
+		cms->log(cms, LOG_ERR, "could not encode SignedData: %s",
 			PORT_ErrorToString(PORT_GetError()));
 		goto err_signer_infos;
 	}
@@ -286,7 +287,7 @@ generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 	SECItem wrapper = { 0, };
 	if (SEC_ASN1EncodeItem(cms->arena, &wrapper, &sdw,
 			ContentInfoTemplate) == NULL) {
-		fprintf(stderr, "Could not encode SignedData: %s\n",
+		cms->log(cms, LOG_ERR, "could not encode SignedData: %s",
 			PORT_ErrorToString(PORT_GetError()));
 		goto err_signed_data;
 	}

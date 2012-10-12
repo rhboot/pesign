@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <syslog.h>
 
 #include "pesign.h"
 
@@ -227,7 +228,7 @@ export_signature(pesign_context *p_ctx)
 	if (p_ctx->ascii) {
 		char *ascii = BTOA_DataToAscii(data, datalen);
 		if (!ascii) {
-			fprintf(stderr, "Error exporting signature\n");
+			cms->log(cms, LOG_ERR, "error exporting signature");
 failure:
 			close(p_ctx->outsigfd);
 			unlink(p_ctx->outsig);
@@ -237,20 +238,20 @@ failure:
 		rc = write(p_ctx->outsigfd, sig_begin_marker,
 				strlen(sig_begin_marker));
 		if (rc < 0) {
-			fprintf(stderr, "Error exporting signature: %m\n");
+			cms->log(cms, LOG_ERR, "error exporting signature: %m");
 			goto failure;
 		}
 
 		rc = write(p_ctx->outsigfd, ascii, strlen(ascii));
 		if (rc < 0) {
-			fprintf(stderr, "Error exporting signature: %m\n");
+			cms->log(cms, LOG_ERR, "error exporting signature: %m");
 			goto failure;
 		}
 
 		rc = write(p_ctx->outsigfd, sig_end_marker,
 			strlen(sig_end_marker));
 		if (rc < 0) {
-			fprintf(stderr, "Error exporting signature: %m\n");
+			cms->log(cms, LOG_ERR, "error exporting signature: %m");
 			goto failure;
 		}
 
@@ -258,7 +259,7 @@ failure:
 	} else {
 		rc = write(p_ctx->outsigfd, data, datalen);
 		if (rc < 0) {
-			fprintf(stderr, "Error exporting signature: %m\n");
+			cms->log(cms, LOG_ERR, "error exporting signature: %m");
 			goto failure;
 		}
 	}

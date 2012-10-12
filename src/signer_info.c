@@ -21,6 +21,7 @@
 
 #include <limits.h>
 #include <string.h>
+#include <syslog.h>
 #include <termios.h>
 #include <unistd.h>
 #include <time.h>
@@ -211,7 +212,8 @@ sign_blob(cms_context *cms, SECItem *sigitem, SECItem *sign_content)
 	SECKEYPrivateKey *privkey = PK11_FindKeyByAnyCert(cms->cert,
 				cms->pwdata ? cms->pwdata : NULL);
 	if (!privkey) {
-		fprintf(stderr, "Could not get private key.\n");
+		cms->log(cms, LOG_ERR, "could not get private key: %s",
+			PORT_ErrorToString(PORT_GetError()));
 		goto err;
 	}
 	
@@ -225,7 +227,8 @@ sign_blob(cms_context *cms, SECItem *sigitem, SECItem *sign_content)
 	privkey = NULL;
 
 	if (status != SECSuccess) {
-		fprintf(stderr, "Error signing data.\n");
+		cms->log(cms, LOG_ERR, "error signing data: %s",
+			PORT_ErrorToString(PORT_GetError()));
 		SECITEM_FreeItem(&signature, PR_FALSE);
 		return -1;
 	}
@@ -374,7 +377,7 @@ generate_spc_signer_info(cms_context *cms, SpcSignerInfo *sip)
 	memset(&si, '\0', sizeof (si));
 
 	if (SEC_ASN1EncodeInteger(cms->arena, &si.CMSVersion, 1) == NULL) {
-		fprintf(stderr, "Could not encode CMSVersion: %s\n",
+		cms->log(cms, LOG_ERR, "could not encode CMSVersion: %s",
 			PORT_ErrorToString(PORT_GetError()));
 		goto err;
 	}

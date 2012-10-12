@@ -18,6 +18,7 @@
  */
 
 #include <stdint.h>
+#include <syslog.h>
 
 #include <nspr4/prerror.h>
 #include <nss3/seccomon.h>
@@ -71,7 +72,7 @@ register_oids(cms_context *cms)
 		rc = SECOID_AddEntry(&oids[i].sod);
 		oids[i].sod.offset = rc;
 		if (rc == SEC_OID_UNKNOWN) {
-			fprintf(stderr, "SECOid_AddEntry() failed: %s\n",
+			cms->log(cms, LOG_ERR, "SECOid_AddEntry() failed: %s",
 				PORT_ErrorToString(PORT_GetError()));
 			return SECFailure;
 		}
