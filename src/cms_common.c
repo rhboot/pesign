@@ -141,8 +141,10 @@ teardown_digests(cms_context *ctx)
 		return;
 
 	for (int i = 0; i < n_digest_params; i++) {
-		if (digests[i].pk11ctx)
+		if (digests[i].pk11ctx) {
+			PK11_Finalize(digests[i].pk11ctx);
 			PK11_DestroyContext(digests[i].pk11ctx, PR_TRUE);
+		}
 		if (digests[i].pe_digest) {
 			free_poison(digests[i].pe_digest->data,
 				    digests[i].pe_digest->len);
