@@ -10,7 +10,7 @@ LDFLAGS =
 CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags --libs $(pklib)))
 CFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib))) -Werror
 
-TARGETS = pesign authvar
+TARGETS = pesign authvar client
 
 all : $(TARGETS)
 
@@ -34,12 +34,19 @@ peverify_OBJECTS = $(foreach source,$(peverify_SOURCES),$(patsubst %.c,%,$(sourc
 peverify_DEPS = $(foreach source,$(peverify_SOURCES),.$(patsubst %.c,%,$(source)).P)
 peverify : $(peverify_OBJECTS) $(STATIC_LIBS)
 
-deps : $(generic_DEPS)$(authvar_DEPS) $(pesign_DEPS) $(peverify_DEPS)
+client_SOURCES = pesign_context.c actions.c client.c
+client_OBJECTS = $(foreach source,$(client_SOURCES),$(patsubst %.c,%,$(source)).o) generic.a
+client_DEPS = $(foreach source,$(client_SOURCES),.$(patsubst %.c,%,$(source)).P)
+client : $(client_OBJECTS) $(STATIC_LIBS)
+
+deps : $(generic_DEPS)$(authvar_DEPS) $(pesign_DEPS) $(client_DEPS) \
+	$(peverify_DEPS)
 
 depclean :
 	@rm -fv .*.P
 
--include $(generic_DEPS) $(authvar_DEPS) $(pesign_DEPS) $(peverify_DEPS)
+-include $(generic_DEPS) $(authvar_DEPS) $(pesign_DEPS) $(client_DEPS) \
+	$(peverify_DEPS)
 
 clean : depclean
 	@rm -rfv *.o *.a *.so $(TARGETS)
@@ -49,6 +56,7 @@ install :
 	$(INSTALL) -d -m 770 $(INSTALLROOT)/var/run/pesign/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(PREFIX)/bin/
 	$(INSTALL) -m 755 pesign $(INSTALLROOT)$(PREFIX)/bin/
+	$(INSTALL) -m 755 client $(INSTALLROOT)$(PREFIX)/bin/pesign-client
 	$(INSTALL) -m 755 peverify $(INSTALLROOT)$(PREFIX)/bin/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -m 644 pesign.popt $(INSTALLROOT)/etc/popt.d/

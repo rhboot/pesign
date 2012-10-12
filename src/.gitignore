@@ -9,3 +9,4 @@ authvar
 *.sw?
 core.*
 ms
+client
