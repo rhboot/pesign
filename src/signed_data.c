@@ -25,24 +25,24 @@
 #include <nss3/nss.h>
 
 static int
-generate_algorithm_id_list(SECAlgorithmID ***algorithm_list_p, cms_context *ctx)
+generate_algorithm_id_list(cms_context *cms, SECAlgorithmID ***algorithm_list_p)
 {
 	SECAlgorithmID **algorithms = NULL;
 	int err = 0;
 
-	algorithms = PORT_ArenaZAlloc(ctx->arena, sizeof (SECAlgorithmID *) *
+	algorithms = PORT_ArenaZAlloc(cms->arena, sizeof (SECAlgorithmID *) *
 						  2);
 	if (!algorithms)
 		return -1;
 
-	algorithms[0] = PORT_ArenaZAlloc(ctx->arena, sizeof(SECAlgorithmID));
+	algorithms[0] = PORT_ArenaZAlloc(cms->arena, sizeof(SECAlgorithmID));
 	if (!algorithms[0]) {
 		err = PORT_GetError();
 		goto err_list;
 	}
 
-	if (generate_algorithm_id(ctx, algorithms[0],
-			digest_get_digest_oid(ctx)) < 0) {
+	if (generate_algorithm_id(cms, algorithms[0],
+			digest_get_digest_oid(cms)) < 0) {
 		err = PORT_GetError();
 		goto err_item;
 	}
@@ -58,7 +58,7 @@ err_list:
 }
 
 void
-free_algorithm_list(SECAlgorithmID **algorithm_list, cms_context *ctx)
+free_algorithm_list(cms_context *cms, SECAlgorithmID **algorithm_list)
 {
 	if (!algorithm_list)
 		return;
@@ -72,15 +72,15 @@ free_algorithm_list(SECAlgorithmID **algorithm_list, cms_context *ctx)
 }
 
 static int
-generate_certificate_list(SECItem ***certificate_list_p, cms_context *ctx)
+generate_certificate_list(cms_context *cms, SECItem ***certificate_list_p)
 {
 	SECItem **certificates = NULL;
 
-	certificates = PORT_ArenaZAlloc(ctx->arena, sizeof (SECItem *) * 2);
+	certificates = PORT_ArenaZAlloc(cms->arena, sizeof (SECItem *) * 2);
 	if (!certificates)
 		return -1;
 	
-	certificates[0] = PORT_ArenaZAlloc(ctx->arena, sizeof (SECItem));
+	certificates[0] = PORT_ArenaZAlloc(cms->arena, sizeof (SECItem));
 	if (!certificates[0]) {
 		int err = PORT_GetError();
 		PORT_ZFree(certificates, sizeof (SECItem) * 2);
@@ -88,13 +88,13 @@ generate_certificate_list(SECItem ***certificate_list_p, cms_context *ctx)
 		return -1;
 	}
 
-	SECITEM_CopyItem(ctx->arena, certificates[0], &ctx->cert->derCert);
+	SECITEM_CopyItem(cms->arena, certificates[0], &cms->cert->derCert);
 	*certificate_list_p = certificates;
 	return 0;
 }
 
 static void
-free_certificate_list(SECItem **certificate_list, cms_context *ctx)
+free_certificate_list(cms_context *cms, SECItem **certificate_list)
 {
 	if (!certificate_list)
 		return;
@@ -107,7 +107,7 @@ free_certificate_list(SECItem **certificate_list, cms_context *ctx)
 }
 
 int
-generate_signerInfo_list(SpcSignerInfo ***signerInfo_list_p, cms_context *ctx)
+generate_signerInfo_list(cms_context *cms, SpcSignerInfo ***signerInfo_list_p)
 {
 	SpcSignerInfo **signerInfo_list;
 	int err;
@@ -115,19 +115,19 @@ generate_signerInfo_list(SpcSignerInfo ***signerInfo_list_p, cms_context *ctx)
 	if (!signerInfo_list_p)
 		return -1;
 
-	signerInfo_list = PORT_ArenaZAlloc(ctx->arena,
+	signerInfo_list = PORT_ArenaZAlloc(cms->arena,
 					sizeof (SpcSignerInfo *) * 2);
 	if (!signerInfo_list)
 		return -1;
 
-	signerInfo_list[0] = PORT_ArenaZAlloc(ctx->arena,
+	signerInfo_list[0] = PORT_ArenaZAlloc(cms->arena,
 						sizeof (SpcSignerInfo));
 	if (!signerInfo_list[0]) {
 		err = PORT_GetError();
 		goto err_list;
 	}
 	
-	if (generate_spc_signer_info(signerInfo_list[0], ctx) < 0) {
+	if (generate_spc_signer_info(cms, signerInfo_list[0]) < 0) {
 		err = PORT_GetError();
 		goto err_item;
 	}
@@ -147,7 +147,7 @@ err_list:
 }
 
 void
-free_signerInfo_list(SpcSignerInfo **signerInfo_list, cms_context *ctx)
+free_signerInfo_list(cms_context *cms, SpcSignerInfo **signerInfo_list)
 {
 	
 }
@@ -241,7 +241,7 @@ SEC_ASN1Template ContentInfoTemplate[] = {
 };
 
 int
-generate_spc_signed_data(SECItem *sdp, cms_context *ctx)
+generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 {
 	SignedData sd;
 
@@ -250,25 +250,25 @@ generate_spc_signed_data(SECItem *sdp, cms_context *ctx)
 
 	memset(&sd, '\0', sizeof (sd));
 
-	if (SEC_ASN1EncodeInteger(ctx->arena, &sd.version, 1) == NULL)
+	if (SEC_ASN1EncodeInteger(cms->arena, &sd.version, 1) == NULL)
 		return -1;
 
-	if (generate_algorithm_id_list(&sd.algorithms, ctx) < 0)
+	if (generate_algorithm_id_list(cms, &sd.algorithms) < 0)
 		goto err;
 	
-	if (generate_spc_content_info(&sd.cinfo, ctx) < 0)
+	if (generate_spc_content_info(cms, &sd.cinfo) < 0)
 		goto err_algorithms;
 
-	if (generate_certificate_list(&sd.certificates, ctx) < 0)
+	if (generate_certificate_list(cms, &sd.certificates) < 0)
 		goto err_cinfo;
 
 	sd.crls = NULL;
 
-	if (generate_signerInfo_list(&sd.signerInfos, ctx) < 0)
+	if (generate_signerInfo_list(cms, &sd.signerInfos) < 0)
 		goto err_certificate_list;
 
 	SECItem encoded = { 0, };
-	if (SEC_ASN1EncodeItem(ctx->arena, &encoded, &sd, SignedDataTemplate)
+	if (SEC_ASN1EncodeItem(cms->arena, &encoded, &sd, SignedDataTemplate)
 			== NULL) {
 		fprintf(stderr, "Could not encode SignedData: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
@@ -284,7 +284,7 @@ generate_spc_signed_data(SECItem *sdp, cms_context *ctx)
 	memcpy(&sdw.content, &encoded, sizeof (sdw.content));
 
 	SECItem wrapper = { 0, };
-	if (SEC_ASN1EncodeItem(ctx->arena, &wrapper, &sdw,
+	if (SEC_ASN1EncodeItem(cms->arena, &wrapper, &sdw,
 			ContentInfoTemplate) == NULL) {
 		fprintf(stderr, "Could not encode SignedData: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
@@ -296,13 +296,13 @@ generate_spc_signed_data(SECItem *sdp, cms_context *ctx)
 err_signed_data:
 	SECITEM_FreeItem(&encoded, PR_FALSE);
 err_signer_infos:
-	free_signerInfo_list(sd.signerInfos, ctx);
+	free_signerInfo_list(cms, sd.signerInfos);
 err_certificate_list:
-	free_certificate_list(sd.certificates, ctx);
+	free_certificate_list(cms, sd.certificates);
 err_cinfo:
-	free_spc_content_info(&sd.cinfo, ctx);
+	free_spc_content_info(cms, &sd.cinfo);
 err_algorithms:
-	free_algorithm_list(sd.algorithms, ctx);
+	free_algorithm_list(cms, sd.algorithms);
 err:
 #if 0
 	SECITEM_FreeItem(&sd.version, PR_TRUE);

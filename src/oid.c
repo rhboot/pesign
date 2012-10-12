@@ -64,7 +64,7 @@ static struct {
 #undef OID
 
 SECStatus
-register_oids(void)
+register_oids(cms_context *cms)
 {
 	for (int i = 0; oids[i].oid != END_OID_LIST; i++) {
 		SECOidTag rc;

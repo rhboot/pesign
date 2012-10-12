@@ -198,12 +198,10 @@ ssize_t calculate_signature_space(cms_context *cms, Pe *pe)
 
 	SECItem sig = { 0, };
 
-	rc = generate_spc_signed_data(&sig, cms);
-	if (rc < 0) {
+	rc = generate_spc_signed_data(cms, &sig);
+	if (rc < 0)
 err:
-		fprintf(stderr, "Could not generate signature.\n");
-		exit(1);
-	}
+		return rc;
 
 	data_directory *dd = NULL;
 	rc = pe_getdatadir(pe, &dd);

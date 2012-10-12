@@ -32,8 +32,8 @@ struct SpcContentInfo {
 typedef struct SpcContentInfo SpcContentInfo;
 extern const SEC_ASN1Template SpcContentInfoTemplate[];
 
-extern int generate_spc_content_info(SpcContentInfo *cip, cms_context *ctx);
-extern void free_spc_content_info(SpcContentInfo *cip, cms_context *ctx);
+extern int generate_spc_content_info(cms_context *cms, SpcContentInfo *cip);
+extern void free_spc_content_info(cms_context *cms, SpcContentInfo *cip);
 extern int register_content_info(void);
 
 #endif /* CONTENT_INFO_H */

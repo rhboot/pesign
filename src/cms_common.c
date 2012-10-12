@@ -169,88 +169,88 @@ cms_common_log(cms_context *ctx, int priority, char *fmt, ...)
 }
 
 int
-cms_context_init(cms_context *ctx)
+cms_context_init(cms_context *cms)
 {
 	SECStatus status;
 	
 	status = NSS_Init("/etc/pki/pesign");
 	if (status != SECSuccess)
 		return -1;
+	memset(cms, '\0', sizeof (*cms));
 
 	status = register_oids();
 	if (status != SECSuccess)
 		return -1;
 
-	memset(ctx, '\0', sizeof (*ctx));
-
-	ctx->arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-	if (!ctx->arena) {
-		fprintf(stderr, "Could not create cryptographic arena: %s\n",
+	cms->arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	if (!cms->arena) {
+		cms->log(cms, LOG_ERR,
+			"Could not create cryptographic arena: %s",
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
 
-	int rc = setup_digests(ctx);
+	int rc = setup_digests(cms);
 	if (rc < 0) {
 		fprintf(stderr, "Could not initialize cryptographic digest "
 			"functions.\n");
 		return -1;
 	}
-	ctx->selected_digest = -1;
+	cms->selected_digest = -1;
 
-	ctx->log = cms_common_log;
+	cms->log = cms_common_log;
 
 	return 0;
 }
 
 void
-cms_context_fini(cms_context *ctx)
+cms_context_fini(cms_context *cms)
 {
-	if (ctx->cert) {
-		CERT_DestroyCertificate(ctx->cert);
-		ctx->cert = NULL;
+	if (cms->cert) {
+		CERT_DestroyCertificate(cms->cert);
+		cms->cert = NULL;
 	}
 
-	if (ctx->privkey) {
-		free(ctx->privkey);
-		ctx->privkey = NULL;
+	if (cms->privkey) {
+		free(cms->privkey);
+		cms->privkey = NULL;
 	}
 
-	if (ctx->newsig.data) {
-		free_poison(ctx->newsig.data, ctx->newsig.len);
-		memset(&ctx->newsig, '\0', sizeof (ctx->newsig));
+	if (cms->newsig.data) {
+		free_poison(cms->newsig.data, cms->newsig.len);
+		memset(&cms->newsig, '\0', sizeof (cms->newsig));
 	}
 
-	teardown_digests(ctx);
-	ctx->selected_digest = -1;
+	teardown_digests(cms);
+	cms->selected_digest = -1;
 
-	if (ctx->ci_digest) {
-		free_poison(ctx->ci_digest->data, ctx->ci_digest->len);
+	if (cms->ci_digest) {
+		free_poison(cms->ci_digest->data, cms->ci_digest->len);
 		/* XXX sure seems like we should be freeing it here, but
 		 * that's segfaulting, and we know it'll get cleaned up with
 		 * PORT_FreeArena a couple of lines down.
 		 */
-		ctx->ci_digest = NULL;
+		cms->ci_digest = NULL;
 	}
 
-	if (ctx->raw_signed_attrs) {
-		free_poison(ctx->raw_signed_attrs->data,
-				ctx->raw_signed_attrs->len);
+	if (cms->raw_signed_attrs) {
+		free_poison(cms->raw_signed_attrs->data,
+				cms->raw_signed_attrs->len);
 		/* XXX sure seems like we should be freeing it here, but
 		 * that's segfaulting, and we know it'll get cleaned up with
 		 * PORT_FreeArena a couple of lines down.
 		 */
-		ctx->raw_signed_attrs = NULL;
+		cms->raw_signed_attrs = NULL;
 	}
 
-	if (ctx->raw_signature) {
-		free_poison(ctx->raw_signature->data,
-				ctx->raw_signature->len);
+	if (cms->raw_signature) {
+		free_poison(cms->raw_signature->data,
+				cms->raw_signature->len);
 		/* XXX sure seems like we should be freeing it here, but
 		 * that's segfaulting, and we know it'll get cleaned up with
 		 * PORT_FreeArena a couple of lines down.
 		 */
-		ctx->raw_signature = NULL;
+		cms->raw_signature = NULL;
 	}
 
 #if 0
@@ -263,27 +263,26 @@ cms_context_fini(cms_context *ctx)
 	}
 	free(ctx->signatures);
 #endif
-	ctx->signatures = NULL;
 
-	PORT_FreeArena(ctx->arena, PR_TRUE);
-	memset(ctx, '\0', sizeof(*ctx));
+	PORT_FreeArena(cms->arena, PR_TRUE);
+	memset(cms, '\0', sizeof(*cms));
 
 	NSS_Shutdown();
 }
 
 int
-cms_context_alloc(cms_context **ctxp)
+cms_context_alloc(cms_context **cmsp)
 {
-	cms_context *ctx = calloc(1, sizeof (*ctx));
-	if (!ctx)
+	cms_context *cms = calloc(1, sizeof (*cms));
+	if (!cms)
 		return -1;
 
-	int rc = cms_context_init(ctx);
+	int rc = cms_context_init(cms);
 	if (rc < 0) {
-		save_errno(free(ctx));
+		save_errno(free(cms));
 		return -1;
 	}
-	*ctxp = ctx;
+	*cmsp = cms;
 	return 0;
 }
 
@@ -298,12 +297,12 @@ void cms_set_pw_data(cms_context *cms, void *pwdata)
 }
 
 int
-set_digest_parameters(cms_context *ctx, char *name)
+set_digest_parameters(cms_context *cms, char *name)
 {
 	if (strcmp(name, "help")) {
 		for (int i = 0; i < n_digest_params; i++) {
 			if (!strcmp(name, digest_params[i].name)) {
-				ctx->selected_digest = i;
+				cms->selected_digest = i;
 				return 0;
 			}
 		}
@@ -340,11 +339,11 @@ is_valid_cert(CERTCertificate *cert, void *data)
 }
 
 int
-unlock_nss_token(cms_context *ctx)
+unlock_nss_token(cms_context *cms)
 {
 	secuPWData pwdata_val = { 0, 0 };
-	void *pwdata = ctx->pwdata ? ctx->pwdata : &pwdata_val;
-	PK11_SetPasswordFunc(ctx->func ? ctx->func : SECU_GetModulePassword);
+	void *pwdata = cms->pwdata ? cms->pwdata : &pwdata_val;
+	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
 	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, pwdata);
@@ -364,7 +363,7 @@ err_slots:
 	}
 
 	while (psle) {
-		if (!strcmp(ctx->tokenname, PK11_GetTokenName(psle->slot)))
+		if (!strcmp(cms->tokenname, PK11_GetTokenName(psle->slot)))
 			break;
 
 		psle = PK11_GetNextSafe(slots, psle, PR_FALSE);
@@ -377,8 +376,8 @@ err_slots:
 	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, pwdata)) {
 		status = PK11_Authenticate(psle->slot, PR_TRUE, pwdata);
 		if (status != SECSuccess) {
-			ctx->log(ctx, LOG_ERR, "Authentication failed for "
-				"token \"%s\"", ctx->tokenname);
+			cms->log(cms, LOG_ERR, "Authentication failed for "
+				"token \"%s\"", cms->tokenname);
 			goto err_slots;
 		}
 	}
@@ -387,14 +386,14 @@ err_slots:
 }
 
 int
-find_certificate(cms_context *ctx)
+find_certificate(cms_context *cms)
 {
-	if (!ctx->certname || !*ctx->certname)
+	if (!cms->certname || !*cms->certname)
 		return -1;
 
 	secuPWData pwdata_val = { 0, 0 };
-	void *pwdata = ctx->pwdata ? ctx->pwdata : &pwdata_val;
-	PK11_SetPasswordFunc(ctx->func ? ctx->func : SECU_GetModulePassword);
+	void *pwdata = cms->pwdata ? cms->pwdata : &pwdata_val;
+	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
 	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, pwdata);
@@ -416,7 +415,7 @@ err_slots:
 	}
 
 	while (psle) {
-		if (!strcmp(ctx->tokenname, PK11_GetTokenName(psle->slot)))
+		if (!strcmp(cms->tokenname, PK11_GetTokenName(psle->slot)))
 			break;
 
 		psle = PK11_GetNextSafe(slots, psle, PR_FALSE);
@@ -429,9 +428,9 @@ err_slots:
 	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, pwdata)) {
 		status = PK11_Authenticate(psle->slot, PR_TRUE, pwdata);
 		if (status != SECSuccess) {
-			ctx->log(ctx, LOG_ERR, "Authentication failed on "
-				"certificate \"%s:%s\"", ctx->tokenname,
-				ctx->certname);
+			cms->log(cms, LOG_ERR, "Authentication failed on "
+				"certificate \"%s:%s\"", cms->tokenname,
+				cms->certname);
 			goto err_slots;
 		}
 	}
@@ -473,7 +472,7 @@ static SEC_ASN1Template EmptySequenceTemplate[] = {
 };
 
 int
-generate_time(cms_context *ctx, SECItem *encoded, time_t when)
+generate_time(cms_context *cms, SECItem *encoded, time_t when)
 {
 	static char timebuf[32];
 	SECItem whenitem = {.type = SEC_ASN1_UTC_TIME,
@@ -490,7 +489,7 @@ generate_time(cms_context *ctx, SECItem *encoded, time_t when)
 	if (whenitem.len == 32)
 		return -1;
 
-	if (SEC_ASN1EncodeItem(ctx->arena, encoded, &whenitem,
+	if (SEC_ASN1EncodeItem(cms->arena, encoded, &whenitem,
 			SEC_UTCTimeTemplate) == NULL) {
 		return -1;
 	}
@@ -498,29 +497,29 @@ generate_time(cms_context *ctx, SECItem *encoded, time_t when)
 }
 
 int
-generate_empty_sequence(cms_context *ctx, SECItem *encoded)
+generate_empty_sequence(cms_context *cms, SECItem *encoded)
 {
 	SECItem empty = {.type = SEC_ASN1_SEQUENCE,
 			 .data = NULL,
 			 .len = 0
 	};
-	if (SEC_ASN1EncodeItem(ctx->arena, encoded, &empty,
+	if (SEC_ASN1EncodeItem(cms->arena, encoded, &empty,
 			EmptySequenceTemplate) == NULL)
 		return -1;
 	return 0;
 }
 
 int
-generate_octet_string(cms_context *ctx, SECItem *encoded, SECItem *original)
+generate_octet_string(cms_context *cms, SECItem *encoded, SECItem *original)
 {
-	if (SEC_ASN1EncodeItem(ctx->arena, encoded, original,
+	if (SEC_ASN1EncodeItem(cms->arena, encoded, original,
 			SEC_OctetStringTemplate) == NULL)
 		return -1;
 	return 0;
 }
 
 int
-generate_object_id(cms_context *ctx, SECItem *encoded, SECOidTag tag)
+generate_object_id(cms_context *cms, SECItem *encoded, SECOidTag tag)
 {
 	SECOidData *oid;
 
@@ -528,7 +527,7 @@ generate_object_id(cms_context *ctx, SECItem *encoded, SECOidTag tag)
 	if (!oid)
 		return -1;
 
-	if (SEC_ASN1EncodeItem(ctx->arena, encoded, &oid->oid,
+	if (SEC_ASN1EncodeItem(cms->arena, encoded, &oid->oid,
 			SEC_ObjectIDTemplate) == NULL)
 		return -1;
 	return 0;
@@ -558,7 +557,7 @@ SEC_ASN1Template AlgorithmIDTemplate[] = {
 };
 
 int
-generate_algorithm_id(cms_context *ctx, SECAlgorithmID *idp, SECOidTag tag)
+generate_algorithm_id(cms_context *cms, SECAlgorithmID *idp, SECOidTag tag)
 {
 	SECAlgorithmID id;
 
@@ -571,10 +570,10 @@ generate_algorithm_id(cms_context *ctx, SECAlgorithmID *idp, SECOidTag tag)
 		PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
 		return -1;
 	}
-	if (SECITEM_CopyItem(ctx->arena, &id.algorithm, &oiddata->oid))
+	if (SECITEM_CopyItem(cms->arena, &id.algorithm, &oiddata->oid))
 		return -1;
 
-	SECITEM_AllocItem(ctx->arena, &id.parameters, 2);
+	SECITEM_AllocItem(cms->arena, &id.parameters, 2);
 	if (id.parameters.data == NULL)
 		goto err;
 	id.parameters.data[0] = SEC_ASN1_NULL;
@@ -606,19 +605,20 @@ SEC_ASN1Template SpcStringTemplate[] = {
 };
 
 int
-generate_spc_string(PRArenaPool *arena, SECItem *ssp, char *str, int len)
+generate_spc_string(cms_context *cms, SECItem *ssp, char *str, int len)
 {
 	SpcString ss;
 	memset(&ss, '\0', sizeof (ss));
 
-	SECITEM_AllocItem(arena, &ss.unicode, len);
-	if (!ss.unicode.data && len != 0)
+	SECITEM_AllocItem(cms->arena, &ss.unicode, len);
+	if (!ss.unicode.data && len != 0) {
 		return -1;
+	}
 
 	memcpy(ss.unicode.data, str, len);
 	ss.unicode.type = siBMPString;
 
-	if (SEC_ASN1EncodeItem(arena, ssp, &ss, SpcStringTemplate) == NULL) {
+	if (SEC_ASN1EncodeItem(cms->arena, ssp, &ss, SpcStringTemplate) == NULL) {
 		fprintf(stderr, "Could not encode SpcString: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
@@ -656,7 +656,7 @@ SEC_ASN1Template SpcLinkTemplate[] = {
 };
 
 int
-generate_spc_link(PRArenaPool *arena, SpcLink *slp, SpcLinkType link_type,
+generate_spc_link(cms_context *cms, SpcLink *slp, SpcLinkType link_type,
 		void *link_data, size_t link_data_size)
 {
 	SpcLink sl;
@@ -664,13 +664,13 @@ generate_spc_link(PRArenaPool *arena, SpcLink *slp, SpcLinkType link_type,
 
 	sl.type = link_type;
 	switch (sl.type) {
-	case SpcLinkTypeFile:
-		if (generate_spc_string(arena, &sl.file, link_data,
-				link_data_size) < 0) {
-			fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
-			return -1;
-		}
+	case SpcLinkTypeFile: {
+		int rc = generate_spc_string(cms, &sl.file, link_data,
+					link_data_size);
+		if (rc < 0)
+			return rc;
 		break;
+	}
 	case SpcLinkTypeUrl:
 		sl.url.type = siBuffer;
 		sl.url.data = link_data;

@@ -72,7 +72,7 @@ SEC_ASN1Template SignedAttributesTemplate[] = {
 };
 
 int
-generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
+generate_signed_attributes(cms_context *cms, SECItem *sattrs)
 {
 	Attribute *attrs[5];
 	memset(attrs, '\0', sizeof (attrs));
@@ -83,7 +83,7 @@ generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 
 	/* build the first attribute, which says we have no S/MIME
 	 * capabilities whatsoever */
-	attrs[0] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
+	attrs[0] = PORT_ArenaZAlloc(cms->arena, sizeof (Attribute));
 	if (!attrs[0])
 		goto err;
 
@@ -91,14 +91,14 @@ generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 	attrs[0]->attrType = oid->oid;
 
 	SECItem *smime_caps[2] = { NULL, NULL};
-	if (generate_empty_sequence(ctx, &encoded) < 0)
+	if (generate_empty_sequence(cms, &encoded) < 0)
 		goto err;
-	smime_caps[0] = SECITEM_ArenaDupItem(ctx->arena, &encoded);
+	smime_caps[0] = SECITEM_ArenaDupItem(cms->arena, &encoded);
 	attrs[0]->attrValues = smime_caps;
 
 	/* build the second attribute, which says that this is
 	 * a PKCS9 content blob thingy */
-	attrs[1] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
+	attrs[1] = PORT_ArenaZAlloc(cms->arena, sizeof (Attribute));
 	if (!attrs[1])
 		goto err;
 
@@ -109,15 +109,15 @@ generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 	tag = find_ms_oid_tag(SPC_INDIRECT_DATA_OBJID);
 	if (tag == SEC_OID_UNKNOWN)
 		goto err;
-	if (generate_object_id(ctx, &encoded, tag) < 0)
+	if (generate_object_id(cms, &encoded, tag) < 0)
 		goto err;
-	content_types[0] = SECITEM_ArenaDupItem(ctx->arena, &encoded);
+	content_types[0] = SECITEM_ArenaDupItem(cms->arena, &encoded);
 	if (!content_types[0])
 		goto err;
 	attrs[1]->attrValues = content_types;
 
 	/* build the third attribute.  This is our signing time. */
-	attrs[2] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
+	attrs[2] = PORT_ArenaZAlloc(cms->arena, sizeof (Attribute));
 	if (!attrs[2])
 		goto err;
 
@@ -125,16 +125,16 @@ generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 	attrs[2]->attrType = oid->oid;
 
 	SECItem *signing_time[2] = { NULL, NULL };
-	if (generate_time(ctx, &encoded, time(NULL)) < 0)
+	if (generate_time(cms, &encoded, time(NULL)) < 0)
 		goto err;
-	signing_time[0] = SECITEM_ArenaDupItem(ctx->arena, &encoded);
+	signing_time[0] = SECITEM_ArenaDupItem(cms->arena, &encoded);
 	if (!signing_time[0])
 		goto err;
 	attrs[2]->attrValues = signing_time;
 
 	/* build the fourth attribute, which is our PKCS9 message
 	 * digest (which is a SHA-whatever selected and generated elsewhere */
-	attrs[3] = PORT_ArenaZAlloc(ctx->arena, sizeof (Attribute));
+	attrs[3] = PORT_ArenaZAlloc(cms->arena, sizeof (Attribute));
 	if (!attrs[3])
 		goto err;
 
@@ -142,15 +142,15 @@ generate_signed_attributes(cms_context *ctx, SECItem *sattrs)
 	attrs[3]->attrType = oid->oid;
 
 	SECItem *digest_values[2] = { NULL, NULL };
-	if (generate_octet_string(ctx, &encoded, ctx->ci_digest) < 0)
+	if (generate_octet_string(cms, &encoded, cms->ci_digest) < 0)
 		goto err;
-	digest_values[0] = SECITEM_ArenaDupItem(ctx->arena, &encoded);
+	digest_values[0] = SECITEM_ArenaDupItem(cms->arena, &encoded);
 	if (!digest_values[0])
 		goto err;
 	attrs[3]->attrValues = digest_values;
 
 	Attribute **attrtmp = attrs;
-	if (SEC_ASN1EncodeItem(ctx->arena, sattrs, &attrtmp,
+	if (SEC_ASN1EncodeItem(cms->arena, sattrs, &attrtmp,
 				AttributeSetTemplate) == NULL)
 		goto err;
 	return 0;
@@ -197,19 +197,19 @@ static char *getpw(PK11SlotInfo *slot, PRBool retry, void *arg)
 }
 
 static int
-sign_blob(cms_context *ctx, SECItem *sigitem, SECItem *sign_content)
+sign_blob(cms_context *cms, SECItem *sigitem, SECItem *sign_content)
 {
-	sign_content = SECITEM_ArenaDupItem(ctx->arena, sign_content);
+	sign_content = SECITEM_ArenaDupItem(cms->arena, sign_content);
 	if (!sign_content)
 		return -1;
 
-	SECOidData *oid = SECOID_FindOIDByTag(digest_get_signature_oid(ctx));
+	SECOidData *oid = SECOID_FindOIDByTag(digest_get_signature_oid(cms));
 	if (!oid)
 		goto err;
 
-	PK11_SetPasswordFunc(ctx->func ? ctx->func : getpw);
-	SECKEYPrivateKey *privkey = PK11_FindKeyByAnyCert(ctx->cert,
-				ctx->pwdata ? ctx->pwdata : NULL);
+	PK11_SetPasswordFunc(cms->func ? cms->func : getpw);
+	SECKEYPrivateKey *privkey = PK11_FindKeyByAnyCert(cms->cert,
+				cms->pwdata ? cms->pwdata : NULL);
 	if (!privkey) {
 		fprintf(stderr, "Could not get private key.\n");
 		goto err;
@@ -239,13 +239,13 @@ err:
 }
 
 static int
-generate_unsigned_attributes(cms_context *ctx, SECItem *uattrs)
+generate_unsigned_attributes(cms_context *cms, SECItem *uattrs)
 {
 	Attribute *attrs[1];
 	memset(attrs, '\0', sizeof (attrs));
 
 	Attribute **attrtmp = attrs;
-	if (SEC_ASN1EncodeItem(ctx->arena, uattrs, &attrtmp,
+	if (SEC_ASN1EncodeItem(cms->arena, uattrs, &attrtmp,
 				AttributeSetTemplate) == NULL)
 		goto err;
 	return 0;
@@ -365,7 +365,7 @@ SEC_ASN1Template SpcSignerInfoTemplate[] = {
 };
 
 int
-generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx)
+generate_spc_signer_info(cms_context *cms, SpcSignerInfo *sip)
 {
 	if (!sip)
 		return -1;
@@ -373,41 +373,41 @@ generate_spc_signer_info(SpcSignerInfo *sip, cms_context *ctx)
 	SpcSignerInfo si;
 	memset(&si, '\0', sizeof (si));
 
-	if (SEC_ASN1EncodeInteger(ctx->arena, &si.CMSVersion, 1) == NULL) {
+	if (SEC_ASN1EncodeInteger(cms->arena, &si.CMSVersion, 1) == NULL) {
 		fprintf(stderr, "Could not encode CMSVersion: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		goto err;
 	}
 
 	si.sid.signerType = signerTypeIssuerAndSerialNumber;
-	si.sid.signerValue.iasn.issuer = ctx->cert->derIssuer;
-	si.sid.signerValue.iasn.serial = ctx->cert->serialNumber;
+	si.sid.signerValue.iasn.issuer = cms->cert->derIssuer;
+	si.sid.signerValue.iasn.serial = cms->cert->serialNumber;
 
-	if (generate_algorithm_id(ctx, &si.digestAlgorithm,
-			digest_get_digest_oid(ctx)) < 0)
+	if (generate_algorithm_id(cms, &si.digestAlgorithm,
+			digest_get_digest_oid(cms)) < 0)
 		goto err;
 
 
-	if (ctx->raw_signature) {
-		memcpy(&si.signedAttrs, ctx->raw_signed_attrs,
+	if (cms->raw_signature) {
+		memcpy(&si.signedAttrs, cms->raw_signed_attrs,
 			sizeof (si.signedAttrs));
-		memcpy(&si.signature, ctx->raw_signature, sizeof(si.signature));
+		memcpy(&si.signature, cms->raw_signature, sizeof(si.signature));
 	} else {
-		if (generate_signed_attributes(ctx, &si.signedAttrs) < 0)
+		if (generate_signed_attributes(cms, &si.signedAttrs) < 0)
 			goto err;
 
-		if (sign_blob(ctx, &si.signature, &si.signedAttrs) < 0)
+		if (sign_blob(cms, &si.signature, &si.signedAttrs) < 0)
 			goto err;
 	}
 
 	si.signedAttrs.data[0] = SEC_ASN1_CONTEXT_SPECIFIC | 0 |
 				SEC_ASN1_CONSTRUCTED;
 
-	if (generate_algorithm_id(ctx, &si.signatureAlgorithm,
-				digest_get_encryption_oid(ctx)) < 0)
+	if (generate_algorithm_id(cms, &si.signatureAlgorithm,
+				digest_get_encryption_oid(cms)) < 0)
 		goto err;
 
-	if (generate_unsigned_attributes(ctx, &si.unsignedAttrs) < 0)
+	if (generate_unsigned_attributes(cms, &si.unsignedAttrs) < 0)
 		goto err;
 
 	memcpy(sip, &si, sizeof(si));

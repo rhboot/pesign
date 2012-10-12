@@ -96,13 +96,14 @@ extern int generate_time(cms_context *ctx, SECItem *encoded, time_t when);
 extern SEC_ASN1Template AlgorithmIDTemplate[];
 extern int generate_algorithm_id(cms_context *ctx, SECAlgorithmID *idp,
 				SECOidTag tag);
-extern int generate_spc_link(PRArenaPool *arena, SpcLink *slp,
+extern int generate_spc_link(cms_context *cms, SpcLink *slp,
 				SpcLinkType link_type, void *link_data,
 				size_t link_data_size);
 
-extern int generate_spc_string(PRArenaPool *arena, SECItem *ssp,
-				char *str, int len);
+extern int generate_spc_string(cms_context *cms, SECItem *ssp, char *str,
+				int len);
 extern int generate_digest(cms_context *cms, Pe *pe);
+extern int generate_signature(cms_context *ctx);
 extern int unlock_nss_token(cms_context *ctx);
 extern int find_certificate(cms_context *ctx);
 

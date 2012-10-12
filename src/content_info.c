@@ -71,23 +71,22 @@ SEC_ASN1Template SpcPeImageDataTemplate[] = {
 };
 
 static int
-generate_spc_pe_image_data(PRArenaPool *arena, SECItem *spidp)
+generate_spc_pe_image_data(cms_context *cms, SECItem *spidp)
 {
 	SpcPeImageData spid;
 
-	SECITEM_AllocItem(arena, &spid.flags, 1);
+	SECITEM_AllocItem(cms->arena, &spid.flags, 1);
 	if (!spid.flags.data)
 		return -1;
 	spid.flags.data[0] = 0;
 
 	char obsolete[28] = "\0<\0<\0<\0O\0b\0s\0o\0l\0e\0t\0e\0>\0>\0>";
-	if (generate_spc_link(arena, &spid.link, SpcLinkTypeFile, obsolete,
-			28) < 0) {
-		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
-		return -1;
-	}
+	int rc;
+	rc = generate_spc_link(cms, &spid.link, SpcLinkTypeFile, obsolete, 28);
+	if (rc < 0)
+		return rc;
 
-	if (SEC_ASN1EncodeItem(arena, spidp, &spid,
+	if (SEC_ASN1EncodeItem(cms->arena, spidp, &spid,
 			SpcPeImageDataTemplate) == NULL) {
 		fprintf(stderr, "Could not encode SpcPeImageData: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
@@ -130,22 +129,24 @@ SEC_ASN1Template SpcAttributeTypeAndOptionalValueTemplate[] = {
  * (SPC_PE_IMAGE_DATA_OBJID) and the SpcPeImageData.
  */
 static int
-generate_spc_attribute_yadda_yadda(PRArenaPool *arena, SECItem *ataovp)
+generate_spc_attribute_yadda_yadda(cms_context *cms, SECItem *ataovp)
 {
 	SpcAttributeTypeAndOptionalValue ataov;
 	memset(&ataov, '\0', sizeof (ataov));
 
-	if (get_ms_oid_secitem(SPC_PE_IMAGE_DATA_OBJID, &ataov.contentType) < 0){
+	int rc;
+
+	rc = get_ms_oid_secitem(SPC_PE_IMAGE_DATA_OBJID, &ataov.contentType);
+	if (rc < 0) {
 		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
 		return -1;
 	}
 
-	if (generate_spc_pe_image_data(arena, &ataov.value) < 0) {
-		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
-		return -1;
-	}
+	rc = generate_spc_pe_image_data(cms, &ataov.value);
+	if (rc < 0)
+		return rc;
 
-	if (SEC_ASN1EncodeItem(arena, ataovp, &ataov,
+	if (SEC_ASN1EncodeItem(cms->arena, ataovp, &ataov,
 			SpcAttributeTypeAndOptionalValueTemplate) == NULL) {
 		fprintf(stderr,
 			"Could not encode SpcAttributeTypeAndOptionalValue:"
@@ -184,18 +185,19 @@ SEC_ASN1Template DigestInfoTemplate[] = {
 };
 
 static int
-generate_spc_digest_info(PRArenaPool *arena, SECItem *dip, cms_context *ctx)
+generate_spc_digest_info(cms_context *cms, SECItem *dip)
 {
 	DigestInfo di;
 	memset(&di, '\0', sizeof (di));
 
-	if (generate_algorithm_id(ctx, &di.digestAlgorithm,
-			digest_get_digest_oid(ctx)) < 0)
+	if (generate_algorithm_id(cms, &di.digestAlgorithm,
+			digest_get_digest_oid(cms)) < 0)
 		return -1;
-	int i = ctx->selected_digest;
-	memcpy(&di.digest, ctx->digests[i].pe_digest, sizeof (di.digest));
+	int i = cms->selected_digest;
+	memcpy(&di.digest, cms->digests[i].pe_digest, sizeof (di.digest));
 
-	if (SEC_ASN1EncodeItem(arena, dip, &di, DigestInfoTemplate) == NULL) {
+	if (SEC_ASN1EncodeItem(cms->arena, dip, &di,
+						DigestInfoTemplate) == NULL) {
 		fprintf(stderr, "Could not encode DigestInfo: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
@@ -237,23 +239,23 @@ SEC_ASN1Template SpcIndirectDataContentTemplate[] = {
 };
 
 static int
-generate_spc_indirect_data_content(PRArenaPool *arena, SECItem *idcp,
-				cms_context *ctx)
+generate_spc_indirect_data_content(cms_context *cms, SECItem *idcp)
 {
 	SpcIndirectDataContent idc;
 	memset(&idc, '\0', sizeof (idc));
+	int rc;
 
-	if (generate_spc_attribute_yadda_yadda(arena, &idc.data) < 0) {
-		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
-		return -1;
+	rc = generate_spc_attribute_yadda_yadda(cms, &idc.data);
+	if (rc < 0)
+		return rc;
+
+	rc = generate_spc_digest_info(cms, &idc.messageDigest);
+	if (rc < 0) {
+		SECITEM_FreeItem(&idc.data, PR_FALSE);
+		return rc;
 	}
 
-	if (generate_spc_digest_info(arena, &idc.messageDigest, ctx) < 0) {
-		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
-		return -1;
-	}
-
-	if (SEC_ASN1EncodeItem(arena, idcp, &idc,
+	if (SEC_ASN1EncodeItem(cms->arena, idcp, &idc,
 			SpcIndirectDataContentTemplate) == NULL) {
 		fprintf(stderr,
 			"Could not encode SpcIndirectDataContent: %s\n",
@@ -288,7 +290,7 @@ const SEC_ASN1Template SpcContentInfoTemplate[] = {
 };
 
 static int
-generate_cinfo_digest(cms_context *cms_ctx, SpcContentInfo *cip)
+generate_cinfo_digest(cms_context *cms, SpcContentInfo *cip)
 {
 	/* I have exactly no idea why the thing I need to digest is 2 bytes
 	 * in to the content data, but the hash winds up identical to what
@@ -303,13 +305,13 @@ generate_cinfo_digest(cms_context *cms_ctx, SpcContentInfo *cip)
 	};
 	
 	PK11Context *ctx = NULL;
-	SECOidData *oid = SECOID_FindOIDByTag(digest_get_digest_oid(cms_ctx));
+	SECOidData *oid = SECOID_FindOIDByTag(digest_get_digest_oid(cms));
 	if (oid == NULL)
 		return -1;
 
-	cms_ctx->ci_digest = SECITEM_AllocItem(cms_ctx->arena, NULL,
-					digest_get_digest_size(cms_ctx));
-	if (!cms_ctx->ci_digest)
+	cms->ci_digest = SECITEM_AllocItem(cms->arena, NULL,
+					digest_get_digest_size(cms));
+	if (!cms->ci_digest)
 		goto err;
 
 	ctx = PK11_CreateDigestContext(oid->offset);
@@ -320,11 +322,11 @@ generate_cinfo_digest(cms_context *cms_ctx, SpcContentInfo *cip)
 		goto err;
 	if (PK11_DigestOp(ctx, encoded.data, encoded.len) != SECSuccess)
 		goto err;
-	if (PK11_DigestFinal(ctx, cms_ctx->ci_digest->data,
-				&cms_ctx->ci_digest->len,
-				digest_get_digest_size(cms_ctx)) != SECSuccess)
+	if (PK11_DigestFinal(ctx, cms->ci_digest->data,
+				&cms->ci_digest->len,
+				digest_get_digest_size(cms)) != SECSuccess)
 		goto err;
-	if (cms_ctx->ci_digest->len > digest_get_digest_size(cms_ctx))
+	if (cms->ci_digest->len > digest_get_digest_size(cms))
 		goto err;
 
 	PK11_DestroyContext(ctx, PR_TRUE);
@@ -336,8 +338,8 @@ err:
 	if (ctx)
 		PK11_DestroyContext(ctx, PR_TRUE);
 #if 0
-	if (cms_ctx->ci_digest)
-		SECITEM_FreeItem(cms_ctx->ci_digest, PR_TRUE);
+	if (cms->ci_digest)
+		SECITEM_FreeItem(cms->ci_digest, PR_TRUE);
 	if (encoded.data)
 		SECITEM_FreeItem(&encoded, PR_FALSE);
 #endif
@@ -345,7 +347,7 @@ err:
 }
 
 int
-generate_spc_content_info(SpcContentInfo *cip, cms_context *ctx)
+generate_spc_content_info(cms_context *cms, SpcContentInfo *cip)
 {
 	if (!cip)
 		return -1;
@@ -353,27 +355,28 @@ generate_spc_content_info(SpcContentInfo *cip, cms_context *ctx)
 	SpcContentInfo ci;
 	memset(&ci, '\0', sizeof (ci));
 
-	if (get_ms_oid_secitem(SPC_INDIRECT_DATA_OBJID, &ci.contentType) < 0) {
+	int rc;
+	rc = get_ms_oid_secitem(SPC_INDIRECT_DATA_OBJID, &ci.contentType);
+	if (rc < 0) {
 		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
-		return -1;
+		return rc;
 	}
 
-	if (generate_spc_indirect_data_content(ctx->arena, &ci.content,
-						ctx) < 0) {
-		fprintf(stderr, "got here %s:%d\n",__func__,__LINE__);
-		return -1;
-	}
+	rc = generate_spc_indirect_data_content(cms, &ci.content);
+	if (rc < 0)
+		return rc;
 
 	memcpy(cip, &ci, sizeof *cip);
 
-	if (generate_cinfo_digest(ctx, cip) < 0)
-		return -1;
+	rc = generate_cinfo_digest(cms, cip);
+	if (rc < 0)
+		return rc;
 
 	return 0;
 }
 
 void
-free_spc_content_info(SpcContentInfo *cip, cms_context *ctx)
+free_spc_content_info(cms_context *cms, SpcContentInfo *cip)
 {
 #if 0
 	SECITEM_FreeItem(&cip->contentType, PR_TRUE);

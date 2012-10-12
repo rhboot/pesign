@@ -29,7 +29,7 @@ typedef enum {
 	END_OID_LIST
 } ms_oid_t;
 
-extern SECStatus register_oids(void);
+extern SECStatus register_oids(cms_context *cms);
 extern SECOidTag find_ms_oid_tag(ms_oid_t moid);
 extern int get_ms_oid_secitem(ms_oid_t moid, SECItem *si);
 
