@@ -167,8 +167,9 @@ malformed:
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
 			"pesignd: unlock-token: invalid data");
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: possible exploit attempt. exiting.");
-		exit(1);
+			"pesignd: possible exploit attempt. closing.");
+		close(pollfd->fd);
+		return;
 	}
 	n -= sizeof(tn->size);
 	if (n < tn->size)
@@ -255,8 +256,9 @@ malformed:
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
 			"pesignd: unlock-token: invalid data");
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: possible exploit attempt. exiting.");
-		exit(1);
+			"pesignd: possible exploit attempt. closing.");
+		close(sd);
+		return;
 	}
 
 	struct cmsghdr *cme = CMSG_FIRSTHDR(&msg);
@@ -372,8 +374,9 @@ malformed:
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
 			"pesignd: unlock-token: invalid data");
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: possible exploit attempt. exiting.");
-		exit(1);
+			"pesignd: possible exploit attempt. closing.");
+		close(pollfd->fd);
+		return;
 	}
 
 	n -= sizeof(tn->size);
@@ -573,21 +576,25 @@ handle_event(context *ctx, struct pollfd *pollfd)
 			"pesignd: got version %d, expected version %d",
 			pm.version, PESIGND_VERSION);
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
-			"pesignd: possible exploit attempt");
+			"pesignd: possible exploit attempt.  closing.");
+		close(pollfd->fd);
 		return -1;
 	}
 
 	for (int i = 0; cmd_table[i].cmd != CMD_LIST_END; i++) {
 		if (cmd_table[i].cmd == pm.command) {
-			if (cmd_table[i].func == NULL)
+			if (cmd_table[i].func == NULL) {
 				handle_invalid_input(pm.command, ctx, pollfd,
 							pm.size);
+				close(pollfd->fd);
+			}
 			cmd_table[i].func(ctx, pollfd, pm.size);
 			return 0;
 		}
 	}
 
 	handle_invalid_input(pm.command, ctx, pollfd, pm.size);
+	close(pollfd->fd);
 	return 0;
 }
 
