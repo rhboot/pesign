@@ -167,8 +167,59 @@ check_response(int sd, char **srvmsg)
 	return resp->rc;
 }
 
+static char *
+get_token_pin(int pinfd, char *pinfile, char *envname)
+{
+	char *pin = NULL;
+	FILE *pinf = NULL;
+
+	errno = 0;
+	/* validate that the fd we got is real... */
+	if (pinfd >= 0) {
+		pinf = fdopen(pinfd, "r");
+		if (!pinf) {
+			if (errno != EBADF)
+				close(pinfd);
+			return NULL;
+		}
+
+		ssize_t n = getline(&pin, 0, pinf);
+		if (n < 0 || !pin) {
+			fclose(pinf);
+			close(pinfd);
+			return NULL;
+		}
+
+		char *c = strchrnul(pin, '\n');
+		*c = '\0';
+
+		fclose(pinf);
+		close(pinfd);
+		return pin;
+	} else if (pinfile) {
+		pinf = fopen(pinfile, "r");
+		if (!pinf)
+			return NULL;
+
+		ssize_t n = getline(&pin, 0, pinf);
+		if (n < 0 || !pin) {
+			fclose(pinf);
+			return NULL;
+		}
+
+		char *c = strchrnul(pin, '\n');
+		*c = '\0';
+
+		fclose(pinf);
+		return pin;
+	} else
+		return strdup(getenv(envname));
+
+	return NULL;
+}
+
 static void
-unlock_token(int sd, char *tokenname)
+unlock_token(int sd, char *tokenname, char *pin)
 {
 	struct msghdr msg;
 	struct iovec iov[2];
@@ -176,7 +227,6 @@ unlock_token(int sd, char *tokenname)
 
 	uint32_t size0 = pesignd_string_size(tokenname);
 
-	char *pin = getenv("PESIGN_TOKEN_PIN");
 	uint32_t size1 = pesignd_string_size(pin);
 	
 	pm = calloc(1, sizeof(*pm));
@@ -382,8 +432,6 @@ oom:
 int
 main(int argc, char *argv[])
 {
-	//pesign_context ctx, *ctxp = &ctx;
-	//char *digest_name = "sha256";
 	char *tokenname = "NSS Certificate DB";
 	char *certname = NULL;
 	poptContext optCon;
@@ -392,13 +440,17 @@ main(int argc, char *argv[])
 	char *infile = NULL;
 	char *outfile = NULL;
 	int attached = 1;
+	int pinfd = -1;
+	char *pinfile = NULL;
+	char *tokenpin = NULL;
 
 	struct poptOption options[] = {
 		{NULL, '\0', POPT_ARG_INTL_DOMAIN, "pesign" },
-		{"nss-token", 't', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
-			&tokenname, 0, "NSS token holding signing key" },
+		{"token", 't', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
+			&tokenname, 0, "NSS token holding signing key",
+			"<token>" },
 		{"certificate", 'c', POPT_ARG_STRING,
-			&certname, 0, "NSS certificate name" },
+			&certname, 0, "NSS certificate name", "<nickname>" },
 		{"unlock", 'u', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
 			UNLOCK_TOKEN, "unlock nss token", NULL },
 		{"kill", 'k', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
@@ -411,12 +463,25 @@ main(int argc, char *argv[])
 			&outfile, 0, "output filename", "<outfile>" },
 		{"detached", 'd', POPT_ARG_VAL, &attached, 0,
 			"create detached signature", NULL },
+		{"pinfd", 'f', POPT_ARG_INT, &pinfd, -1,
+			"read file descriptor for pin information",
+			"<file descriptor>" },
+		{"pinfile", 'F', POPT_ARG_STRING, &pinfile, 0,
+			"read named file for pin information",
+			"<pin file name>" },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
 	};
 
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
+
+	rc = poptReadDefaultConfig(optCon, 0);
+	if (rc < 0) {
+		fprintf(stderr, "pesign: poprReadDefaultConfig failed: %s\n",
+		poptStrerror(rc));
+		exit(1);
+	}
 
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
@@ -439,7 +504,18 @@ main(int argc, char *argv[])
 
 	switch (action) {
 	case UNLOCK_TOKEN:
-		unlock_token(sd, tokenname);
+		tokenpin = get_token_pin(pinfd, pinfile, "PESIGN_TOKEN_PIN");
+		if (tokenpin == NULL) {
+			if (errno)
+				fprintf(stderr, "pesign-client: could not "
+					"get token pin: %m\n");
+			else
+				fprintf(stderr, "pesign-client: no token pin "
+					"specified");
+			exit(1);
+		}
+		unlock_token(sd, tokenname, tokenpin);
+		free(tokenpin);
 		break;
 	case KILL_DAEMON:
 		send_kill_daemon(sd);
