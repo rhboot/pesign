@@ -13,7 +13,7 @@ pesign \- command line tool for signing UEFI applications
        [--show-signature | -S ] [--remove-signature | -r ]
        [--export-pubkey=\fIoutkey\fR | -K \fIoutkey\fR]
        [--export-cert=\fIoutcert\fR | -C \fIoutcert\fR]
-       [--ascii-armor | -a]
+       [--ascii-armor | -a] [--daemonize | -D] [--nofork | -N]
 
 .SH DESCRIPTION
 \fBpesign\fR is a command line tool for manipulating signatures and 
@@ -79,9 +79,16 @@ Export the certificate specified by --certificate to \fIoutcert\fR
 \fB-\-ascii\fR
 Use ascii armoring on exported certificates.
 
+.TP
+\fB-\-daemonize\fR
+Spawn a daemon for use with \fBpesign-client(1)\fR
+
+.TP
+\fB-\-nofork\fR
+Do not fork when using \fB-\-daemonize\fR.
 
 .SH "SEE ALSO"
-.BR pesign (1)
+.BR pesign-client (1)
 
 .SH AUTHORS
 .nf
