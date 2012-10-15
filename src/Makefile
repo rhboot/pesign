@@ -62,6 +62,7 @@ install :
 	$(INSTALL) -m 644 pesign.popt $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -m 644 pesign.1 $(INSTALLROOT)/usr/share/man/man1/
+	$(INSTALL) -m 644 pesign-client.1 $(INSTALLROOT)/usr/share/man/man1/
 	#$(INSTALL) -m 644 peverify.1 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
