@@ -525,6 +525,13 @@ main(int argc, char *argv[])
 
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
+	rc = poptReadDefaultConfig(optCon, 0);
+	if (rc < 0) {
+		fprintf(stderr, "pesign: poprReadDefaultConfig failed: %s\n",
+		poptStrerror(rc));
+		exit(1);
+	}
+
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
 
