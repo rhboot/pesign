@@ -362,6 +362,7 @@ handle_signing(context *ctx, struct pollfd *pollfd, socklen_t size,
 	struct iovec iov;
 	ssize_t n;
 	char *buffer = malloc(size);
+	Pe *inpe = NULL;
 
 	if (!buffer) {
 oom:
@@ -433,7 +434,6 @@ malformed:
 		goto finish;
 	}
 
-	Pe *inpe = NULL;
 	rc = set_up_inpe(ctx, infd, &inpe);
 	if (rc < 0)
 		goto finish;
