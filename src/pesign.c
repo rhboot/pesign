@@ -88,7 +88,7 @@ open_input(pesign_context *ctx)
 
 	struct stat statbuf;
 	ctx->infd = open(ctx->infile, O_RDONLY|O_CLOEXEC);
-	stat(ctx->infile, &statbuf); 
+	stat(ctx->infile, &statbuf);
 	ctx->outmode = statbuf.st_mode;
 
 	if (ctx->infd < 0) {

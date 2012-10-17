@@ -70,7 +70,7 @@ hide_stolen_goods_from_cms(cms_context *new, cms_context *old)
 
 static void
 send_response(context *ctx, cms_context *cms, struct pollfd *pollfd, int rc)
-{	
+{
 	struct msghdr msg;
 	struct iovec iov;
 	ssize_t n;
@@ -890,7 +890,7 @@ int
 daemonize(cms_context *cms_ctx, int do_fork)
 {
 	int rc = 0;
-	context ctx = { 
+	context ctx = {
 		.backup_cms = cms_ctx,
 		.priority = do_fork ? LOG_PID
 				    : LOG_PID|LOG_PERROR,
@@ -904,7 +904,7 @@ daemonize(cms_context *cms_ctx, int do_fork)
 		fprintf(stderr, "pesignd must be started as root");
 		exit(1);
 	}
-		
+
 	check_socket(&ctx);
 
 	openlog("pesignd", LOG_PID, LOG_DAEMON);
