@@ -207,6 +207,11 @@ sign_blob(cms_context *cms, SECItem *sigitem, SECItem *sign_content)
 	if (!sign_content)
 		return -1;
 
+	if (content_is_empty(sign_content->data, sign_content->len)) {
+		cms->log(cms, LOG_ERR, "not signing empty digest");
+		return -1;
+	}
+
 	SECOidData *oid = SECOID_FindOIDByTag(digest_get_signature_oid(cms));
 	if (!oid)
 		goto err;

@@ -532,6 +532,10 @@ generate_empty_sequence(cms_context *cms, SECItem *encoded)
 int
 generate_octet_string(cms_context *cms, SECItem *encoded, SECItem *original)
 {
+	if (content_is_empty(original->data, original->len)) {
+		cms->log(cms, LOG_ERR, "content is empty, not encoding");
+		return -1;
+	}
 	if (SEC_ASN1EncodeItem(cms->arena, encoded, original,
 			SEC_OctetStringTemplate) == NULL)
 		return -1;
@@ -942,7 +946,16 @@ generate_signature(cms_context *cms)
 {
 	int rc = 0;
 
-	assert(cms->digests[cms->selected_digest].pe_digest != NULL);
+	if (cms->digests[cms->selected_digest].pe_digest == NULL) {
+		cms->log(cms, LOG_ERR, "pe digest has not been allocated");
+		return -1;
+	}
+
+	if (content_is_empty(cms->digests[cms->selected_digest].pe_digest->data,
+			cms->digests[cms->selected_digest].pe_digest->len)) {
+		cms->log(cms, LOG_ERR, "pe binary has not been digested");
+		return -1;
+	}
 
 	SECItem sd_der;
 	memset(&sd_der, '\0', sizeof(sd_der));

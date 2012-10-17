@@ -110,6 +110,19 @@ free_poison(void  *addrv, ssize_t len)
 		addr[x] = poison_pills[x % 2];
 }
 
+static int
+__attribute__ ((unused))
+content_is_empty(uint8_t *data, ssize_t len)
+{
+	if (len < 1)
+		return 1;
+
+	for (int i = 0; i < len; i++)
+		if (data[i] != 0)
+			return 0;
+	return 1;
+}
+
 #if defined(DAEMON_H)
 static inline uint32_t
 __attribute__ ((unused))

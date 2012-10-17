@@ -197,6 +197,11 @@ generate_spc_digest_info(cms_context *cms, SECItem *dip)
 	int i = cms->selected_digest;
 	memcpy(&di.digest, cms->digests[i].pe_digest, sizeof (di.digest));
 
+	if (content_is_empty(di.digest.data, di.digest.len)) {
+		cms->log(cms, LOG_ERR, "got empty digest");
+		return -1;
+	}
+
 	if (SEC_ASN1EncodeItem(cms->arena, dip, &di,
 						DigestInfoTemplate) == NULL) {
 		cms->log(cms, LOG_ERR, "could not encode DigestInfo: %s",
@@ -327,6 +332,12 @@ generate_cinfo_digest(cms_context *cms, SpcContentInfo *cip)
 				&cms->ci_digest->len,
 				digest_get_digest_size(cms)) != SECSuccess)
 		goto err;
+
+	if (content_is_empty(cms->ci_digest->data, cms->ci_digest->len)) {
+		cms->log(cms, LOG_ERR, "generated empty digest");
+		goto err;
+	}
+
 	if (cms->ci_digest->len > digest_get_digest_size(cms))
 		goto err;
 
