@@ -96,43 +96,6 @@ digest_get_digest_size(cms_context *cms)
 	return digest_params[i].size;
 }
 
-
-int
-setup_digests(cms_context *cms)
-{
-	struct digest *digests = NULL;
-
-	digests = calloc(n_digest_params, sizeof (*digests));
-	if (!digests) {
-		cms->log(cms, LOG_ERR, "cannot allocate memory: %m");
-		return -1;
-	}
-
-	for (int i = 0; i < n_digest_params; i++) {
-		digests[i].pk11ctx = PK11_CreateDigestContext(
-						digest_params[i].digest_tag);
-		if (!digests[i].pk11ctx) {
-			cms->log(cms, LOG_ERR, "could not create digest "
-				"context: %s",
-				PORT_ErrorToString(PORT_GetError()));
-			goto err;
-		}
-
-		PK11_DigestBegin(digests[i].pk11ctx);
-	}
-
-	cms->digests = digests;
-	return 0;
-err:
-	for (int i = 0; i < n_digest_params; i++) {
-		if (digests[i].pk11ctx)
-			PK11_DestroyContext(digests[i].pk11ctx, PR_TRUE);
-	}
-
-	free(digests);
-	return -1;
-}
-
 void
 teardown_digests(cms_context *ctx)
 {
@@ -733,6 +696,46 @@ check_pointer_and_size(Pe *pe, void *ptr, size_t size)
 	return 1;
 }
 
+int
+generate_digest_begin(cms_context *cms)
+{
+	struct digest *digests = NULL;
+
+	if (cms->digests) {
+		digests = cms->digests;
+	} else {
+		digests = calloc(n_digest_params, sizeof (*digests));
+		if (!digests) {
+			cms->log(cms, LOG_ERR, "cannot allocate memory: %m");
+			return -1;
+		}
+	}
+
+	for (int i = 0; i < n_digest_params; i++) {
+		digests[i].pk11ctx = PK11_CreateDigestContext(
+						digest_params[i].digest_tag);
+		if (!digests[i].pk11ctx) {
+			cms->log(cms, LOG_ERR, "could not create digest "
+				"context: %s",
+				PORT_ErrorToString(PORT_GetError()));
+			goto err;
+		}
+
+		PK11_DigestBegin(digests[i].pk11ctx);
+	}
+
+	cms->digests = digests;
+	return 0;
+err:
+	for (int i = 0; i < n_digest_params; i++) {
+		if (digests[i].pk11ctx)
+			PK11_DestroyContext(digests[i].pk11ctx, PR_TRUE);
+	}
+
+	free(digests);
+	return -1;
+}
+
 void
 generate_digest_step(cms_context *cms, void *data, size_t len)
 {
@@ -762,6 +765,12 @@ generate_digest_finish(cms_context *cms)
 
 		PK11_DigestFinal(cms->digests[i].pk11ctx,
 			digest->data, &digest->len, digest_params[i].size);
+		PK11_Finalize(cms->digests[i].pk11ctx);
+		PK11_DestroyContext(cms->digests[i].pk11ctx, PR_TRUE);
+		cms->digests[i].pk11ctx = NULL;
+		if (cms->digests[i].pe_digest)
+			free_poison(cms->digests[i].pe_digest->data,
+				    cms->digests[i].pe_digest->len);
 		cms->digests[i].pe_digest = digest;
 	}
 
@@ -791,7 +800,14 @@ generate_digest(cms_context *cms, Pe *pe)
 
 	if (!pe) {
 		cms->log(cms, LOG_ERR, "no output pe ready");
-		exit(1);
+		return -1;
+	}
+
+	rc = generate_digest_begin(cms);
+	if (rc < 0) {
+		cms->log(cms, LOG_ERR, "could not initialize digests: %s",
+			PORT_ErrorToString(PORT_GetError()));
+		return rc;
 	}
 
 	struct pe_hdr pehdr;

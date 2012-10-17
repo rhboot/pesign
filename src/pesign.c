@@ -548,13 +548,6 @@ main(int argc, char *argv[])
 			fprintf(stderr, "Could not register OIDs\n");
 			exit(1);
 		}
-
-		rc = setup_digests(ctxp->cms_ctx);
-		if (rc < 0) {
-			fprintf(stderr, "Could not initialize digests: %s\n",
-				PORT_ErrorToString(PORT_GetError()));
-			exit(1);
-		}
 	}
 
 	rc = set_digest_parameters(ctxp->cms_ctx, digest_name);
