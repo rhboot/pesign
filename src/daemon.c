@@ -842,6 +842,7 @@ err:
 	if (rc < 0)
 		goto err;
 
+	free(pidstr);
 	close(fd);
 }
 
