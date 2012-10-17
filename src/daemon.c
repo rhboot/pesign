@@ -967,6 +967,11 @@ daemonize(cms_context *cms_ctx, int do_fork)
 
 	rc = handle_events(&ctx);
 
-	NSS_Shutdown();
+	status = NSS_Shutdown();
+	if (status != SECSuccess) {
+		fprintf(stderr, "NSS_Shutdown failed: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		exit(1);
+	}
 	return rc;
 }
