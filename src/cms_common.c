@@ -465,23 +465,23 @@ err_slots:
 		goto err_slots_errmsg;
 	}
 
+	SECItem nickname = {
+		.data = (void *)cms->certname,
+		.len = strlen(cms->certname) + 1,
+		.type = siUTF8String,
+	};
 	struct cbdata cbdata = {
 		.cert = NULL,
 		.psle = psle,
 		.pwdata = pwdata,
 	};
 
-	CERTCertListNode *node = NULL;
-	for (node = CERT_LIST_HEAD(certlist); !CERT_LIST_END(node,certlist);
-			node = CERT_LIST_NEXT(node)) {
-		if (strcmp(cms->certname, node->cert->nickname))
-			continue;
+	status = PK11_TraverseCertsForNicknameInSlot(&nickname, psle->slot,
+						is_valid_cert, &cbdata);
+	if (cbdata.cert == NULL)
+		goto err_slots;
 
-		if (is_valid_cert(node->cert, &cbdata) == SECSuccess) {
-			cms->cert = CERT_DupCertificate(cbdata.cert);
-			break;
-		}
-	}
+	cms->cert = CERT_DupCertificate(cbdata.cert);
 
 	PK11_DestroySlotListElement(slots, &psle);
 	PK11_FreeSlotList(slots);
