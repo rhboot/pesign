@@ -1511,3 +1511,19 @@
    fun:NSS_Init
    fun:main
 }
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   fun:nss_ZAlloc
+   fun:nssArena_Create
+   fun:nssList_Create
+   fun:nssTrustDomain_UpdateCachedTokenCerts
+   fun:PK11_DoPassword
+   fun:PK11_Authenticate
+   fun:unlock_nss_token
+   fun:handle_unlock_token
+   fun:handle_event
+   fun:handle_events
+   fun:daemonize
+}
