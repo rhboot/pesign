@@ -125,8 +125,7 @@ handle_kill_daemon(context *ctx, struct pollfd *pollfd, socklen_t size)
 	ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_NOTICE,
 			"pesignd exiting (pid %d)", getpid());
 
-	cms_context_fini(ctx->backup_cms);
-	exit(0);
+	should_exit = 1;
 }
 
 static void
@@ -625,6 +624,16 @@ handle_event(context *ctx, struct pollfd *pollfd)
 	return 0;
 }
 
+static void
+do_shutdown(context *ctx, int nsockets, struct pollfd *pollfds)
+{
+	for (int i = 0; i < nsockets; i++)
+		close(pollfds[i].fd);
+	free(pollfds);
+
+	xfree(ctx->errstr);
+}
+
 static int
 handle_events(context *ctx)
 {
@@ -643,9 +652,14 @@ handle_events(context *ctx)
 	pollfds[0].events = POLLIN|POLLPRI|POLLHUP;
 
 	while (1) {
+		if (should_exit != 0) {
+shutdown:
+			do_shutdown(ctx, nsockets, pollfds);
+			return 0;
+		}
 		rc = ppoll(pollfds, nsockets, NULL, NULL);
 		if (should_exit != 0)
-			exit(0);
+			goto shutdown;
 		if (rc < 0) {
 			ctx->backup_cms->log(ctx->backup_cms,
 				ctx->priority|LOG_WARNING,
