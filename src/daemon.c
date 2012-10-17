@@ -890,33 +890,38 @@ daemonize(cms_context *cms_ctx, int do_fork)
 		exit(1);
 	}
 
-	int fd = open("/dev/zero", O_RDONLY);
-	close(STDIN_FILENO);
-	rc = dup2(fd, STDIN_FILENO);
-	if (rc < 0) {
-		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_ERR,
-			"pesignd: could not set up standard input: %m");
-		exit(1);
-	}
-	close(fd);
+	if (do_fork) {
+		int fd = open("/dev/zero", O_RDONLY);
+		close(STDIN_FILENO);
+		rc = dup2(fd, STDIN_FILENO);
+		if (rc < 0) {
+			ctx.backup_cms->log(ctx.backup_cms,
+				ctx.priority|LOG_ERR,
+				"pesignd: could not set up standard input: %m");
+			exit(1);
+		}
+		close(fd);
 
-	fd = open("/dev/null", O_WRONLY);
-	close(STDOUT_FILENO);
-	rc = dup2(fd, STDOUT_FILENO);
-	if (rc < 0) {
-		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_ERR,
-			"pesignd: could not set up standard output: %m");
-		exit(1);
-	}
+		fd = open("/dev/null", O_WRONLY);
+		close(STDOUT_FILENO);
+		rc = dup2(fd, STDOUT_FILENO);
+		if (rc < 0) {
+			ctx.backup_cms->log(ctx.backup_cms,
+				ctx.priority|LOG_ERR,
+				"pesignd: could not set up standard output: %m");
+			exit(1);
+		}
 
-	close(STDERR_FILENO);
-	rc = dup2(fd, STDERR_FILENO);
-	if (rc < 0) {
-		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_ERR,
-			"pesignd: could not set up standard error: %m");
-		exit(1);
+		close(STDERR_FILENO);
+		rc = dup2(fd, STDERR_FILENO);
+		if (rc < 0) {
+			ctx.backup_cms->log(ctx.backup_cms,
+				ctx.priority|LOG_ERR,
+				"pesignd: could not set up standard error: %m");
+			exit(1);
+		}
+		close(fd);
 	}
-	close(fd);
 
 	prctl(PR_SET_NAME, "pesignd", 0, 0, 0);
 
@@ -963,13 +968,15 @@ daemonize(cms_context *cms_ctx, int do_fork)
 
 	cms_set_pw_callback(ctx.backup_cms, get_password_fail);
 	cms_set_pw_data(ctx.backup_cms, NULL);
-	ctx.backup_cms->log = daemon_logger;
+	if (do_fork)
+		ctx.backup_cms->log = daemon_logger;
 
 	rc = handle_events(&ctx);
 
 	status = NSS_Shutdown();
 	if (status != SECSuccess) {
-		fprintf(stderr, "NSS_Shutdown failed: %s\n",
+		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_ERR,
+			"NSS_Shutdown failed: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		exit(1);
 	}
