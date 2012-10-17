@@ -804,6 +804,14 @@ main(int argc, char *argv[])
 	}
 	pesign_context_free(ctxp);
 
-	NSS_Shutdown();
+	if (!daemon) {
+		SECStatus status = NSS_Shutdown();
+		if (status != SECSuccess) {
+			fprintf(stderr, "could not shut down NSS: %s",
+				PORT_ErrorToString(PORT_GetError()));
+			exit(1);
+		}
+	}
+
 	return (rc < 0);
 }
