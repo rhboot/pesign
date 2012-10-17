@@ -5,5 +5,4 @@ Description=Pesign signing daemon
 PrivateTmp=true
 Type=forking
 PIDFile=/var/run/pesign.pid
-Environment=NSS_STRICT_NOFORK=DISABLED
 ExecStart=/usr/bin/pesign --daemonize
