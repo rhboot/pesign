@@ -38,8 +38,10 @@ pesign_context_new(pesign_context **ctx)
 		return -1;
 
 	rc = pesign_context_init(context);
-	if (rc < 0)
+	if (rc < 0) {
+		free(context);
 		return rc;
+	}
 	context->flags |= PESIGN_C_ALLOCATED;
 
 	*ctx = context;

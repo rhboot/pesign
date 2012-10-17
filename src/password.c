@@ -114,6 +114,7 @@ SECU_GetPasswordString(void *arg, char *prompt)
 
     output = fopen(consoleName, "w");
     if (output == NULL) {
+	fclose(input);
 	fprintf(stderr, "Error opening output terminal for write\n");
 	return NULL;
     }

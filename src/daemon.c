@@ -134,7 +134,6 @@ handle_unlock_token(context *ctx, struct pollfd *pollfd, socklen_t size)
 	struct msghdr msg;
 	struct iovec iov;
 	ssize_t n;
-	char *buffer = malloc(size);
 
 	int rc = cms_context_alloc(&ctx->cms);
 	if (rc < 0) {
@@ -144,6 +143,7 @@ handle_unlock_token(context *ctx, struct pollfd *pollfd, socklen_t size)
 
 	steal_from_cms(ctx->backup_cms, ctx->cms);
 
+	char *buffer = malloc(size);
 	if (!buffer) {
 oom:
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
@@ -792,6 +792,7 @@ check_socket(context *ctx)
 
 		rc = connect(sd, (struct sockaddr *)&addr_un, len);
 		if (rc < 0) {
+			close(sd);
 			unlink(SOCKPATH);
 			return;
 		}
@@ -800,6 +801,7 @@ check_socket(context *ctx)
 		socklen_t size = sizeof(remote);
 		rc = getpeername(sd, &remote, &size);
 		if (rc < 0) {
+			close(sd);
 			return;
 		} else {
 			fprintf(stderr, "already running");
@@ -913,6 +915,12 @@ daemonize(cms_context *cms_ctx, int do_fork)
 
 	if (do_fork) {
 		int fd = open("/dev/zero", O_RDONLY);
+		if (fd < 0) {
+			ctx.backup_cms->log(ctx.backup_cms,
+					ctx.priority|LOG_ERR,
+					"could not open /dev/zero: %m");
+			exit(1);
+		}
 		close(STDIN_FILENO);
 		rc = dup2(fd, STDIN_FILENO);
 		if (rc < 0) {
@@ -924,6 +932,12 @@ daemonize(cms_context *cms_ctx, int do_fork)
 		close(fd);
 
 		fd = open("/dev/null", O_WRONLY);
+		if (fd < 0) {
+			ctx.backup_cms->log(ctx.backup_cms,
+					ctx.priority|LOG_ERR,
+					"could not open /dev/null: %m");
+			exit(1);
+		}
 		close(STDOUT_FILENO);
 		rc = dup2(fd, STDOUT_FILENO);
 		if (rc < 0) {

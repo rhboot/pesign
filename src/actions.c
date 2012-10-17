@@ -70,7 +70,7 @@ insert_signature(cms_context *cms, int signum)
 	if (signum != cms->num_signatures) {
 		memmove(cms->signatures[signum+1],
 			cms->signatures[signum],
-			sizeof(SECItem *) * (cms->num_signatures - signum));
+			sizeof(SECItem) * (cms->num_signatures - signum));
 	}
 	cms->signatures[signum] = sig;
 	cms->num_signatures++;
@@ -430,7 +430,7 @@ remove_signature(pesign_context *p_ctx)
 	if (p_ctx->signum != ctx->num_signatures - 1)
 		memmove(ctx->signatures[p_ctx->signum],
 			ctx->signatures[p_ctx->signum+1],
-			sizeof(SECItem *) *
+			sizeof(SECItem) *
 				(ctx->num_signatures - p_ctx->signum));
 
 	ctx->num_signatures--;

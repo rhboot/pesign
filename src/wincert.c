@@ -257,7 +257,7 @@ parse_signatures(cms_context *cms, Pe *pe)
 		if (rc <= 0)
 			break;
 
-		signatures[i] = calloc(1, sizeof (SECItem *));
+		signatures[i] = calloc(1, sizeof (SECItem));
 		if (!signatures[i])
 			goto err;
 

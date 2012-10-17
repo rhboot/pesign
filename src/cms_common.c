@@ -598,16 +598,19 @@ generate_spc_string(cms_context *cms, SECItem *ssp, char *str, int len)
 	memset(&ss, '\0', sizeof (ss));
 
 	SECITEM_AllocItem(cms->arena, &ss.unicode, len);
-	if (!ss.unicode.data && len != 0) {
-		cms->log(cms, LOG_ERR, "could not allocate memory: %s",
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
+	if (len != 0) {
+		if (!ss.unicode.data) {
+			cms->log(cms, LOG_ERR, "could not allocate memory: %s",
+				PORT_ErrorToString(PORT_GetError()));
+			return -1;
+		}
+		
+		memcpy(ss.unicode.data, str, len);
 	}
-
-	memcpy(ss.unicode.data, str, len);
 	ss.unicode.type = siBMPString;
 
-	if (SEC_ASN1EncodeItem(cms->arena, ssp, &ss, SpcStringTemplate) == NULL) {
+	if (SEC_ASN1EncodeItem(cms->arena, ssp, &ss, SpcStringTemplate)
+			== NULL) {
 		cms->log(cms, LOG_ERR, "could not encode SpcString: %s",
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
