@@ -508,15 +508,6 @@ main(int argc, char *argv[])
 		POPT_TABLEEND
 	};
 
-	if (!daemon) {
-		SECStatus status = NSS_Init("/etc/pki/pesign");
-		if (status != SECSuccess) {
-			fprintf(stderr, "Could not initialize nss: %s\n",
-				PORT_ErrorToString(PORT_GetError()));
-			exit(1);
-		}
-	}
-
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
 	rc = poptReadDefaultConfig(optCon, 0);
@@ -543,7 +534,29 @@ main(int argc, char *argv[])
 
 	poptFreeContext(optCon);
 
-	rc = set_digest_parameters(ctx.cms_ctx, digest_name);
+	if (!daemon) {
+		SECStatus status = NSS_Init("/etc/pki/pesign");
+		if (status != SECSuccess) {
+			fprintf(stderr, "Could not initialize nss: %s\n",
+				PORT_ErrorToString(PORT_GetError()));
+			exit(1);
+		}
+
+		status = register_oids(ctxp->cms_ctx);
+		if (status != SECSuccess) {
+			fprintf(stderr, "Could not register OIDs\n");
+			exit(1);
+		}
+
+		rc = setup_digests(ctxp->cms_ctx);
+		if (rc < 0) {
+			fprintf(stderr, "Could not initialize digests: %s\n",
+				PORT_ErrorToString(PORT_GetError()));
+			exit(1);
+		}
+	}
+
+	rc = set_digest_parameters(ctxp->cms_ctx, digest_name);
 	int is_help  = strcmp(digest_name, "help") ? 0 : 1;
 	if (rc < 0) {
 		if (!is_help) {
