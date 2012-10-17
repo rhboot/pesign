@@ -410,7 +410,7 @@ find_certificate(cms_context *cms)
 	PK11SlotList *slots = NULL;
 	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, pwdata);
 	if (!slots) {
-		cms->log(cms, LOG_ERR, "Could not find certificate \"%s:%s\"",
+		cms->log(cms, LOG_ERR, "could not find certificate \"%s:%s\"",
 			cms->tokenname, cms->certname);
 err:
 		return -1;
@@ -420,7 +420,7 @@ err:
 	psle = PK11_GetFirstSafe(slots);
 	if (!psle) {
 err_slots_errmsg:
-		cms->log(cms, LOG_ERR, "Could not find certificate \"%s:%s\"",
+		cms->log(cms, LOG_ERR, "could not find certificate \"%s:%s\"",
 			cms->tokenname, cms->certname);
 err_slots:
 		PK11_FreeSlotList(slots);
@@ -441,7 +441,7 @@ err_slots:
 	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, pwdata)) {
 		status = PK11_Authenticate(psle->slot, PR_TRUE, pwdata);
 		if (status != SECSuccess) {
-			cms->log(cms, LOG_ERR, "Authentication failed on "
+			cms->log(cms, LOG_ERR, "authentication failed for "
 				"certificate \"%s:%s\"", cms->tokenname,
 				cms->certname);
 			PK11_DestroySlotListElement(slots, &psle);

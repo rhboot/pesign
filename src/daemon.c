@@ -82,7 +82,7 @@ send_response(context *ctx, cms_context *cms, struct pollfd *pollfd, int rc)
 	void *buffer = calloc(1, iov.iov_len);
 	if (!buffer) {
 		cms->log(cms, ctx->priority|LOG_ERR,
-			"pesignd: could not allocate memory: %m");
+			"could not allocate memory: %m");
 		exit(1);
 	}
 
@@ -108,7 +108,7 @@ send_response(context *ctx, cms_context *cms, struct pollfd *pollfd, int rc)
 	n = sendmsg(pollfd->fd, &msg, 0);
 	if (n < 0)
 		cms->log(cms, ctx->priority|LOG_WARNING,
-			"pesignd: could not send response to client: %m");
+			"could not send response to client: %m");
 
 	free(buffer);
 }
@@ -156,7 +156,7 @@ handle_unlock_token(context *ctx, struct pollfd *pollfd, socklen_t size)
 	if (!buffer) {
 oom:
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: unable to allocate memory: %m");
+			"unable to allocate memory: %m");
 		exit(1);
 	}
 
@@ -173,9 +173,9 @@ oom:
 	if (n < sizeof(tn->size)) {
 malformed:
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: unlock-token: invalid data");
+			"unlock-token: invalid data");
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: possible exploit attempt. closing.");
+			"possible exploit attempt. closing.");
 		close(pollfd->fd);
 		return;
 	}
@@ -202,7 +202,7 @@ malformed:
 		goto malformed;
 
 	ctx->cms->log(ctx->cms, ctx->priority|LOG_NOTICE,
-		"pesignd: unlocking token \"%s\"", tn->value);
+		"unlocking token \"%s\"", tn->value);
 
 	/* authenticating with nss frees this ... best API ever. */
 	ctx->cms->tokenname = PORT_ArenaZAlloc(ctx->cms->arena,
@@ -223,9 +223,13 @@ malformed:
 	cms_set_pw_callback(ctx->cms, get_password_fail);
 	cms_set_pw_data(ctx->cms, NULL);
 
-	if (rc == 0)
-		ctx->cms->log(ctx->cms, LOG_NOTICE, "pesignd: Authentication "
-			"succeeded for token \"%s\"", tn->value);
+	if (rc < 0)
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"could not find token \"%s\"", tn->value);
+	else
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_NOTICE,
+			"authentication succeeded for token \"%s\"",
+			tn->value);
 
 	send_response(ctx, ctx->cms, pollfd, rc);
 	free(buffer);
@@ -245,7 +249,7 @@ socket_get_fd(context *ctx, int sd, int *fd)
 	struct cmsghdr *cm = malloc(controllen);
 	if (!cm) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: unable to allocate memory: %m");
+			"unable to allocate memory: %m");
 		exit(1);
 	}
 
@@ -262,9 +266,9 @@ socket_get_fd(context *ctx, int sd, int *fd)
 	if (n < 0) {
 malformed:
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: unlock-token: invalid data");
+			"unlock-token: invalid data");
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: possible exploit attempt. closing.");
+			"possible exploit attempt. closing.");
 		close(sd);
 		return;
 	}
@@ -293,7 +297,7 @@ set_up_inpe(context *ctx, int fd, Pe **pe)
 		*pe = pe_begin(fd, PE_C_READ, NULL);
 	if (!*pe) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: could not parse PE binary: %s",
+			"could not parse PE binary: %s",
 			pe_errmsg(pe_errno()));
 		return -1;
 	}
@@ -301,7 +305,7 @@ set_up_inpe(context *ctx, int fd, Pe **pe)
 	int rc = parse_signatures(ctx->cms, *pe);
 	if (rc < 0) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: could not parse signature list");
+			"could not parse signature list");
 		pe_end(*pe);
 		*pe = NULL;
 		return -1;
@@ -320,20 +324,20 @@ set_up_outpe(context *ctx, int fd, Pe *inpe, Pe **outpe)
 	off_t offset = lseek(fd, 0, SEEK_SET);
 	if (offset < 0) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: could not read output file: %m");
+			"could not read output file: %m");
 		return -1;
 	}
 
 	int rc = ftruncate(fd, size);
 	if (rc < 0) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: could not extend output file: %m");
+			"could not extend output file: %m");
 		return -1;
 	}
 	rc = write(fd, addr, size);
 	if (rc < 0) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: could not write to output file: %m");
+			"could not write to output file: %m");
 		return -1;
 	}
 
@@ -342,7 +346,7 @@ set_up_outpe(context *ctx, int fd, Pe *inpe, Pe **outpe)
 		*outpe = pe_begin(fd, PE_C_RDWR, NULL);
 	if (!*outpe) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: could not set up output: %s",
+			"could not set up output: %s",
 			pe_errmsg(pe_errno()));
 		return -1;
 	}
@@ -363,7 +367,7 @@ handle_signing(context *ctx, struct pollfd *pollfd, socklen_t size,
 	if (!buffer) {
 oom:
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: unable to allocate memory: %m");
+			"unable to allocate memory: %m");
 		exit(1);
 	}
 
@@ -380,9 +384,9 @@ oom:
 	if (n < sizeof(tn->size)) {
 malformed:
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: unlock-token: invalid data");
+			"unlock-token: invalid data");
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: possible exploit attempt. closing.");
+			"possible exploit attempt. closing.");
 		close(pollfd->fd);
 		return;
 	}
@@ -423,7 +427,7 @@ malformed:
 	socket_get_fd(ctx, pollfd->fd, &outfd);
 
 	ctx->cms->log(ctx->cms, ctx->priority|LOG_NOTICE,
-		"pesignd: attempting to sign with key \"%s:%s\"",
+		"attempting to sign with key \"%s:%s\"",
 		tn->value, cn->value);
 	free(buffer);
 
@@ -548,9 +552,9 @@ handle_invalid_input(pesignd_cmd cmd, context *ctx, struct pollfd *pollfd,
 			socklen_t size)
 {
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
-			"pesignd: got unexpected command 0x%x", cmd);
+			"got unexpected command 0x%x", cmd);
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
-			"pesignd: possible exploit attempt");
+			"possible exploit attempt");
 }
 
 typedef void (*cmd_handler)(context *ctx, struct pollfd *pollfd,
@@ -593,16 +597,16 @@ handle_event(context *ctx, struct pollfd *pollfd)
 	n = recvmsg(pollfd->fd, &msg, MSG_WAITALL);
 	if (n < 0) {
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_WARNING,
-			"pesignd: recvmsg failed: %m");
+			"recvmsg failed: %m");
 		return n;
 	}
 
 	if (pm.version != PESIGND_VERSION) {
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
-			"pesignd: got version %d, expected version %d",
+			"got version %d, expected version %d",
 			pm.version, PESIGND_VERSION);
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
-			"pesignd: possible exploit attempt.  closing.");
+			"possible exploit attempt.  closing.");
 		close(pollfd->fd);
 		return -1;
 	}
@@ -644,7 +648,7 @@ handle_events(context *ctx)
 
 	if (!pollfds) {
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
-			"pesignd: could not allocate memory: %m");
+			"could not allocate memory: %m");
 		exit(1);
 	}
 
@@ -663,7 +667,7 @@ shutdown:
 		if (rc < 0) {
 			ctx->backup_cms->log(ctx->backup_cms,
 				ctx->priority|LOG_WARNING,
-				"pesignd: ppoll: %m");
+				"ppoll: %m");
 			continue;
 		}
 
@@ -675,8 +679,7 @@ shutdown:
 			if (!newpollfds) {
 				ctx->backup_cms->log(ctx->backup_cms,
 					ctx->priority|LOG_ERR,
-					"pesignd: could not allocate memory: "
-					"%m");
+					"could not allocate memory: %m");
 				exit(1);
 			}
 			pollfds = newpollfds;
@@ -729,8 +732,8 @@ get_uid_and_gid(context *ctx, char **homedir)
 
 	if (ctx->uid == 0 || ctx->gid == 0) {
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
-			"pesignd: cowardly refusing to start with uid = %d "
-			"and gid = %d", ctx->uid, ctx->gid);
+			"cowardly refusing to start with uid = %d and gid = %d",
+			ctx->uid, ctx->gid);
 		errno = EINVAL;
 		return -1;
 	}
@@ -752,7 +755,7 @@ set_up_socket(context *ctx)
 	int sd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (sd < 0) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: unable to create socket: %m");
+			"unable to create socket: %m");
 		exit(1);
 	}
 
@@ -760,7 +763,7 @@ set_up_socket(context *ctx)
 	int rc = setsockopt(sd, SOL_SOCKET, SO_PASSCRED, &one, sizeof(one));
 	if (rc < 0) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: unable to set socket options: %m");
+			"unable to set socket options: %m");
 		exit(1);
 	}
 
@@ -772,14 +775,14 @@ set_up_socket(context *ctx)
 	rc = bind(sd, &addr_un, sizeof(addr_un));
 	if (rc < 0) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: unable to bind to \"%s\": %m",
+			"unable to bind to \"%s\": %m",
 			addr_un.sun_path);
 		exit(1);
 	}
 	rc = chmod(SOCKPATH, 0660);
 	if (rc < 0) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: could not set permissions for \"%s\": %m",
+			"could not set permissions for \"%s\": %m",
 			SOCKPATH);
 		exit(1);
 	}
@@ -787,7 +790,7 @@ set_up_socket(context *ctx)
 	rc = listen(sd, 5);
 	if (rc < 0) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"pesignd: unable to listen on socket: %m");
+			"unable to listen on socket: %m");
 		exit(1);
 	}
 
@@ -809,8 +812,7 @@ check_socket(context *ctx)
 
 		int sd = socket(AF_UNIX, SOCK_SEQPACKET, 0);
 		if (sd < 0) {
-			fprintf(stderr, "pesignd: unable to create socket: "
-				"%m");
+			fprintf(stderr, "unable to create socket: %m");
 			exit(1);
 		}
 
@@ -829,7 +831,7 @@ check_socket(context *ctx)
 		if (rc < 0) {
 			return;
 		} else {
-			fprintf(stderr, "pesignd: already running");
+			fprintf(stderr, "already running");
 			exit(1);
 		}
 	} else {
@@ -871,7 +873,7 @@ write_pid_file(int pid)
 	int fd = open("/var/run/pesign.pid", O_WRONLY|O_CREAT|O_TRUNC, 0644);
 	if (fd < 0) {
 err:
-		fprintf(stderr, "pesignd: couldn't open pidfile: %m\n");
+		fprintf(stderr, "couldn't open pidfile: %m\n");
 		exit(1);
 	}
 	char *pidstr = NULL;
@@ -923,10 +925,10 @@ daemonize(cms_context *cms_ctx, int do_fork)
 	daemon_logger(ctx.backup_cms, ctx.priority|LOG_NOTICE,
 		"pesignd starting (pid %d)", ctx.pid);
 
-
 	SECStatus status = NSS_Init("/etc/pki/pesign");
 	if (status != SECSuccess) {
-		fprintf(stderr, "Could not initialize nss: %s\n",
+		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_NOTICE,
+			"Could not initialize nss: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		exit(1);
 	}
@@ -945,7 +947,7 @@ daemonize(cms_context *cms_ctx, int do_fork)
 		if (rc < 0) {
 			ctx.backup_cms->log(ctx.backup_cms,
 				ctx.priority|LOG_ERR,
-				"pesignd: could not set up standard input: %m");
+				"could not set up standard input: %m");
 			exit(1);
 		}
 		close(fd);
@@ -956,7 +958,7 @@ daemonize(cms_context *cms_ctx, int do_fork)
 		if (rc < 0) {
 			ctx.backup_cms->log(ctx.backup_cms,
 				ctx.priority|LOG_ERR,
-				"pesignd: could not set up standard output: %m");
+				"could not set up standard output: %m");
 			exit(1);
 		}
 
@@ -965,7 +967,7 @@ daemonize(cms_context *cms_ctx, int do_fork)
 		if (rc < 0) {
 			ctx.backup_cms->log(ctx.backup_cms,
 				ctx.priority|LOG_ERR,
-				"pesignd: could not set up standard error: %m");
+				"could not set up standard error: %m");
 			exit(1);
 		}
 		close(fd);
@@ -989,7 +991,7 @@ daemonize(cms_context *cms_ctx, int do_fork)
 	rc = get_uid_and_gid(&ctx, &homedir);
 	if (rc < 0) {
 		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_ERR,
-			"pesignd: could not get group and user information "
+			"could not get group and user information "
 			"for pesign: %m");
 		exit(1);
 	}
@@ -1001,13 +1003,13 @@ daemonize(cms_context *cms_ctx, int do_fork)
 		if (setgid(ctx.gid) != 0) {
 			ctx.backup_cms->log(ctx.backup_cms,
 				ctx.priority|LOG_ERR,
-				"pesignd: unable to drop group privileges: %m");
+				"unable to drop group privileges: %m");
 			exit(1);
 		}
 		if (setuid(ctx.uid) != 0) {
 			ctx.backup_cms->log(ctx.backup_cms,
 				ctx.priority|LOG_ERR,
-				"pesignd: unable to drop user privileges: %m");
+				"unable to drop user privileges: %m");
 			exit(1);
 		}
 	}
