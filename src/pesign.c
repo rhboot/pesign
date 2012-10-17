@@ -500,12 +500,6 @@ main(int argc, char *argv[])
 		POPT_TABLEEND
 	};
 
-	tokenname = strdup(tokenname);
-	if (!tokenname) {
-		fprintf(stderr, "could not allocate memory: %m\n");
-		exit(1);
-	}
-
 	if (!daemon) {
 		SECStatus status = NSS_Init("/etc/pki/pesign");
 		if (status != SECSuccess) {
@@ -520,8 +514,6 @@ main(int argc, char *argv[])
 		fprintf(stderr, "Could not initialize context: %m\n");
 		exit(1);
 	}
-
-	ctx.cms_ctx->certname = certname ? strdup(certname) : NULL;
 
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
@@ -559,7 +551,21 @@ main(int argc, char *argv[])
 		exit(!is_help);
 	}
 
-	ctx.cms_ctx->tokenname = tokenname;
+	ctx.cms_ctx->tokenname = tokenname ?
+		PORT_ArenaStrdup(ctx.cms_ctx->arena, tokenname) : NULL;
+	if (!ctx.cms_ctx->tokenname) {
+		fprintf(stderr, "could not allocate token name: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		exit(1);
+	}
+
+	ctx.cms_ctx->certname = certname ?
+		PORT_ArenaStrdup(ctx.cms_ctx->arena, certname) : NULL;
+	if (!ctx.cms_ctx->certname) {
+		fprintf(stderr, "could not allocate certificate name: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		exit(1);
+	}
 
 	int action = 0;
 	if (daemon)
