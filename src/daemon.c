@@ -143,6 +143,15 @@ handle_unlock_token(context *ctx, struct pollfd *pollfd, socklen_t size)
 		return;
 	}
 
+	rc = setup_digests(ctx->cms);
+	if (rc < 0) {
+		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_NOTICE,
+			"Could not initialize digests: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		send_response(ctx, ctx->backup_cms, pollfd, rc);
+		return;
+	}
+
 	steal_from_cms(ctx->backup_cms, ctx->cms);
 
 	if (!buffer) {
@@ -491,6 +500,15 @@ handle_sign_attached(context *ctx, struct pollfd *pollfd, socklen_t size)
 	if (rc < 0)
 		return;
 
+	rc = setup_digests(ctx->cms);
+	if (rc < 0) {
+		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_NOTICE,
+			"Could not initialize digests: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		send_response(ctx, ctx->backup_cms, pollfd, rc);
+		return;
+	}
+
 	steal_from_cms(ctx->backup_cms, ctx->cms);
 
 	handle_signing(ctx, pollfd, size, 1);
@@ -505,6 +523,15 @@ handle_sign_detached(context *ctx, struct pollfd *pollfd, socklen_t size)
 	int rc = cms_context_alloc(&ctx->cms);
 	if (rc < 0)
 		return;
+
+	rc = setup_digests(ctx->cms);
+	if (rc < 0) {
+		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_NOTICE,
+			"Could not initialize digests: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		send_response(ctx, ctx->backup_cms, pollfd, rc);
+		return;
+	}
 
 	steal_from_cms(ctx->backup_cms, ctx->cms);
 

@@ -86,6 +86,9 @@ extern int cms_context_alloc(cms_context **ctxp);
 extern int cms_context_init(cms_context *ctx);
 extern void cms_context_fini(cms_context *ctx);
 
+extern int setup_digests(cms_context *cms);
+extern void teardown_digests(cms_context *ctx);
+
 extern int generate_octet_string(cms_context *ctx, SECItem *encoded,
 				SECItem *original);
 extern int generate_object_id(cms_context *ctx, SECItem *encoded,

@@ -97,7 +97,7 @@ digest_get_digest_size(cms_context *cms)
 }
 
 
-static int
+int
 setup_digests(cms_context *cms)
 {
 	struct digest *digests = NULL;
@@ -133,7 +133,7 @@ err:
 	return -1;
 }
 
-static void
+void
 teardown_digests(cms_context *ctx)
 {
 	struct digest *digests = ctx->digests;
@@ -199,11 +199,6 @@ cms_context_init(cms_context *cms)
 		return -1;
 	}
 
-	int rc = setup_digests(cms);
-	if (rc < 0) {
-		PORT_FreeArena(cms->arena, PR_TRUE);
-		return -1;
-	}
 	cms->selected_digest = -1;
 
 	return 0;
