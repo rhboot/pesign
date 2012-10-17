@@ -917,6 +917,13 @@ daemonize(cms_context *cms_ctx, int do_fork)
 		exit(1);
 	}
 
+	status = register_oids(ctx.backup_cms);
+	if (status != SECSuccess) {
+		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_NOTICE,
+			"Could not register OIDs\n");
+		exit(1);
+	}
+
 	if (do_fork) {
 		int fd = open("/dev/zero", O_RDONLY);
 		close(STDIN_FILENO);

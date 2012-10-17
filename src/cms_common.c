@@ -179,15 +179,7 @@ cms_common_log(cms_context *ctx, int priority, char *fmt, ...)
 int
 cms_context_init(cms_context *cms)
 {
-	static int first_time = 1;
 	memset(cms, '\0', sizeof (*cms));
-
-	if (first_time) {
-		SECStatus status = register_oids(cms);
-		if (status != SECSuccess)
-			return -1;
-		first_time = 0;
-	}
 
 	cms->log = cms_common_log;
 
