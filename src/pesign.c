@@ -551,17 +551,17 @@ main(int argc, char *argv[])
 		exit(!is_help);
 	}
 
-	ctx.cms_ctx->tokenname = tokenname ?
-		PORT_ArenaStrdup(ctx.cms_ctx->arena, tokenname) : NULL;
-	if (tokenname && !ctx.cms_ctx->tokenname) {
+	ctxp->cms_ctx->tokenname = tokenname ?
+		PORT_ArenaStrdup(ctxp->cms_ctx->arena, tokenname) : NULL;
+	if (tokenname && !ctxp->cms_ctx->tokenname) {
 		fprintf(stderr, "could not allocate token name: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		exit(1);
 	}
 
-	ctx.cms_ctx->certname = certname ?
-		PORT_ArenaStrdup(ctx.cms_ctx->arena, certname) : NULL;
-	if (certname && !ctx.cms_ctx->certname) {
+	ctxp->cms_ctx->certname = certname ?
+		PORT_ArenaStrdup(ctxp->cms_ctx->arena, certname) : NULL;
+	if (certname && !ctxp->cms_ctx->certname) {
 		fprintf(stderr, "could not allocate certificate name: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
 		exit(1);

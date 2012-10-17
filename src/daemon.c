@@ -205,9 +205,8 @@ malformed:
 		"unlocking token \"%s\"", tn->value);
 
 	/* authenticating with nss frees this ... best API ever. */
-	ctx->cms->tokenname = PORT_ArenaZAlloc(ctx->cms->arena,
-						strlen((char *)tn->value));
-	strcpy(ctx->cms->tokenname, (char *)tn->value);
+	ctx->cms->tokenname = PORT_ArenaStrdup(ctx->cms->arena,
+						(char *)tn->value);
 	if (!ctx->cms->tokenname)
 		goto oom;
 
@@ -397,9 +396,8 @@ malformed:
 	n -= tn->size;
 
 	/* authenticating with nss frees these ... best API ever. */
-	ctx->cms->tokenname = PORT_ArenaZAlloc(ctx->cms->arena,
-						strlen((char *)tn->value));
-	strcpy(ctx->cms->tokenname, (char *)tn->value);
+	ctx->cms->tokenname = PORT_ArenaStrdup(ctx->cms->arena,
+						(char *)tn->value);
 	if (!ctx->cms->tokenname)
 		goto oom;
 
@@ -410,9 +408,8 @@ malformed:
 	if (n < cn->size)
 		goto malformed;
 
-	ctx->cms->certname = PORT_ArenaZAlloc(ctx->cms->arena,
-						strlen((char *)cn->value));
-	strcpy(ctx->cms->certname, (char *)cn->value);
+	ctx->cms->certname = PORT_ArenaStrdup(ctx->cms->arena,
+						(char *)cn->value);
 	if (!ctx->cms->certname)
 		goto oom;
 
