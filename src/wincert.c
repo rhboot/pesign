@@ -74,6 +74,7 @@ finalize_signatures(cms_context *cms, Pe *pe)
 		free(clist);
 		return -1;
 	}
+	free(clist);
 	return 0;
 }
 
