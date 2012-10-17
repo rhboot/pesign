@@ -58,7 +58,6 @@ typedef struct {
 	Pe *outpe;
 
 	char *privkeyfile;
-	char *certname;
 	cms_context *cms_ctx;
 
 	int flags;

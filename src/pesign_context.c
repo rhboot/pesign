@@ -88,7 +88,6 @@ pesign_context_fini(pesign_context *ctx)
 		ctx->cms_ctx = NULL;
 	}
 
-	xfree(ctx->certname);
 	xfree(ctx->privkeyfile);
 
 	if (ctx->outpe) {
