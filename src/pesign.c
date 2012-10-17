@@ -426,7 +426,7 @@ main(int argc, char *argv[])
 {
 	int rc;
 
-	pesign_context ctx, *ctxp = &ctx;
+	pesign_context *ctxp;
 
 	int list = 0;
 	int remove = 0;
@@ -437,40 +437,47 @@ main(int argc, char *argv[])
 	char *tokenname = "NSS Certificate DB";
 	char *certname = NULL;
 
+	rc = pesign_context_new(&ctxp);
+	if (rc < 0) {
+		fprintf(stderr, "Could not initialize context: %m\n");
+		exit(1);
+	}
+
 	poptContext optCon;
 	struct poptOption options[] = {
 		{NULL, '\0', POPT_ARG_INTL_DOMAIN, "pesign" },
-		{"in", 'i', POPT_ARG_STRING, &ctx.infile, 0,
+		{"in", 'i', POPT_ARG_STRING, &ctxp->infile, 0,
 			"specify input file", "<infile>"},
-		{"out", 'o', POPT_ARG_STRING, &ctx.outfile, 0,
+		{"out", 'o', POPT_ARG_STRING, &ctxp->outfile, 0,
 			"specify output file", "<outfile>" },
 		{"certficate", 'c', POPT_ARG_STRING, &certname, 0,
 			"specify certificate nickname",
 			"<certificate nickname>" },
-		{"privkey", 'p', POPT_ARG_STRING, &ctx.privkeyfile, 0,
+		{"privkey", 'p', POPT_ARG_STRING, &ctxp->privkeyfile, 0,
 			"specify private key file", "<privkey>" },
-		{"force", 'f', POPT_ARG_VAL, &ctx.force,  1,
+		{"force", 'f', POPT_ARG_VAL, &ctxp->force,  1,
 			"force overwriting of output file", NULL },
-		{"sign", 's', POPT_ARG_VAL, &ctx.sign, 1,
+		{"sign", 's', POPT_ARG_VAL, &ctxp->sign, 1,
 			"create a new signature", NULL },
-		{"hash", 'h', POPT_ARG_VAL, &ctx.hash, 1, "hash binary", NULL },
+		{"hash", 'h', POPT_ARG_VAL, &ctxp->hash, 1, "hash binary", NULL },
 		{"digest_type", 'd', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
 			&digest_name, 0, "digest type to use for pe hash" },
 		{"import-signed-certificate", 'm',
 			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
-			&ctx.insig, 0,"import signature from file", "<insig>" },
+			&ctxp->insig, 0,"import signature from file", "<insig>" },
 		{"export-signed-attributes", 'E',
 			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
-			&ctx.outsattrs, 0, "export signed attributes to file",
+			&ctxp->outsattrs, 0, "export signed attributes to file",
 			"<signed_attributes_file>" },
 		{"import-signed-attributes", 'I',
 			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
-			&ctx.insattrs, 0, "import signed attributes from file",
+			&ctxp->insattrs, 0,
+			"import signed attributes from file",
 			"<signed_attributes_file>" },
 		{"import-raw-signature", 'R',
-			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN, &ctx.rawsig,
+			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN, &ctxp->rawsig,
 			0, "import raw signature from file", "<inraw>" },
-		{"signature-number", 'u', POPT_ARG_INT, &ctx.signum, -1,
+		{"signature-number", 'u', POPT_ARG_INT, &ctxp->signum, -1,
 			"specify which signature to operate on","<sig-number>"},
 		{"list-signatures", 'l',
 			POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
@@ -483,13 +490,14 @@ main(int argc, char *argv[])
 			"remove signature" },
 		{"export-signature", 'e',
 			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
-			&ctx.outsig, 0,"export signature to file", "<outsig>" },
+			&ctxp->outsig, 0,
+			"export signature to file", "<outsig>" },
 		{"export-pubkey", 'K', POPT_ARG_STRING,
-			&ctx.outkey, 0, "export pubkey to file", "<outkey>" },
+			&ctxp->outkey, 0, "export pubkey to file", "<outkey>" },
 		{"export-cert", 'C', POPT_ARG_STRING,
-			&ctx.outcert, 0, "export signing cert to file",
+			&ctxp->outcert, 0, "export signing cert to file",
 			"<outcert>" },
-		{"ascii-armor", 'a', POPT_ARG_VAL, &ctx.ascii, 1,
+		{"ascii-armor", 'a', POPT_ARG_VAL, &ctxp->ascii, 1,
 			"use ascii armoring", NULL },
 		{"daemonize", 'D', POPT_ARG_VAL, &daemon, 1,
 			"run as a daemon process", NULL },
@@ -507,12 +515,6 @@ main(int argc, char *argv[])
 				PORT_ErrorToString(PORT_GetError()));
 			exit(1);
 		}
-	}
-
-	rc = pesign_context_init(ctxp);
-	if (rc < 0) {
-		fprintf(stderr, "Could not initialize context: %m\n");
-		exit(1);
 	}
 
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
@@ -571,25 +573,25 @@ main(int argc, char *argv[])
 	if (daemon)
 		action |= DAEMONIZE;
 
-	if (ctx.rawsig)
+	if (ctxp->rawsig)
 		action |= IMPORT_RAW_SIGNATURE;
 
-	if (ctx.insattrs)
+	if (ctxp->insattrs)
 		action |= IMPORT_SATTRS;
 
-	if (ctx.outsattrs)
+	if (ctxp->outsattrs)
 		action |= EXPORT_SATTRS;
-		
-	if (ctx.insig)
+
+	if (ctxp->insig)
 		action |= IMPORT_SIGNATURE;
 
-	if (ctx.outkey)
+	if (ctxp->outkey)
 		action |= EXPORT_PUBKEY;
 
-	if (ctx.outcert)
+	if (ctxp->outcert)
 		action |= EXPORT_CERT;
 
-	if (ctx.outsig)
+	if (ctxp->outsig)
 		action |= EXPORT_SIGNATURE;
 
 	if (remove != 0)
@@ -598,13 +600,13 @@ main(int argc, char *argv[])
 	if (list != 0)
 		action |= LIST_SIGNATURES;
 
-	if (ctx.sign) {
+	if (ctxp->sign) {
 		action |= GENERATE_SIGNATURE;
 		if (!(action & EXPORT_SIGNATURE))
 			action |= IMPORT_SIGNATURE;
 	}
 
-	if (ctx.hash)
+	if (ctxp->hash)
 		action |= GENERATE_DIGEST|PRINT_DIGEST;
 
 	ssize_t sigspace = 0;
@@ -620,11 +622,11 @@ main(int argc, char *argv[])
 		 */
 		case IMPORT_RAW_SIGNATURE|IMPORT_SATTRS:
 			check_inputs(ctxp);
-			rc = find_certificate(ctx.cms_ctx);
+			rc = find_certificate(ctxp->cms_ctx);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
-					ctx.cms_ctx->certname);
+					ctxp->cms_ctx->certname);
 				exit(1);
 			}
 			open_rawsig_input(ctxp);
@@ -636,19 +638,19 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			generate_digest(ctx.cms_ctx, ctx.outpe);
-			sigspace = calculate_signature_space(ctx.cms_ctx,
-								ctx.outpe);
-			allocate_signature_space(ctx.outpe, sigspace);
-			generate_signature(ctx.cms_ctx);
-			insert_signature(ctx.cms_ctx, ctx.signum);
-			finalize_signatures(ctx.cms_ctx, ctx.outpe);
+			generate_digest(ctxp->cms_ctx, ctxp->outpe);
+			sigspace = calculate_signature_space(ctxp->cms_ctx,
+								ctxp->outpe);
+			allocate_signature_space(ctxp->outpe, sigspace);
+			generate_signature(ctxp->cms_ctx);
+			insert_signature(ctxp->cms_ctx, ctxp->signum);
+			finalize_signatures(ctxp->cms_ctx, ctxp->outpe);
 			close_output(ctxp);
 			break;
 		case EXPORT_SATTRS:
 			open_input(ctxp);
 			open_sattr_output(ctxp);
-			generate_digest(ctx.cms_ctx, ctx.inpe);
+			generate_digest(ctxp->cms_ctx, ctxp->inpe);
 			generate_sattr_blob(ctxp);
 			close_sattr_output(ctxp);
 			close_input(ctxp);
@@ -666,22 +668,22 @@ main(int argc, char *argv[])
 			close_output(ctxp);
 			break;
 		case EXPORT_PUBKEY:
-			rc = find_certificate(ctx.cms_ctx);
+			rc = find_certificate(ctxp->cms_ctx);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
-					ctx.cms_ctx->certname);
+					ctxp->cms_ctx->certname);
 				exit(1);
 			}
 			open_pubkey_output(ctxp);
 			export_pubkey(ctxp);
 			break;
 		case EXPORT_CERT:
-			rc = find_certificate(ctx.cms_ctx);
+			rc = find_certificate(ctxp->cms_ctx);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
-					ctx.cms_ctx->certname);
+					ctxp->cms_ctx->certname);
 				exit(1);
 			}
 			open_cert_output(ctxp);
@@ -691,21 +693,21 @@ main(int argc, char *argv[])
 		case EXPORT_SIGNATURE:
 			open_input(ctxp);
 			open_sig_output(ctxp);
-			if (ctx.signum > ctx.cms_ctx->num_signatures) {
+			if (ctxp->signum > ctxp->cms_ctx->num_signatures) {
 				fprintf(stderr, "Invalid signature number.\n");
 				exit(1);
 			}
-			if (ctx.signum < 0)
-				ctx.signum = 0;
-			if (ctx.signum >= ctx.cms_ctx->num_signatures) {
+			if (ctxp->signum < 0)
+				ctxp->signum = 0;
+			if (ctxp->signum >= ctxp->cms_ctx->num_signatures) {
 				fprintf(stderr, "No valid signature #%d.\n",
-					ctx.signum);
+					ctxp->signum);
 				exit(1);
 			}
-			memcpy(&ctx.cms_ctx->newsig,
-				ctx.cms_ctx->signatures[ctx.signum],
-				sizeof (ctx.cms_ctx->newsig));
-			export_signature(ctx.cms_ctx, ctx.outsigfd, ctx.ascii);
+			memcpy(&ctxp->cms_ctx->newsig,
+				ctxp->cms_ctx->signatures[ctxp->signum],
+				sizeof (ctxp->cms_ctx->newsig));
+			export_signature(ctxp->cms_ctx, ctxp->outsigfd, ctxp->ascii);
 			close_input(ctxp);
 			close_sig_output(ctxp);
 			break;
@@ -715,11 +717,11 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			if (ctx.signum > ctx.cms_ctx->num_signatures) {
+			if (ctxp->signum > ctxp->cms_ctx->num_signatures) {
 				fprintf(stderr, "Invalid signature number.\n");
 				exit(1);
 			}
-			remove_signature(&ctx);
+			remove_signature(ctxp);
 			close_output(ctxp);
 			break;
 		/* list signatures in the binary */
@@ -729,49 +731,49 @@ main(int argc, char *argv[])
 			break;
 		case GENERATE_DIGEST|PRINT_DIGEST:
 			open_input(ctxp);
-			generate_digest(ctx.cms_ctx, ctx.inpe);
+			generate_digest(ctxp->cms_ctx, ctxp->inpe);
 			print_digest(ctxp);
 			break;
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:
-			rc = find_certificate(ctx.cms_ctx);
+			rc = find_certificate(ctxp->cms_ctx);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
-					ctx.cms_ctx->certname);
+					ctxp->cms_ctx->certname);
 				exit(1);
 			}
 			open_input(ctxp);
 			open_sig_output(ctxp);
-			generate_digest(ctx.cms_ctx, ctx.inpe);
-			generate_signature(ctx.cms_ctx);
-			export_signature(ctx.cms_ctx, ctx.outsigfd, ctx.ascii);
+			generate_digest(ctxp->cms_ctx, ctxp->inpe);
+			generate_signature(ctxp->cms_ctx);
+			export_signature(ctxp->cms_ctx, ctxp->outsigfd, ctxp->ascii);
 			break;
 		/* generate a signature and embed it in the binary */
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
 			check_inputs(ctxp);
-			rc = find_certificate(ctx.cms_ctx);
+			rc = find_certificate(ctxp->cms_ctx);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
-					ctx.cms_ctx->certname);
+					ctxp->cms_ctx->certname);
 				exit(1);
 			}
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			generate_digest(ctx.cms_ctx, ctx.outpe);
-			sigspace = calculate_signature_space(ctx.cms_ctx,
-							     ctx.outpe);
-			allocate_signature_space(ctx.outpe, sigspace);
-			generate_digest(ctx.cms_ctx, ctx.outpe);
-			generate_signature(ctx.cms_ctx);
-			insert_signature(ctx.cms_ctx, ctx.signum);
-			finalize_signatures(ctx.cms_ctx, ctx.outpe);
+			generate_digest(ctxp->cms_ctx, ctxp->outpe);
+			sigspace = calculate_signature_space(ctxp->cms_ctx,
+							     ctxp->outpe);
+			allocate_signature_space(ctxp->outpe, sigspace);
+			generate_digest(ctxp->cms_ctx, ctxp->outpe);
+			generate_signature(ctxp->cms_ctx);
+			insert_signature(ctxp->cms_ctx, ctxp->signum);
+			finalize_signatures(ctxp->cms_ctx, ctxp->outpe);
 			close_output(ctxp);
 			break;
 		case DAEMONIZE:
-			rc = daemonize(ctx.cms_ctx, fork);
+			rc = daemonize(ctxp->cms_ctx, fork);
 			break;
 		default:
 			fprintf(stderr, "Incompatible flags (0x%08x): ", action);
@@ -782,7 +784,7 @@ main(int argc, char *argv[])
 			fprintf(stderr, "\n");
 			exit(1);
 	}
-	pesign_context_fini(&ctx);
+	pesign_context_free(ctxp);
 
 	NSS_Shutdown();
 	return (rc < 0);
