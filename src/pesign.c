@@ -435,6 +435,7 @@ main(int argc, char *argv[])
 
 	char *digest_name = "sha256";
 	char *tokenname = "NSS Certificate DB";
+	char *origtoken = tokenname;
 	char *certname = NULL;
 
 	rc = pesign_context_new(&ctxp);
@@ -573,6 +574,8 @@ main(int argc, char *argv[])
 			PORT_ErrorToString(PORT_GetError()));
 		exit(1);
 	}
+	if (tokenname != origtoken)
+		free(tokenname);
 
 	ctxp->cms_ctx->certname = certname ?
 		PORT_ArenaStrdup(ctxp->cms_ctx->arena, certname) : NULL;
@@ -581,6 +584,8 @@ main(int argc, char *argv[])
 			PORT_ErrorToString(PORT_GetError()));
 		exit(1);
 	}
+	if (certname)
+		free(certname);
 
 	int action = 0;
 	if (daemon)
