@@ -10,13 +10,22 @@
 %__pesign_cert %{!?pe_signing_cert:-c "Red Hat Test Certificate"}%{?pe_signing_cert:-c "%{pe_signing_cert}"}
 
 %_pesign /usr/bin/pesign
+%_pesign_client /usr/bin/pesign-client
 
 %pesign(i:o:C:e:s) \
   if [ -x %{_pesign} -a "%{_target_cpu}" == "x86_64" ]; then \
-    %{_pesign} %{__pesign_token} %{__pesign_cert} %{-i} %{-o} %{-e} %{-s} \
+    if [ -e /var/run/pesign/socket ]; then \
+      %{_pesign_client} -t "OpenSC Card (Fedora Signing CA)" \\\
+      			-c "/CN=Fedora Secure Boot Signer" \\\
+			%{-i} %{-o} %{-e} %{-s} \
+    else \
+      %{_pesign} %{__pesign_token} %{__pesign_cert} %{-i} %{-o} %{-e} %{-s} \
+    fi \
   else \
     if [ -n "%{-i*}" -a -n "%{-o*}" ]; then \
       mv %{-i*} %{-o*} \
+    elif [ -n "%{-i*}" -a -n "%{-e*}" ]; then \
+      touch %{-e*} \
     fi \
   fi ;
 
