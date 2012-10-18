@@ -434,6 +434,7 @@ main(int argc, char *argv[])
 	int action;
 	char *infile = NULL;
 	char *outfile = NULL;
+	char *exportfile = NULL;
 	int attached = 1;
 	int pinfd = -1;
 	char *pinfile = NULL;
@@ -456,8 +457,9 @@ main(int argc, char *argv[])
 			&infile, 0, "input filename", "<infile>" },
 		{"outfile", 'o', POPT_ARG_STRING,
 			&outfile, 0, "output filename", "<outfile>" },
-		{"detached", 'd', POPT_ARG_VAL, &attached, 0,
-			"create detached signature", NULL },
+		{"export", 'e', POPT_ARG_STRING,
+			&exportfile, 0, "create detached signature",
+			"<outfile>" },
 		{"pinfd", 'f', POPT_ARG_INT, &pinfd, -1,
 			"read file descriptor for pin information",
 			"<file descriptor>" },
@@ -492,6 +494,22 @@ main(int argc, char *argv[])
 		fprintf(stderr, "pesign-client: Invalid Argument: \"%s\"\n",
 			poptPeekArg(optCon));
 		exit(1);
+	}
+
+	if (!outfile && !exportfile) {
+		fprintf(stderr, "pesign-client: neither --outfile nor --export "
+			"specified\n");
+		exit(1);
+	}
+
+	if (outfile && exportfile) {
+		fprintf(stderr, "pesign-client: both --outfile and --export "
+			"specified\n");
+		exit(1);
+	}
+	if (exportfile) {
+		outfile = exportfile;
+		attached = 0;
 	}
 
 	poptFreeContext(optCon);
