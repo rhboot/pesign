@@ -11,9 +11,9 @@
 
 %_pesign /usr/bin/pesign
 
-%pesign(i:o:C:s) \
+%pesign(i:o:C:e:s) \
   if [ -x %{_pesign} -a "%{_target_cpu}" == "x86_64" ]; then \
-    %{_pesign} %{__pesign_token} %{__pesign_cert} %{-i} %{-o} %{-s} \
+    %{_pesign} %{__pesign_token} %{__pesign_cert} %{-i} %{-o} %{-e} %{-s} \
   else \
     if [ -n "%{-i*}" -a -n "%{-o*}" ]; then \
       mv %{-i*} %{-o*} \
