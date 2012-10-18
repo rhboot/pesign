@@ -39,14 +39,20 @@ client_OBJECTS = $(foreach source,$(client_SOURCES),$(patsubst %.c,%,$(source)).
 client_DEPS = $(foreach source,$(client_SOURCES),.$(patsubst %.c,%,$(source)).P)
 client : $(client_OBJECTS) $(STATIC_LIBS)
 
-deps : $(generic_DEPS)$(authvar_DEPS) $(pesign_DEPS) $(client_DEPS) \
+fuzzsocket_SOURCES = fuzzsocket.c
+fuzzsocket_OBJECTS = $(foreach source,$(fuzzsocket_SOURCES),$(patsubst %.c,%,$(source)).o)
+fuzzsocket_DEPS = $(foreach source,$(fuzzsocket_SOURCES),.$(patsubst %.c,%,$(source)).P)
+fuzzsocket : $(fuzzsocket_OBJECTS)
+
+DEPS = $(generic_DEPS)$(authvar_DEPS) $(pesign_DEPS) $(client_DEPS) \
 	$(peverify_DEPS)
+
+deps : $(DEPS)
 
 depclean :
 	@rm -fv .*.P
 
--include $(generic_DEPS) $(authvar_DEPS) $(pesign_DEPS) $(client_DEPS) \
-	$(peverify_DEPS)
+-include $(DEPS)
 
 clean : depclean
 	@rm -rfv *.o *.a *.so $(TARGETS)
