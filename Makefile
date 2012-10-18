@@ -2,7 +2,7 @@ TOPDIR = $(shell echo $$PWD)
 
 include $(TOPDIR)/Make.defaults
 
-SUBDIRS := include libdpe src util
+SUBDIRS := include libdpe src
 DOCDIR := /share/doc/
 VERSION = 0.99
 
