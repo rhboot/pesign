@@ -223,25 +223,17 @@ unlock_token(int sd, char *tokenname, char *pin)
 {
 	struct msghdr msg;
 	struct iovec iov[2];
-	pesignd_msghdr *pm;
+	pesignd_msghdr pm;
 
 	uint32_t size0 = pesignd_string_size(tokenname);
 
 	uint32_t size1 = pesignd_string_size(pin);
 	
-	pm = calloc(1, sizeof(*pm));
-	if (!pm) {
-oom:
-		fprintf(stderr, "pesign-client: could not allocate memory: "
-			"%m\n");
-		exit(1);
-	}
-
-	pm->version = PESIGND_VERSION;
-	pm->command = CMD_UNLOCK_TOKEN;
-	pm->size = size0 + size1;
-	iov[0].iov_base = pm;
-	iov[0].iov_len = sizeof (*pm);
+	pm.version = PESIGND_VERSION;
+	pm.command = CMD_UNLOCK_TOKEN;
+	pm.size = size0 + size1;
+	iov[0].iov_base = &pm;
+	iov[0].iov_len = sizeof (pm);
 
 	memset(&msg, '\0', sizeof(msg));
 	msg.msg_iov = iov;
@@ -257,8 +249,11 @@ oom:
 
 	uint8_t *buffer = NULL;
 	buffer = calloc(1, size0 + size1);
-	if (!buffer)
-		goto oom;
+	if (!buffer) {
+		fprintf(stderr, "pesign-client: could not allocate memory: "
+			"%m\n");
+		exit(1);
+	}
 
 	pesignd_string *tn = (pesignd_string *)buffer;
 	pesignd_string_set(tn, tokenname);
@@ -478,8 +473,9 @@ main(int argc, char *argv[])
 
 	rc = poptReadDefaultConfig(optCon, 0);
 	if (rc < 0) {
-		fprintf(stderr, "pesign: poprReadDefaultConfig failed: %s\n",
-		poptStrerror(rc));
+		fprintf(stderr,
+			"pesign-client: poptReadDefaultConfig failed: %s\n",
+			poptStrerror(rc));
 		exit(1);
 	}
 
