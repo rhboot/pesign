@@ -1,0 +1,82 @@
+#! /bin/sh
+#
+# pesign	This starts the pesign PE signing daemon
+#
+# chkconfig: - 50 50
+# processname: /usr/bin/pesign
+# pidfile: /var/run/pesign.pid
+### BEGIN INIT INFO 
+# Provides: pesign
+# Default-Start:
+# Default-Stop:
+# Short-Description: The pesign PE signing daemon
+# Description: The pesign PE signing daemon
+### END INIT INFO
+
+. /etc/init.d/functions
+[ -f /usr/bin/pesign ] || exit 1
+
+RETVAL=0
+
+start(){
+    echo -n "Starting pesign: "
+    daemon /usr/bin/pesign --daemonize
+    RETVAL=$?
+    echo
+    touch /var/lock/subsys/pesign
+}
+
+stop(){
+    echo -n "Stopping pesign: "
+    killproc -p /var/run/pesign.pid pesignd
+    RETVAL=$?
+    echo
+    rm -f /var/lock/subsys/pesign
+}
+
+restart(){
+    stop
+    start
+}
+
+reload(){
+    stop
+    start
+}
+
+condrestart(){
+    [ -e /var/lock/subsys/pesign ] && restart
+}
+
+# See how we were called.
+case "$1" in
+    start)
+	start
+	;;
+    stop)
+	stop
+	;;
+    status)
+	status /usr/bin/pesign
+	;;
+    restart)
+	restart
+	;;
+    reload)
+	reload
+	;;
+    force-reload)
+	reload
+	;;
+    condrestart)
+	condrestart
+	;;
+    try-restart)
+	condrestart
+	;;
+    *)
+	echo "Usage: pesign {start|stop|status|restart|condrestart|reload}"
+	RETVAL=1
+esac
+
+exit $RETVAL

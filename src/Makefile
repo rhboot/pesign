@@ -42,7 +42,7 @@ client : $(client_OBJECTS) $(STATIC_LIBS)
 fuzzsocket_SOURCES = fuzzsocket.c
 fuzzsocket_OBJECTS = $(foreach source,$(fuzzsocket_SOURCES),$(patsubst %.c,%,$(source)).o)
 fuzzsocket_DEPS = $(foreach source,$(fuzzsocket_SOURCES),.$(patsubst %.c,%,$(source)).P)
-fuzzsocket : $(fuzzsocket_OBJECTS)
+fuzzsocket : $(fuzzsocket_OBJECTS) -lrt
 
 DEPS = $(generic_DEPS)$(authvar_DEPS) $(pesign_DEPS) $(client_DEPS) \
 	$(peverify_DEPS)
@@ -56,6 +56,16 @@ depclean :
 
 clean : depclean
 	@rm -rfv *.o *.a *.so $(TARGETS)
+
+install_systemd:
+	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/lib/tmpfiles.d/
+	$(INSTALL) -m 644 tmpfiles.conf $(INSTALLROOT)/usr/lib/tmpfiles.d/pesign.conf
+	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/lib/systemd/system/
+	$(INSTALL) -m 644 pesign.service $(INSTALLROOT)/usr/lib/systemd/system/
+
+install_sysvinit:
+	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rc.d/init.d/
+	$(INSTALL) -m 755 pesign.sysvinit $(INSTALLROOT)/etc/rc.d/init.d/pesign
 
 install :
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pki/pesign/
@@ -72,10 +82,6 @@ install :
 	#$(INSTALL) -m 644 peverify.1 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
-	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/lib/tmpfiles.d/
-	$(INSTALL) -m 644 tmpfiles.conf $(INSTALLROOT)/usr/lib/tmpfiles.d/pesign.conf
-	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/lib/systemd/system/
-	$(INSTALL) -m 644 pesign.service $(INSTALLROOT)/usr/lib/systemd/system/
 
 .PHONY: all deps clean install
 
