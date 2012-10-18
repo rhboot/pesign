@@ -116,15 +116,6 @@ send_response(context *ctx, cms_context *cms, struct pollfd *pollfd, int rc)
 static void
 handle_kill_daemon(context *ctx, struct pollfd *pollfd, socklen_t size)
 {
-	if (ctx->sd >= 0) {
-		close(ctx->sd);
-		unlink(SOCKPATH);
-	}
-	xfree(ctx->errstr);
-
-	ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_NOTICE,
-			"pesignd exiting (pid %d)", getpid());
-
 	should_exit = 1;
 }
 
@@ -602,11 +593,17 @@ handle_event(context *ctx, struct pollfd *pollfd)
 static void
 do_shutdown(context *ctx, int nsockets, struct pollfd *pollfds)
 {
+	unlink(SOCKPATH);
+	unlink(PIDFILE);
+
+	ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_NOTICE,
+			"pesignd exiting (pid %d)", getpid());
+
+	xfree(ctx->errstr);
+
 	for (int i = 0; i < nsockets; i++)
 		close(pollfds[i].fd);
 	free(pollfds);
-
-	xfree(ctx->errstr);
 }
 
 static int
@@ -843,7 +840,7 @@ daemon_logger(cms_context *cms, int priority, char *fmt, ...)
 static void
 write_pid_file(int pid)
 {
-	int fd = open("/var/run/pesign.pid", O_WRONLY|O_CREAT|O_TRUNC, 0644);
+	int fd = open(PIDFILE, O_WRONLY|O_CREAT|O_TRUNC, 0644);
 	if (fd < 0) {
 err:
 		fprintf(stderr, "couldn't open pidfile: %m\n");
@@ -963,12 +960,12 @@ daemonize(cms_context *cms_ctx, int do_fork)
 	setsid();
 
 	if (do_fork) {
-		signal(SIGTTOU, SIG_IGN);
-		signal(SIGTTIN, SIG_IGN);
-		signal(SIGTSTP, SIG_IGN);
-		signal(SIGQUIT, quit_handler);
-		signal(SIGINT, quit_handler);
-		signal(SIGTERM, quit_handler);
+		struct sigaction sa = {
+			.sa_handler = quit_handler,
+		};
+		sigaction(SIGQUIT, &sa, NULL);
+		sigaction(SIGINT, &sa, NULL);
+		sigaction(SIGTERM, &sa, NULL);
 	}
 
 	char *homedir = NULL;

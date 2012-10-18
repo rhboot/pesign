@@ -48,5 +48,6 @@ typedef enum {
 
 #define PESIGND_VERSION 0xa3cf41cb
 #define SOCKPATH	"/var/run/pesign/socket"
+#define PIDFILE		"/var/run/pesign.pid"
 
 #endif /* DAEMON_H */
