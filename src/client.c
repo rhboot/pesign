@@ -496,7 +496,7 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if (!outfile && !exportfile) {
+	if (action & SIGN_BINARY && (!outfile && !exportfile)) {
 		fprintf(stderr, "pesign-client: neither --outfile nor --export "
 			"specified\n");
 		exit(1);
