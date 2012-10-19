@@ -316,6 +316,7 @@ unlock_nss_token(cms_context *cms)
 	secuPWData pwdata_val = { 0, 0 };
 	void *pwdata = cms->pwdata ? cms->pwdata : &pwdata_val;
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
+	int rc = -1;
 
 	PK11SlotList *slots = NULL;
 	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, pwdata);
@@ -323,7 +324,7 @@ unlock_nss_token(cms_context *cms)
 		cms->log(cms, LOG_ERR, "Could not find certificate \"%s\"",
 			cms->tokenname);
 err:
-		return -1;
+		return rc;
 	}
 
 	PK11SlotListElement *psle = NULL;
@@ -351,6 +352,7 @@ err_slots:
 			cms->log(cms, LOG_ERR, "Authentication failed for "
 				"token \"%s\"", cms->tokenname);
 			PK11_DestroySlotListElement(slots, &psle);
+			rc = -2;
 			goto err_slots;
 		}
 	}

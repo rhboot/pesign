@@ -204,10 +204,10 @@ malformed:
 	cms_set_pw_callback(ctx->cms, get_password_fail);
 	cms_set_pw_data(ctx->cms, NULL);
 
-	if (rc < 0)
+	if (rc == -1)
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
 			"could not find token \"%s\"", tn->value);
-	else
+	else if (rc == 0)
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_NOTICE,
 			"authentication succeeded for token \"%s\"",
 			tn->value);
