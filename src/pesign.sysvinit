@@ -24,6 +24,10 @@ start(){
     RETVAL=$?
     echo
     touch /var/lock/subsys/pesign
+    setfacl -m u:kojibuilder:x /var/run/pesign
+    setfacl -m u:kojibuilder:rw /var/run/pesign/socket
+    setfacl -m g:kojibuilder:x /var/run/pesign
+    setfacl -m g:kojibuilder:rw /var/run/pesign/socket
 }
 
 stop(){
