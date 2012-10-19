@@ -15,7 +15,7 @@
 %pesign(i:o:C:e:s) \
   if [ -x %{_pesign} -a "%{_target_cpu}" == "x86_64" ]; then \
     if [ -e /var/run/pesign/socket ]; then \
-      %{_pesign_client} -t "OpenSC Card (Fedora Signing CA)" \\\
+      %{_pesign_client} -t "OpenSC Card (Fedora Signer)" \\\
       			-c "/CN=Fedora Secure Boot Signer" \\\
 			%{-i} %{-o} %{-e} %{-s} \
     else \
