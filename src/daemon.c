@@ -885,8 +885,10 @@ daemonize(cms_context *cms_ctx, int do_fork)
 	if (do_fork) {
 		pid_t pid;
 
-		if ((pid = fork()))
+		if ((pid = fork())) {
+			sleep(2);
 			return 0;
+		}
 	}
 	ctx.pid = getpid();
 	write_pid_file(ctx.pid);
