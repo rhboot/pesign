@@ -212,10 +212,14 @@ get_token_pin(int pinfd, char *pinfile, char *envname)
 
 		fclose(pinf);
 		return pin;
-	} else
-		return strdup(getenv(envname));
+	} else {
+		pin = getenv(envname);
+		if (pin)
+			return strdup(pin);
+	}
 
-	return NULL;
+	pin = readpw(NULL, PR_FALSE, NULL);
+	return pin;
 }
 
 static void

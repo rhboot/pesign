@@ -19,10 +19,8 @@
 
 #include "pesign.h"
 
-#include <limits.h>
 #include <string.h>
 #include <syslog.h>
-#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -159,47 +157,6 @@ err:
 	return -1;
 }
 
-#if 0
-#warning investigate killing getpw
-#endif
-static char *getpw(PK11SlotInfo *slot, PRBool retry, void *arg)
-{
-	struct termios sio, tio;
-	char line[LINE_MAX], *p;
-
-	if (tcgetattr(fileno(stdin), &sio) < 0) {
-		fprintf(stderr, "Could not read password from standard input.\n");
-		return NULL;
-	}
-	tio = sio;
-	tio.c_lflag &= ~ECHO;
-	if (tcsetattr(fileno(stdin), 0, &tio) < 0) {
-		fprintf(stderr, "Could not read password from standard input.\n");
-		return NULL;
-	}
-
-	fprintf(stdout, "Enter passphrase for private key: ");
-	if (fgets(line, sizeof(line), stdin) == NULL) {
-		fprintf(stdout, "\n");
-		tcsetattr(fileno(stdin), 0, &sio);
-		return NULL;
-	}
-	fprintf(stdout, "\n");
-	tcsetattr(fileno(stdin), 0, &sio);
-
-	p = line + strcspn(line, "\r\n");
-	if (p != NULL)
-		*p = '\0';
-
-	char *ret = strdup(line);
-	memset(line, '\0', sizeof (line));
-	if (!ret) {
-		fprintf(stderr, "Could not read passphrase.\n");
-		return NULL;
-	}
-	return ret;
-}
-
 static int
 sign_blob(cms_context *cms, SECItem *sigitem, SECItem *sign_content)
 {
@@ -216,7 +173,7 @@ sign_blob(cms_context *cms, SECItem *sigitem, SECItem *sign_content)
 	if (!oid)
 		goto err;
 
-	PK11_SetPasswordFunc(cms->func ? cms->func : getpw);
+	PK11_SetPasswordFunc(cms->func ? cms->func : readpw);
 	SECKEYPrivateKey *privkey = PK11_FindKeyByAnyCert(cms->cert,
 				cms->pwdata ? cms->pwdata : NULL);
 	if (!privkey) {

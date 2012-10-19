@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <limits.h>
 #include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
@@ -289,4 +290,44 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
     return NULL;
 }
 
+#if 0
+#warning investigate killing readpw
+#endif
+char *
+readpw(PK11SlotInfo *slot, PRBool retry, void *arg)
+{
+	struct termios sio, tio;
+	char line[LINE_MAX], *p;
 
+	if (tcgetattr(fileno(stdin), &sio) < 0) {
+		fprintf(stderr, "Could not read password from standard input.\n");
+		return NULL;
+	}
+	tio = sio;
+	tio.c_lflag &= ~ECHO;
+	if (tcsetattr(fileno(stdin), 0, &tio) < 0) {
+		fprintf(stderr, "Could not read password from standard input.\n");
+		return NULL;
+	}
+
+	fprintf(stdout, "Enter passphrase for private key: ");
+	if (fgets(line, sizeof(line), stdin) == NULL) {
+		fprintf(stdout, "\n");
+		tcsetattr(fileno(stdin), 0, &sio);
+		return NULL;
+	}
+	fprintf(stdout, "\n");
+	tcsetattr(fileno(stdin), 0, &sio);
+
+	p = line + strcspn(line, "\r\n");
+	if (p != NULL)
+		*p = '\0';
+
+	char *ret = strdup(line);
+	memset(line, '\0', sizeof (line));
+	if (!ret) {
+		fprintf(stderr, "Could not read passphrase.\n");
+		return NULL;
+	}
+	return ret;
+}
