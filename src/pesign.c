@@ -615,6 +615,12 @@ main(int argc, char *argv[])
 		action |= GENERATE_SIGNATURE;
 		if (!(action & EXPORT_SIGNATURE))
 			action |= IMPORT_SIGNATURE;
+
+		if (!ctxp->cms_ctx->certname) {
+			fprintf(stderr, "pesign: signing requested but no "
+				"certificate nickname provided\n");
+			exit(1);
+		}
 	}
 
 	if (ctxp->hash)
