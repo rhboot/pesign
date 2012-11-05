@@ -127,12 +127,22 @@ done:
 	void *certs = iter->certs;
 	size_t size = iter->size;
 
+	void *map = NULL;
+	size_t map_size = 0;
+
+	map = pe_rawfile(iter->pe, &map_size);
+	if (!map || map_size < 1)
+		return 0;
+
 	while (1) {
 		win_certificate *tmpcert;
 		if (n + sizeof (*tmpcert) >= size)
 			goto done;
 
 		tmpcert = (win_certificate *)((uint8_t *)certs + n);
+
+		if ((uint64_t)tmpcert > (uint64_t)map + map_size)
+			return -1;
 
 		/* length _includes_ the size of the structure. */
 		uint32_t length = le32_to_cpu(tmpcert->length);
