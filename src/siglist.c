@@ -17,11 +17,15 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/param.h>
 #include <errno.h>
 
-#include "authvar.h"
+#include "efitypes.h"
+#include "siglist.h"
 
 struct efi_signature_data {
 	efi_guid_t		SignatureOwner;
@@ -135,7 +139,10 @@ signature_list_add_sig(signature_list *sl, efi_guid_t owner,
 	if (memcmp(&sl->SignatureType, &x509_guid, sizeof (efi_guid_t)) == 0) {
 		if (sigsize > sl->SignatureSize)
 			resize_entries(sl, sigsize);
-	} else if (sigsize != sl->SignatureSize) {
+	} else if (sigsize != get_sig_type_size(sl->SignatureType)) {
+		fprintf(stderr, "sigsize: %d sl->SignatureSize: %d\n",
+			sigsize, sl->SignatureSize);
+		errno = EINVAL;
 		return -1;
 	}
 
@@ -162,11 +169,31 @@ signature_list_add_sig(signature_list *sl, efi_guid_t owner,
 	return 0;
 }
 
-void *
-signature_list_realize(signature_list *sl)
+#if 0
+int
+signature_list_parse(signature_list *sl, uint8_t *data, size_t len)
 {
-	if (sl->realized)
-		return sl->realized;
+	if (!sl)
+		return -1;
+
+	if (sl->realized) {
+		free(sl->realized);
+		sl->realized = NULL;
+	}
+
+	efi_signature_list *esl = data;
+	efi_signature_data *esd = NULL;
+
+}
+#endif
+
+int
+signature_list_realize(signature_list *sl, void **out, size_t *outsize)
+{
+	if (sl->realized) {
+		free(sl->realized);
+		sl->realized = NULL;
+	}
 
 	struct efi_signature_list *esl = NULL;
 	uint32_t size = sizeof (*esl) +
@@ -174,7 +201,7 @@ signature_list_realize(signature_list *sl)
 
 	void *ret = calloc(1, size);
 	if (!ret)
-		return NULL;
+		return -1;
 	esl = ret;
 
 	memcpy(esl, sl, sizeof (*esl));
@@ -186,7 +213,10 @@ signature_list_realize(signature_list *sl)
 	}
 
 	sl->realized = ret;
-	return ret;
+
+	*out = ret;
+	*outsize = size;
+	return 0;
 }
 
 void

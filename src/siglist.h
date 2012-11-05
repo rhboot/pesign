@@ -24,7 +24,8 @@ typedef struct signature_list signature_list;
 extern signature_list *signature_list_new(efi_guid_t SignatureType);
 extern int signature_list_add_sig(signature_list *sl, efi_guid_t owner,
 			uint8_t *sig, uint32_t sigsize);
-extern void *signature_list_realize(signature_list *sl);
+extern int signature_list_realize(signature_list *sl,
+				void **out, size_t *outsize);
 extern void signature_list_free(signature_list *sl);
 
 #endif /* SIGLIST_H */
