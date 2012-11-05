@@ -10,7 +10,7 @@ LDFLAGS =
 CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags --libs $(pklib)))
 CFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib))) -Werror
 
-TARGETS = pesign authvar client efisiglist mksigner
+TARGETS = pesign authvar client efisiglist efikeygen
 
 all : $(TARGETS)
 
@@ -44,10 +44,10 @@ efisiglist_OBJECTS = $(foreach source,$(efisiglist_SOURCES),$(patsubst %.c,%,$(s
 efisiglist_DEPS = $(foreach source,$(efisiglist_SOURCES),.$(patsubst %.c,%,$(source)).P)
 efisiglist : $(efisiglist_OBJECTS)
 
-mksigner_SOURCES = mksigner.c siglist.c
-mksigner_OBJECTS = $(foreach source,$(mksigner_SOURCES),$(patsubst %.c,%,$(source)).o)
-mksigner_DEPS = $(foreach source,$(mksigner_SOURCES),.$(patsubst %.c,%,$(source)).P)
-mksigner : $(mksigner_OBJECTS)
+efikeygen_SOURCES = efikeygen.c siglist.c
+efikeygen_OBJECTS = $(foreach source,$(efikeygen_SOURCES),$(patsubst %.c,%,$(source)).o)
+efikeygen_DEPS = $(foreach source,$(efikeygen_SOURCES),.$(patsubst %.c,%,$(source)).P)
+efikeygen : $(efikeygen_OBJECTS)
 
 fuzzsocket_SOURCES = fuzzsocket.c
 fuzzsocket_OBJECTS = $(foreach source,$(fuzzsocket_SOURCES),$(patsubst %.c,%,$(source)).o)
@@ -55,7 +55,7 @@ fuzzsocket_DEPS = $(foreach source,$(fuzzsocket_SOURCES),.$(patsubst %.c,%,$(sou
 fuzzsocket : $(fuzzsocket_OBJECTS) -lrt
 
 DEPS = $(generic_DEPS) $(authvar_DEPS) $(pesign_DEPS) $(client_DEPS) \
-	$(peverify_DEPS) $(efisiglist_DEPS) $(mksigner_DEPS)
+	$(peverify_DEPS) $(efisiglist_DEPS) $(efikeygen_DEPS)
 
 deps : $(DEPS)
 
