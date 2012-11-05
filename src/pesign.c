@@ -107,7 +107,8 @@ open_input(pesign_context *ctx)
 	int rc = parse_signatures(&ctx->cms_ctx->signatures,
 				  &ctx->cms_ctx->num_signatures, ctx->inpe);
 	if (rc < 0) {
-		fprintf(stderr, "pesign: could not parse signature data\n");
+		fprintf(stderr, "pesign: could not parse signature list in "
+			"EFI binary\n");
 		exit(1);
 	}
 }
