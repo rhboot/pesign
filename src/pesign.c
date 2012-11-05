@@ -104,7 +104,8 @@ open_input(pesign_context *ctx)
 		exit(1);
 	}
 
-	int rc = parse_signatures(ctx->cms_ctx, ctx->inpe);
+	int rc = parse_signatures(&ctx->cms_ctx->signatures,
+				  &ctx->cms_ctx->num_signatures, ctx->inpe);
 	if (rc < 0) {
 		fprintf(stderr, "pesign: could not parse signature data\n");
 		exit(1);
@@ -126,7 +127,8 @@ close_output(pesign_context *ctx)
 {
 	Pe_Cmd cmd = ctx->outfd == STDOUT_FILENO ? PE_C_RDWR : PE_C_RDWR_MMAP;
 
-	finalize_signatures(ctx->cms_ctx, ctx->outpe);
+	finalize_signatures(ctx->cms_ctx->signatures,
+				ctx->cms_ctx->num_signatures, ctx->outpe);
 	pe_update(ctx->outpe, cmd);
 	pe_end(ctx->outpe);
 	ctx->outpe = NULL;
@@ -661,7 +663,9 @@ main(int argc, char *argv[])
 			allocate_signature_space(ctxp->outpe, sigspace);
 			generate_signature(ctxp->cms_ctx);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
-			finalize_signatures(ctxp->cms_ctx, ctxp->outpe);
+			finalize_signatures(ctxp->cms_ctx->signatures,
+					ctxp->cms_ctx->num_signatures,
+					ctxp->outpe);
 			close_output(ctxp);
 			break;
 		case EXPORT_SATTRS:
@@ -786,7 +790,9 @@ main(int argc, char *argv[])
 			generate_digest(ctxp->cms_ctx, ctxp->outpe);
 			generate_signature(ctxp->cms_ctx);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
-			finalize_signatures(ctxp->cms_ctx, ctxp->outpe);
+			finalize_signatures(ctxp->cms_ctx->signatures,
+					ctxp->cms_ctx->num_signatures,
+					ctxp->outpe);
 			close_output(ctxp);
 			break;
 		case DAEMONIZE:

@@ -25,13 +25,13 @@ struct cert_list_entry {
 };
 
 static int
-generate_cert_list(cms_context *cms, void **cert_list,
-		size_t *cert_list_size)
+generate_cert_list(SECItem **signatures, int num_signatures,
+		void **cert_list, size_t *cert_list_size)
 {
 	size_t cl_size = 0;
-	for (int i = 0; i < cms->num_signatures; i++) {
+	for (int i = 0; i < num_signatures; i++) {
 		cl_size += sizeof (win_certificate);
-		cl_size += cms->signatures[i]->len;
+		cl_size += signatures[i]->len;
 	}
 
 	uint8_t *data = malloc(cl_size);
@@ -41,15 +41,15 @@ generate_cert_list(cms_context *cms, void **cert_list,
 	*cert_list = (void *)data;
 	*cert_list_size = cl_size;
 
-	for (int i = 0; i < cms->num_signatures; i++) {
+	for (int i = 0; i < num_signatures; i++) {
 		struct cert_list_entry *cle = (struct cert_list_entry *)data;
-		cle->wc.length = cms->signatures[i]->len +
+		cle->wc.length = signatures[i]->len +
 			sizeof (win_certificate);
 		cle->wc.revision = WIN_CERT_REVISION_2_0;
 		cle->wc.cert_type = WIN_CERT_TYPE_PKCS_SIGNED_DATA;
-		memcpy(&cle->data[0], cms->signatures[i]->data,
-					cms->signatures[i]->len);
-		data += sizeof (win_certificate) + cms->signatures[i]->len;
+		memcpy(&cle->data[0], signatures[i]->data,
+					signatures[i]->len);
+		data += sizeof (win_certificate) + signatures[i]->len;
 	}
 
 	return 0;
@@ -62,12 +62,13 @@ implant_cert_list(Pe *pe, void *cert_list, size_t cert_list_size)
 }
 
 int
-finalize_signatures(cms_context *cms, Pe *pe)
+finalize_signatures(SECItem **sigs, int num_sigs, Pe *pe)
 {
 	void *clist = NULL;
 	size_t clist_size = 0;
 
-	if (generate_cert_list(cms, &clist, &clist_size) < 0)
+	if (generate_cert_list(sigs, num_sigs,
+				&clist, &clist_size) < 0)
 		return -1;
 
 	if (implant_cert_list(pe, clist, clist_size) < 0) {
@@ -218,7 +219,7 @@ err:
 }
 
 int
-parse_signatures(cms_context *cms, Pe *pe)
+parse_signatures(SECItem ***sigs, int *num_sigs, Pe *pe)
 {
 	cert_iter iter;
 	int rc = cert_iter_init(&iter, pe);
@@ -238,8 +239,8 @@ parse_signatures(cms_context *cms, Pe *pe)
 	}
 
 	if (nsigs == 0) {
-		cms->num_signatures = 0;
-		cms->signatures = NULL;
+		*num_sigs = 0;
+		*sigs = NULL;
 		return 0;
 	}
 
@@ -271,8 +272,8 @@ parse_signatures(cms_context *cms, Pe *pe)
 		i++;
 	}
 
-	cms->num_signatures = nsigs;
-	cms->signatures = signatures;
+	*num_sigs = nsigs;
+	*sigs = signatures;
 
 	return 0;
 err:

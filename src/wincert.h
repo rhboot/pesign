@@ -32,8 +32,6 @@ typedef struct win_certificate {
 	uint16_t cert_type;
 } win_certificate;
 
-extern int finalize_signatures(cms_context *cms, Pe *pe);
-
 typedef struct cert_iter {
 	Pe *pe;
 	off_t n;
@@ -45,6 +43,8 @@ extern int cert_iter_init(cert_iter *iter, Pe *pe);
 extern int next_cert(cert_iter *iter, void **cert, ssize_t *cert_size);
 extern ssize_t available_cert_space(Pe *pe);
 extern ssize_t calculate_signature_space(cms_context *cms, Pe *pe);
-extern int parse_signatures(cms_context *cms, Pe *pe);
+extern int parse_signatures(SECItem ***sigs, int *num_sigs, Pe *pe);
+extern int finalize_signatures(SECItem **sigs, int num_sigs, Pe *pe);
+
 
 #endif /* PESIGN_WINCERT_H */

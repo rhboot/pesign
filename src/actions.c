@@ -402,7 +402,8 @@ import_signature(pesign_context *ctx)
 {
 	insert_signature(ctx->cms_ctx, ctx->signum);
 
-	return finalize_signatures(ctx->cms_ctx, ctx->outpe);
+	return finalize_signatures(ctx->cms_ctx->signatures,
+				ctx->cms_ctx->num_signatures, ctx->outpe);
 }
 
 void
