@@ -17,9 +17,10 @@
     if [ -e /var/run/pesign/socket ]; then \
       %{_pesign_client} -t "OpenSC Card (Fedora Signer)" \\\
       			-c "/CN=Fedora Secure Boot Signer" \\\
-			%{-i} %{-o} %{-e} %{-s} \
+			%{-i} %{-o} %{-e} %{-s} %{-C} \
     else \
-      %{_pesign} %{__pesign_token} %{__pesign_cert} %{-i} %{-o} %{-e} %{-s} \
+      %{_pesign} %{__pesign_token} %{__pesign_cert} \\\
+      		 %{-i} %{-o} %{-e} %{-s} %{-C} \
     fi \
   else \
     if [ -n "%{-i*}" -a -n "%{-o*}" ]; then \
