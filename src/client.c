@@ -436,7 +436,7 @@ main(int argc, char *argv[])
 	char *certname = NULL;
 	poptContext optCon;
 	int rc;
-	int action;
+	int action = NO_FLAGS;
 	char *infile = NULL;
 	char *outfile = NULL;
 	char *exportfile = NULL;
@@ -499,6 +499,12 @@ main(int argc, char *argv[])
 		fprintf(stderr, "pesign-client: Invalid Argument: \"%s\"\n",
 			poptPeekArg(optCon));
 		exit(1);
+	}
+
+	if (action == NO_FLAGS) {
+		poptPrintUsage(optCon, stdout, 0);
+		poptFreeContext(optCon);
+		exit(0);
 	}
 
 	if (action & SIGN_BINARY && (!outfile && !exportfile)) {
