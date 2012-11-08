@@ -446,6 +446,63 @@ err_slots:
 	return 0;
 }
 
+int
+generate_string(cms_context *cms, SECItem *der, char *str)
+{
+	SECItem input;
+
+	input.data = (void *)str;
+	input.len = strlen(str);
+	input.type = siBMPString;
+
+	void *ret;
+	ret = SEC_ASN1EncodeItem(NULL, der, &input,SEC_PrintableStringTemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode string: %s",
+			__FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+	return 0;
+}
+
+static SEC_ASN1Template IntegerTemplate[] = {
+	{.kind = SEC_ASN1_INTEGER,
+	 .offset = 0,
+	 .sub = NULL,
+	 .size = sizeof(long),
+	},
+	{ 0 },
+};
+
+int
+generate_integer(cms_context *cms, SECItem *der, unsigned long integer)
+{
+	void *ret;
+
+	uint32_t u32;
+
+	SECItem input = {
+		.data = (void *)&integer,
+		.len = sizeof(integer),
+		.type = siUnsignedInteger,
+	};
+
+	if (integer < 0x100000000) {
+		u32 = integer & 0xffffffffUL;
+		input.data = (void *)&u32;
+		input.len = sizeof(u32);
+	}
+
+	ret = SEC_ASN1EncodeItem(NULL, der, &input, IntegerTemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode data: %s",
+			__FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+	return 0;
+}
 
 int
 generate_time(cms_context *cms, SECItem *encoded, time_t when)
@@ -967,4 +1024,72 @@ generate_signature(cms_context *cms)
 
 	memcpy(&cms->newsig, &sd_der, sizeof (cms->newsig));
 	return 0;
+}
+
+static SEC_ASN1Template SetTemplate = {
+	.kind = SEC_ASN1_SET_OF,
+	.offset = 0,
+	.sub = &SEC_AnyTemplate,
+	.size = sizeof (SECItem **)
+	};
+
+int
+wrap_in_set(cms_context *cms, SECItem *der, SECItem **items)
+{
+	void *ret;
+
+	ret = SEC_ASN1EncodeItem(NULL, der, &items, &SetTemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "could not encode set: %s",
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+	return 0;
+}
+
+static SEC_ASN1Template SeqTemplateTemplate = {
+	.kind = SEC_ASN1_ANY,
+	.offset = 0,
+	.sub = &SEC_AnyTemplate,
+	.size = sizeof (SECItem),
+	};
+
+static SEC_ASN1Template SeqTemplateHeader = {
+	.kind = SEC_ASN1_SEQUENCE,
+	.offset = 0,
+	.sub = NULL,
+	.size = sizeof (SECItem)
+	};
+
+int
+wrap_in_seq(cms_context *cms, SECItem *der, SECItem *items, int num_items)
+{
+	void *ret;
+
+	void *mark = PORT_ArenaMark(cms->arena);
+
+	SEC_ASN1Template *tmpl = PORT_ArenaZNewArray(cms->arena,
+			SEC_ASN1Template, num_items + 2);
+	if (!tmpl) {
+		cms->log(cms, LOG_ERR, "could not allocate memory: %s",
+			PORT_ErrorToString(PORT_GetError()));
+		PORT_ArenaRelease(cms->arena, mark);
+		return -1;
+	}
+
+	memcpy(tmpl, &SeqTemplateHeader, sizeof(*tmpl));
+
+	for (int i = 0; i < num_items; i++)
+		memcpy(tmpl + i + 1, &SeqTemplateTemplate, sizeof(*tmpl));
+	memset(tmpl + num_items + 1, '\0', sizeof(*tmpl));
+
+	int rc = 0;
+	ret = SEC_ASN1EncodeItem(NULL, der, items, tmpl);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "could not encode set: %s",
+			PORT_ErrorToString(PORT_GetError()));
+		rc = -1;
+	}
+	PORT_ArenaRelease(cms->arena, mark);
+	return rc;
 }
