@@ -1072,6 +1072,54 @@ generate_signature(cms_context *cms)
 	return 0;
 }
 
+typedef struct {
+	SECItem start;
+	SECItem end;
+} Validity;
+
+static SEC_ASN1Template ValidityTemplate[] = {
+	{.kind = SEC_ASN1_SEQUENCE,
+	 .offset = 0,
+	 .sub = NULL,
+	 .size = sizeof (Validity),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Validity, start),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Validity, end),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{ 0 }
+};
+
+int
+generate_validity(cms_context *cms, SECItem *der, time_t start, time_t end)
+{
+	Validity validity;
+	int rc;
+
+	rc = generate_time(cms, &validity.start, start);
+	if (rc < 0)
+		return rc;
+
+	rc = generate_time(cms, &validity.end, end);
+	if (rc < 0)
+		return rc;
+
+	void *ret;
+	ret = SEC_ASN1EncodeItem(NULL, der, &validity, ValidityTemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "could not encode validity: %s",
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+	return 0;
+}
+
 static SEC_ASN1Template SetTemplate = {
 	.kind = SEC_ASN1_SET_OF,
 	.offset = 0,
