@@ -312,7 +312,7 @@ SEC_ASN1Template SpcSignerInfoTemplate[] = {
 	{
 	.kind = SEC_ASN1_INLINE,
 	.offset = offsetof(SpcSignerInfo, digestAlgorithm),
-	.sub = &AlgorithmIDTemplate,
+	.sub = &SECOID_AlgorithmIDTemplate,
 	.size = sizeof (SECAlgorithmID)
 	},
 	{
@@ -326,7 +326,7 @@ SEC_ASN1Template SpcSignerInfoTemplate[] = {
 	{
 	.kind = SEC_ASN1_INLINE,
 	.offset = offsetof(SpcSignerInfo, signatureAlgorithm),
-	.sub = &AlgorithmIDTemplate,
+	.sub = &SECOID_AlgorithmIDTemplate,
 	.size = sizeof (SECItem)
 	},
 	{

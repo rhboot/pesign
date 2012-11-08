@@ -173,7 +173,7 @@ SEC_ASN1Template DigestInfoTemplate[] = {
 	{
 	.kind = SEC_ASN1_INLINE,
 	.offset = offsetof(DigestInfo, digestAlgorithm),
-	.sub = &AlgorithmIDTemplate,
+	.sub = &SECOID_AlgorithmIDTemplate,
 	.size = sizeof (SECAlgorithmID),
 	},
 	{

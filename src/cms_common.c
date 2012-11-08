@@ -522,29 +522,6 @@ generate_object_id(cms_context *cms, SECItem *encoded, SECOidTag tag)
 	return 0;
 }
 
-SEC_ASN1Template AlgorithmIDTemplate[] = {
-	{
-	.kind = SEC_ASN1_SEQUENCE,
-	.offset = 0,
-	.sub = NULL,
-	.size = sizeof (SECAlgorithmID),
-	},
-	{
-	.kind = SEC_ASN1_OBJECT_ID,
-	.offset = offsetof(SECAlgorithmID, algorithm),
-	.sub = NULL,
-	.size = 0,
-	},
-	{
-	.kind = SEC_ASN1_OPTIONAL |
-		SEC_ASN1_ANY,
-	.offset = offsetof(SECAlgorithmID, parameters),
-	.sub = NULL,
-	.size = 0,
-	},
-	{ 0, }
-};
-
 int
 generate_algorithm_id(cms_context *cms, SECAlgorithmID *idp, SECOidTag tag)
 {

@@ -178,7 +178,7 @@ SEC_ASN1Template SignedDataTemplate[] = {
 	{
 	.kind = SEC_ASN1_SET_OF,
 	.offset = offsetof(SignedData, algorithms),
-	.sub = &AlgorithmIDTemplate,
+	.sub = &SECOID_AlgorithmIDTemplate,
 	.size = sizeof (SECItem),
 	},
 	{
