@@ -1309,3 +1309,133 @@ generate_auth_info(cms_context *cms, SECItem *der, char *url)
 	der->data[12] = 0x86;
 	return 0;
 }
+
+typedef struct {
+	SECItem keyid;
+	SECItem keyusage;
+	SECItem basic_constraints;
+	SECItem auth_keyid;
+	SECItem authinfo;
+} Extension;
+
+static SEC_ASN1Template ExtTemplate[] = {
+	{.kind = SEC_ASN1_SEQUENCE,
+	 .offset = 0,
+	 .sub = NULL,
+	 .size = sizeof (Extension),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Extension, keyid),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Extension, keyusage),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Extension, basic_constraints),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Extension, auth_keyid),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Extension, authinfo),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{ 0 },
+};
+
+
+static int
+generate_extensions_unwrapped(cms_context *cms, SECItem *der, char *url)
+{
+	Extension ext;
+
+	ext.keyid.data = (unsigned char *)"\x30\x1d\x06\x03\x55\x1d\x0e\x04\x16"
+		"\x04\x14"
+		"\x8c\xe3\xf6\xb8\x31\x42\x92\xfe\x6e\x2f"
+		"\x80\xd5\x32\xe0\x94\x3a\x53\x93\x3d\xba";
+	ext.keyid.len = 31;
+	ext.keyid.type = siBuffer;
+
+	ext.keyusage.data = (unsigned char *)"\x30\x0b\x06\x03"
+		"\x55\x1d\x0f\x04\x04\x03\x02\x01\x86";
+	ext.keyusage.len = 13;
+	ext.keyusage.type = siBuffer;
+
+	ext.basic_constraints.data = (unsigned char *)"\x30\x0f"
+		"\x06\x03\x55\x1d\x13"
+		"\x01\x01\xff"
+		"\x04\x05\x30\x03\x01\x01\xff";
+	ext.basic_constraints.len = 17;
+	ext.basic_constraints.type = siBuffer;
+
+	ext.auth_keyid.data = (unsigned char *)"\x30\x1f"
+		"\x06\x03\x55\x1d\x23"
+		"\x04\x18"
+		"\x30\x16\x80\x14"
+		"\x8c\xe3\xf6\xb8\x31\x42\x92\xfe\x6e\x2f"
+		"\x80\xd5\x32\xe0\x94\x3a\x53\x93\x3d\xba";
+	ext.auth_keyid.len = 33;
+	ext.auth_keyid.type = siBuffer;
+
+	if (url)
+		generate_auth_info(cms, &ext.authinfo, url);
+	else
+		memset(&ExtTemplate[5], '\0', sizeof(ExtTemplate[5]));
+
+	void *ret;
+	ret = SEC_ASN1EncodeItem(NULL, der, &ext, ExtTemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode certificate "
+			"extension data: %s", __FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+	return 0;
+}
+
+static int
+generate_extensions(cms_context *cms, SECItem ***list, char *url)
+{
+	SECItem **extensions = NULL;
+
+	void *mark = PORT_ArenaMark(cms->arena);
+
+	extensions = PORT_ArenaZNewArray(cms->arena, SECItem *, 2);
+	if (!extensions) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d: could not allocate extension "
+			"list: %s", __FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		PORT_ArenaRelease(cms->arena, mark);
+		return -1;
+	}
+
+	SECItem *ext = PORT_ArenaZAlloc(cms->arena, sizeof (SECItem));
+	if (!ext) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d: could not allocate extension "
+			"data: %s", __FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		PORT_ArenaRelease(cms->arena, mark);
+		return -1;
+	}
+
+	int rc = generate_extensions_unwrapped(cms, ext, url);
+	if (rc < 0) {
+		PORT_ArenaRelease(cms->arena, mark);
+		return -1;
+	}
+	extensions[0] = ext;
+	extensions[1] = NULL;
+
+	*list = extensions;
+	PORT_ArenaUnmark(cms->arena, mark);
+	return 0;
+}
