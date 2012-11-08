@@ -653,13 +653,18 @@ encode_algorithm_id(cms_context *cms, SECItem *der, SECOidTag tag)
 	return 0;
 }
 
+typedef struct {
+	/* L"<<<Obsolete>>>" no nul */
+	SECItem unicode;
+} SpcString;
+
 /* Generate DER for SpcString, which is always "<<<Obsolete>>>" in UCS-2.
  * Irony abounds. Needs to decode like this:
  *        [0]  (28)
  *           00 3c 00 3c 00 3c 00 4f 00 62 00 73 00 6f 00
  *           6c 00 65 00 74 00 65 00 3e 00 3e 00 3e
  */
-SEC_ASN1Template SpcStringTemplate[] = {
+static SEC_ASN1Template SpcStringTemplate[] = {
 	{
 	.kind = SEC_ASN1_CONTEXT_SPECIFIC | 0,
 	.offset = offsetof(SpcString, unicode),

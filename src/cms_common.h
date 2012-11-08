@@ -61,12 +61,6 @@ typedef struct cms_context {
 	void *log_priv;
 } cms_context;
 
-typedef struct {
-	/* L"<<<Obsolete>>>" no nul */
-	SECItem unicode;
-} SpcString;
-extern SEC_ASN1Template SpcStringTemplate[];
-
 typedef enum {
 	SpcLinkYouHaveFuckedThisUp = 0,
 	SpcLinkTypeUrl = 1,
