@@ -201,7 +201,8 @@ get_token_pin(int pinfd, char *pinfile, char *envname)
 		if (!pinf)
 			return NULL;
 
-		ssize_t n = getline(&pin, 0, pinf);
+		size_t len;
+		ssize_t n = getline(&pin, &len, pinf);
 		if (n < 0 || !pin) {
 			fclose(pinf);
 			return NULL;
