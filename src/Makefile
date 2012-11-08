@@ -44,10 +44,10 @@ efisiglist_OBJECTS = $(foreach source,$(efisiglist_SOURCES),$(patsubst %.c,%,$(s
 efisiglist_DEPS = $(foreach source,$(efisiglist_SOURCES),.$(patsubst %.c,%,$(source)).P)
 efisiglist : $(efisiglist_OBJECTS)
 
-efikeygen_SOURCES = efikeygen.c siglist.c
-efikeygen_OBJECTS = $(foreach source,$(efikeygen_SOURCES),$(patsubst %.c,%,$(source)).o)
+efikeygen_SOURCES = efikeygen.c
+efikeygen_OBJECTS = $(foreach source,$(efikeygen_SOURCES),$(patsubst %.c,%,$(source)).o) generic.a
 efikeygen_DEPS = $(foreach source,$(efikeygen_SOURCES),.$(patsubst %.c,%,$(source)).P)
-efikeygen : $(efikeygen_OBJECTS)
+efikeygen : $(efikeygen_OBJECTS) $(STATIC_LIBS)
 
 fuzzsocket_SOURCES = fuzzsocket.c
 fuzzsocket_OBJECTS = $(foreach source,$(fuzzsocket_SOURCES),$(patsubst %.c,%,$(source)).o)
