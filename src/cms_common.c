@@ -1187,3 +1187,60 @@ wrap_in_seq(cms_context *cms, SECItem *der, SECItem *items, int num_items)
 	PORT_ArenaRelease(cms->arena, mark);
 	return rc;
 }
+
+typedef struct {
+	SECItem oid;
+	SECItem string;
+} CommonName;
+
+static SEC_ASN1Template CommonNameTemplate[] = {
+	{.kind = SEC_ASN1_SEQUENCE,
+	 .offset = 0,
+	 .sub = NULL,
+	 .size = sizeof (CommonName),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(CommonName, oid),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(CommonName, string),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{ 0 }
+};
+
+int
+generate_common_name(cms_context *cms, SECItem *der, char *cn_str)
+{
+	CommonName cn;
+	SECItem cn_item;
+	int rc;
+
+	rc = generate_object_id(cms, &cn.oid, SEC_OID_AVA_COMMON_NAME);
+	if (rc < 0)
+		return rc;
+	rc = generate_string(cms, &cn.string, cn_str);
+	if (rc < 0)
+		return rc;
+
+	void *ret;
+	ret = SEC_ASN1EncodeItem(NULL, &cn_item, &cn, CommonNameTemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "could not encode common name: %s",
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	SECItem cn_set;
+	SECItem *items[2] = {&cn_item, NULL};
+	rc = wrap_in_set(cms, &cn_set, items);
+	if (rc < 0)
+		return rc;
+	rc = wrap_in_seq(cms, der, &cn_set, 1);
+	if (rc < 0)
+		return rc;
+	return 0;
+}

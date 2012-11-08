@@ -95,6 +95,7 @@ extern int wrap_in_seq(cms_context *cms, SECItem *der,
 			SECItem *items, int num_items);
 extern int generate_validity(cms_context *cms, SECItem *der, time_t start,
 				time_t end);
+extern int generate_common_name(cms_context *cms, SECItem *der, char *cn);
 extern int generate_algorithm_id(cms_context *ctx, SECAlgorithmID *idp,
 				SECOidTag tag);
 extern int generate_spc_link(cms_context *cms, SpcLink *slp,
