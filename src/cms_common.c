@@ -519,11 +519,17 @@ generate_time(cms_context *cms, SECItem *encoded, time_t when)
 	whenitem.len = snprintf(timebuf, 32, "%02d%02d%02d%02d%02d%02dZ",
 		tm->tm_year % 100, tm->tm_mon + 1, tm->tm_mday,
 		tm->tm_hour, tm->tm_min, tm->tm_sec);
-	if (whenitem.len == 32)
+	if (whenitem.len == 32) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode timestamp: "
+			"%m", __FILE__, __func__, __LINE__);
 		return -1;
+	}
 
 	if (SEC_ASN1EncodeItem(cms->arena, encoded, &whenitem,
 			SEC_UTCTimeTemplate) == NULL) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode timestamp: "
+			"%s", __FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
 	return 0;
@@ -546,9 +552,15 @@ generate_empty_sequence(cms_context *cms, SECItem *encoded)
 			 .data = NULL,
 			 .len = 0
 	};
-	if (SEC_ASN1EncodeItem(cms->arena, encoded, &empty,
-			EmptySequenceTemplate) == NULL)
+	void *ret;
+	ret = SEC_ASN1EncodeItem(cms->arena, encoded, &empty,
+							EmptySequenceTemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode data: %s",
+			__FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
 		return -1;
+	}
 	return 0;
 }
 
@@ -566,17 +578,24 @@ generate_octet_string(cms_context *cms, SECItem *encoded, SECItem *original)
 }
 
 int
-generate_object_id(cms_context *cms, SECItem *encoded, SECOidTag tag)
+generate_object_id(cms_context *cms, SECItem *der, SECOidTag tag)
 {
 	SECOidData *oid;
 
 	oid = SECOID_FindOIDByTag(tag);
-	if (!oid)
+	if (!oid) {
+		cms->log(cms, LOG_ERR, "could not find requested OID: %s",
+			PORT_ErrorToString(PORT_GetError()));
 		return -1;
+	}
 
-	if (SEC_ASN1EncodeItem(cms->arena, encoded, &oid->oid,
-			SEC_ObjectIDTemplate) == NULL)
+	void *ret;
+	ret = SEC_ASN1EncodeItem(NULL, der, &oid->oid, SEC_ObjectIDTemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "could not encode OID: %s",
+			PORT_ErrorToString(PORT_GetError()));
 		return -1;
+	}
 	return 0;
 }
 
