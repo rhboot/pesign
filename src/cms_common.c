@@ -631,6 +631,28 @@ err:
 	return -1;
 }
 
+int
+encode_algorithm_id(cms_context *cms, SECItem *der, SECOidTag tag)
+{
+	SECAlgorithmID id;
+
+	int rc = generate_algorithm_id(cms, &id, tag);
+	if (rc < 0)
+		return rc;
+
+	void *ret;
+	ret = SEC_ASN1EncodeItem(cms->arena, der, &id,
+						SECOID_AlgorithmIDTemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode algorithm "
+			"ID: %s", __FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	return 0;
+}
+
 /* Generate DER for SpcString, which is always "<<<Obsolete>>>" in UCS-2.
  * Irony abounds. Needs to decode like this:
  *        [0]  (28)
