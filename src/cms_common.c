@@ -1244,3 +1244,68 @@ generate_common_name(cms_context *cms, SECItem *der, char *cn_str)
 		return rc;
 	return 0;
 }
+
+typedef struct {
+	SECItem oid;
+	SECItem url;
+} AuthInfo;
+
+static SEC_ASN1Template AuthInfoTemplate[] = {
+	{.kind = SEC_ASN1_SEQUENCE,
+	 .offset = 0,
+	 .sub = NULL,
+	 .size = sizeof (AuthInfo),
+	},
+	{.kind = SEC_ASN1_OBJECT_ID,
+	 .offset = offsetof(AuthInfo, oid),
+	 .sub = &SEC_ObjectIDTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_UTF8_STRING,
+	 .offset = offsetof(AuthInfo, url),
+	 .sub = NULL,
+	 .size = sizeof (SECItem),
+	},
+	{ 0 }
+};
+
+int
+generate_auth_info(cms_context *cms, SECItem *der, char *url)
+{
+	AuthInfo ai;
+
+	SECOidData *oid = SECOID_FindOIDByTag(SEC_OID_PKIX_CA_ISSUERS);
+	if (!oid) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not get CA Issuers OID: "
+			"%s", __FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	memcpy(&ai.oid, &oid->oid, sizeof (ai.oid));
+
+	ai.url.data = (unsigned char *)url;
+	ai.url.len = strlen(url);
+	ai.url.type = siBuffer;
+
+	void *ret;
+	ret = SEC_ASN1EncodeItem(NULL, der, &ai, AuthInfoTemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode CA Issuers "
+			"OID: %s", __FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	/* I've no idea how to get SEC_ASN1EncodeItem to spit out the thing
+	 * we actually want here.  So once again, just force the data to
+	 * look correct :( */
+	if (der->len < 12) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d generated CA Issuers Info "
+			"cannot possibly be valid",
+			__FILE__, __func__, __LINE__);
+		return -1;
+	}
+	der->data[12] = 0x86;
+	return 0;
+}
