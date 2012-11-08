@@ -446,15 +446,6 @@ err_slots:
 	return 0;
 }
 
-static SEC_ASN1Template EmptySequenceTemplate[] = {
-	{
-	.kind = SEC_ASN1_SEQUENCE,
-	.offset = 0,
-	.sub = NULL,
-	.size = 0
-	},
-	{ 0, }
-};
 
 int
 generate_time(cms_context *cms, SECItem *encoded, time_t when)
@@ -480,6 +471,16 @@ generate_time(cms_context *cms, SECItem *encoded, time_t when)
 	}
 	return 0;
 }
+
+static SEC_ASN1Template EmptySequenceTemplate[] = {
+	{
+	.kind = SEC_ASN1_SEQUENCE,
+	.offset = 0,
+	.sub = NULL,
+	.size = 0
+	},
+	{ 0, }
+};
 
 int
 generate_empty_sequence(cms_context *cms, SECItem *encoded)
