@@ -25,6 +25,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#include <libdpe/pe.h>
+
 #define xfree(x) ({if (x) { free(x); x = NULL; }})
 
 #define save_errno(x)					\
