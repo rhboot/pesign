@@ -697,7 +697,7 @@ generate_spc_string(cms_context *cms, SECItem *ssp, char *str, int len)
 				PORT_ErrorToString(PORT_GetError()));
 			return -1;
 		}
-		
+
 		memcpy(ss.unicode.data, str, len);
 	}
 	ss.unicode.type = siBMPString;
