@@ -3,11 +3,11 @@ TOPDIR = $(SRCDIR)/..
 
 include $(TOPDIR)/Make.defaults
 
+PKLIBS = nss
 LIBS = popt
 STATIC_LIBS = $(TOPDIR)/libdpe/libdpe.a
-PKLIBS = nss
 LDFLAGS =
-CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags --libs $(pklib)))
+CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --libs-only-L $(pklib)))
 CFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib))) -Werror
 
 TARGETS = pesign authvar client efisiglist efikeygen
