@@ -464,7 +464,8 @@ generate_string(cms_context *cms, SECItem *der, char *str)
 	input.type = siBMPString;
 
 	void *ret;
-	ret = SEC_ASN1EncodeItem(NULL, der, &input,SEC_PrintableStringTemplate);
+	ret = SEC_ASN1EncodeItem(cms->arena, der, &input,
+						SEC_PrintableStringTemplate);
 	if (ret == NULL) {
 		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode string: %s",
 			__FILE__, __func__, __LINE__,
@@ -502,7 +503,7 @@ generate_integer(cms_context *cms, SECItem *der, unsigned long integer)
 		input.len = sizeof(u32);
 	}
 
-	ret = SEC_ASN1EncodeItem(NULL, der, &input, IntegerTemplate);
+	ret = SEC_ASN1EncodeItem(cms->arena, der, &input, IntegerTemplate);
 	if (ret == NULL) {
 		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode data: %s",
 			__FILE__, __func__, __LINE__,
@@ -598,7 +599,8 @@ generate_object_id(cms_context *cms, SECItem *der, SECOidTag tag)
 	}
 
 	void *ret;
-	ret = SEC_ASN1EncodeItem(NULL, der, &oid->oid, SEC_ObjectIDTemplate);
+	ret = SEC_ASN1EncodeItem(cms->arena, der, &oid->oid,
+						SEC_ObjectIDTemplate);
 	if (ret == NULL) {
 		cms->log(cms, LOG_ERR, "could not encode OID: %s",
 			PORT_ErrorToString(PORT_GetError()));
@@ -1119,7 +1121,7 @@ generate_validity(cms_context *cms, SECItem *der, time_t start, time_t end)
 		return rc;
 
 	void *ret;
-	ret = SEC_ASN1EncodeItem(NULL, der, &validity, ValidityTemplate);
+	ret = SEC_ASN1EncodeItem(cms->arena, der, &validity, ValidityTemplate);
 	if (ret == NULL) {
 		cms->log(cms, LOG_ERR, "could not encode validity: %s",
 			PORT_ErrorToString(PORT_GetError()));
@@ -1140,7 +1142,7 @@ wrap_in_set(cms_context *cms, SECItem *der, SECItem **items)
 {
 	void *ret;
 
-	ret = SEC_ASN1EncodeItem(NULL, der, &items, &SetTemplate);
+	ret = SEC_ASN1EncodeItem(cms->arena, der, &items, &SetTemplate);
 	if (ret == NULL) {
 		cms->log(cms, LOG_ERR, "could not encode set: %s",
 			PORT_ErrorToString(PORT_GetError()));
@@ -1235,7 +1237,7 @@ generate_common_name(cms_context *cms, SECItem *der, char *cn_str)
 		return rc;
 
 	void *ret;
-	ret = SEC_ASN1EncodeItem(NULL, &cn_item, &cn, CommonNameTemplate);
+	ret = SEC_ASN1EncodeItem(cms->arena, &cn_item, &cn, CommonNameTemplate);
 	if (ret == NULL) {
 		cms->log(cms, LOG_ERR, "could not encode common name: %s",
 			PORT_ErrorToString(PORT_GetError()));
@@ -1400,7 +1402,7 @@ generate_extensions_unwrapped(cms_context *cms, SECItem *der, char *url)
 		memset(&ExtTemplate[5], '\0', sizeof(ExtTemplate[5]));
 
 	void *ret;
-	ret = SEC_ASN1EncodeItem(NULL, der, &ext, ExtTemplate);
+	ret = SEC_ASN1EncodeItem(cms->arena, der, &ext, tmpl);
 	if (ret == NULL) {
 		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode certificate "
 			"extension data: %s", __FILE__, __func__, __LINE__,
