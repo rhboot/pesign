@@ -1590,10 +1590,11 @@ generate_key_id(cms_context *cms, SECItem *der, SECOidTag tag, SECItem *pubkey)
 
 typedef struct {
 	SECItem keyid;
-	SECItem keyusage;
-	SECItem basic_constraints;
 	SECItem auth_keyid;
+	SECItem keyusage;
+	SECItem extended_key_usage;
 	SECItem authinfo;
+	SECItem basic_constraints;
 } Extension;
 
 static SEC_ASN1Template ExtTemplate[] = {
@@ -1608,66 +1609,126 @@ static SEC_ASN1Template ExtTemplate[] = {
 	 .size = sizeof (SECItem),
 	},
 	{.kind = SEC_ASN1_ANY,
-	 .offset = offsetof(Extension, keyusage),
-	 .sub = &SEC_AnyTemplate,
-	 .size = sizeof (SECItem),
-	},
-	{.kind = SEC_ASN1_ANY,
-	 .offset = offsetof(Extension, basic_constraints),
-	 .sub = &SEC_AnyTemplate,
-	 .size = sizeof (SECItem),
-	},
-	{.kind = SEC_ASN1_ANY,
 	 .offset = offsetof(Extension, auth_keyid),
 	 .sub = &SEC_AnyTemplate,
 	 .size = sizeof (SECItem),
 	},
 	{.kind = SEC_ASN1_ANY,
-	 .offset = offsetof(Extension, authinfo),
+	 .offset = offsetof(Extension, keyusage),
 	 .sub = &SEC_AnyTemplate,
 	 .size = sizeof (SECItem),
 	},
-	{ 0 },
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Extension, extended_key_usage),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem)
+	},
 };
 
+static const SEC_ASN1Template BasicConstraintsTemplate =
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Extension, basic_constraints),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	};
+
+static const SEC_ASN1Template AuthInfoExtTemplate =
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Extension, authinfo),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	};
 
 static int
-generate_extensions_unwrapped(cms_context *cms, SECItem *der, char *url)
+generate_extensions_unwrapped(cms_context *cms, SECItem *der, int is_ca,
+				int is_self_signed, SECItem *pubkey,
+				char *url)
 {
 	Extension ext;
 
-	ext.keyid.data = (unsigned char *)"\x30\x1d\x06\x03\x55\x1d\x0e\x04\x16"
-		"\x04\x14"
-		"\x8c\xe3\xf6\xb8\x31\x42\x92\xfe\x6e\x2f"
-		"\x80\xd5\x32\xe0\x94\x3a\x53\x93\x3d\xba";
-	ext.keyid.len = 31;
-	ext.keyid.type = siBuffer;
+	SEC_ASN1Template tmpl[8];
 
-	ext.keyusage.data = (unsigned char *)"\x30\x0b\x06\x03"
-		"\x55\x1d\x0f\x04\x04\x03\x02\x01\x86";
-	ext.keyusage.len = 13;
-	ext.keyusage.type = siBuffer;
+	memset(tmpl, '\0', sizeof(tmpl));
+	memcpy(tmpl, ExtTemplate, sizeof(ExtTemplate));
 
-	ext.basic_constraints.data = (unsigned char *)"\x30\x0f"
-		"\x06\x03\x55\x1d\x13"
-		"\x01\x01\xff"
-		"\x04\x05\x30\x03\x01\x01\xff";
-	ext.basic_constraints.len = 17;
-	ext.basic_constraints.type = siBuffer;
+	int rc = generate_key_id(cms, &ext.keyid, SEC_OID_X509_SUBJECT_KEY_ID,
+				pubkey);
+	if (rc < 0)
+		return -1;
 
-	ext.auth_keyid.data = (unsigned char *)"\x30\x1f"
-		"\x06\x03\x55\x1d\x23"
-		"\x04\x18"
-		"\x30\x16\x80\x14"
-		"\x8c\xe3\xf6\xb8\x31\x42\x92\xfe\x6e\x2f"
-		"\x80\xd5\x32\xe0\x94\x3a\x53\x93\x3d\xba";
-	ext.auth_keyid.len = 33;
-	ext.auth_keyid.type = siBuffer;
+	if (is_self_signed) {
+		generate_key_id(cms, &ext.auth_keyid, SEC_OID_X509_AUTH_KEY_ID,
+				pubkey);
+	} else {
+		ext.auth_keyid.data = (unsigned char *)"\x30\x1f"
+			"\x06\x03\x55\x1d\x23"
+			"\x04\x18"
+			"\x30\x16\x80\x14"
+			"\x8c\xe3\xf6\xb8\x31\x42\x92\xfe\x6e\x2f"
+			"\x80\xd5\x32\xe0\x94\x3a\x53\x93\x3d\xba";
+		ext.auth_keyid.len = 33;
+		ext.auth_keyid.type = siBuffer;
+	}
 
-	if (url)
+	if (is_ca) {
+		ext.keyusage.data = (unsigned char *)
+			"\x30\x0e"
+			  "\x06\x03"
+			    "\x55\x1d\x0f"
+			  "\x01\x01"
+			    "\xff"
+			  "\x04\x04"
+			    "\x03\x02\x01\xc6";
+		ext.keyusage.len = 16;
+		ext.keyusage.type = siBuffer;
+
+		ext.extended_key_usage.data = (unsigned char *)
+			"\x30\x13"
+			  "\x06\x03"
+			    "\x55\x1d\x25"
+			  "\x04\x0c"
+			    "\x30\x0a\x06\x08\x2b\x06\x01\x05\x05\x07\x03\x03";
+		ext.extended_key_usage.len = 21;
+		ext.extended_key_usage.type = siBuffer;
+
+		memcpy(&tmpl[5], &BasicConstraintsTemplate,
+					sizeof (BasicConstraintsTemplate));
+		ext.basic_constraints.data = (unsigned char *)
+			"\x30\x0f"
+			  "\x06\x03"
+			    "\x55\x1d\x13"
+			  "\x01\x01"
+			    "\xff"
+			  "\x04\x05"
+			    "\x30\x03\x01\x01\xff";
+		ext.basic_constraints.len = 17;
+		ext.basic_constraints.type = siBuffer;
+	} else {
+		ext.keyusage.data = (unsigned char *)
+			"\x30\x0e"
+			  "\x06\x03"
+			    "\x55\x1d\x0f"
+			  "\x01\x01"
+			    "\xff"
+			  "\x04\x04"
+			    "\x03\x02\x06\xc0";
+		ext.keyusage.len = 16;
+		ext.keyusage.type = siBuffer;
+
+		ext.extended_key_usage.data = (unsigned char *)
+			"\x30\x13"
+			  "\x06\x03"
+			    "\x55\x1d\x25"
+			  "\x04\x0c"
+			    "\x30\x0a\x06\x08\x2b\x06\x01\x05\x05\x07\x03\x03";
+		ext.extended_key_usage.len = 21;
+		ext.extended_key_usage.type = siBuffer;
+	}
+	if (url) {
+		memcpy(&tmpl[is_ca ? 6 : 5], &AuthInfoExtTemplate,
+					sizeof (AuthInfoExtTemplate));
 		generate_auth_info(cms, &ext.authinfo, url);
-	else
-		memset(&ExtTemplate[5], '\0', sizeof(ExtTemplate[5]));
+	}
 
 	void *ret;
 	ret = SEC_ASN1EncodeItem(cms->arena, der, &ext, tmpl);
@@ -1681,7 +1742,8 @@ generate_extensions_unwrapped(cms_context *cms, SECItem *der, char *url)
 }
 
 static int
-generate_extensions(cms_context *cms, SECItem ***list, char *url)
+generate_extensions(cms_context *cms, SECItem ***list, int is_ca,
+			int is_self_signed, SECItem *pubkey, char *url)
 {
 	SECItem **extensions = NULL;
 
@@ -1705,7 +1767,8 @@ generate_extensions(cms_context *cms, SECItem ***list, char *url)
 		return -1;
 	}
 
-	int rc = generate_extensions_unwrapped(cms, ext, url);
+	int rc = generate_extensions_unwrapped(cms, ext, is_ca, is_self_signed,
+						pubkey, url);
 	if (rc < 0) {
 		PORT_ArenaRelease(cms->arena, mark);
 		return -1;
