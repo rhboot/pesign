@@ -45,8 +45,8 @@
 #include <nss3/pk11pub.h>
 
 #include "cms_common.h"
+#include "util.h"
 
-#if 0
 typedef struct {
 	SECItem data;
 	SECItem keytype;
@@ -107,43 +107,52 @@ bundle_signature(cms_context *cms, SECItem *sigder, SECItem *data,
 	return 0;
 }
 
-
-#endif
-
 int main(int argc, char *argv[])
 {
 	int is_ca = 0;
 	int is_self_signed = -1;
 	char *tokenname = "NSS Certificate DB";
 	char *signer = NULL;
-	char *outfile = NULL;
+	char *outfile = "signed.cer";
+	char *poutfile = NULL;
+	char *pubfile = NULL;
 	char *cn = NULL;
 	char *url = NULL;
-	unsigned long serial = ULONG_MAX;
+	char *serial_str = NULL;
+	char *issuer;
+	unsigned long long serial = ULONG_MAX;
 
 	cms_context *cms = NULL;
 
 	poptContext optCon;
 	struct poptOption options[] = {
 		{NULL, '\0', POPT_ARG_INTL_DOMAIN, "pesign" },
-		{"ca", 'C', POPT_ARG_VAL, &is_ca, 1,
+		{"ca", 'C', POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN, &is_ca, 1,
 			"Generate a CA certificate", NULL },
-		{"self-sign", 'S', POPT_ARG_VAL, &is_self_signed, 1,
+		{"self-sign", 'S', POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
+			&is_self_signed, 1,
 			"Generate a self-signed certificate", NULL },
 		{"signer", 'c', POPT_ARG_STRING, &signer, 0,
 			"Nickname for signing certificate", "<signer>" },
 		{"token", 't', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
 			&tokenname, 0, "NSS token holding signing key",
 			"<token>" },
-		{"output", 'o', POPT_ARG_STRING, &outfile, 0,
-			"Output file name", "<outfile>" },
+		{"pubkey", 'p', POPT_ARG_STRING, &pubfile, 0,
+			"Use public key from file", "<pubkey>" },
+		{"output", 'o', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
+			&outfile, 0, "Certificate output file name",
+			"<outfile>" },
+		{"privkey", 'P', POPT_ARG_STRING,
+			&poutfile, 0, "Private key output file name",
+			"<privkey>" },
 		{"common-name", 'n', POPT_ARG_STRING, &cn, 0,
 			"Common Name for generated certificate", "<cn>" },
 		{"url", 'u', POPT_ARG_STRING, &url, 0,
 			"Issuer URL", "<url>" },
-		{"serial", 's', POPT_ARG_LONG, &serial, 0,
-			"Serial number (from 0 to 4294967294)",
-			"<serial>" },
+		{"serial", 's', POPT_ARG_STRING, &serial_str, 0,
+			"Serial number", "<serial>" },
+		{"issuer", 'i', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+			&issuer, 0, "Issuer", "<issuer>" },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
@@ -169,6 +178,9 @@ int main(int argc, char *argv[])
 
 	poptFreeContext(optCon);
 
+	if (is_self_signed == -1)
+		is_self_signed = is_ca && !signer ? 1 : 0;
+
 	if (is_self_signed && signer)
 		errx(1, "efikeygen: --self-sign and --signer cannot be "
 			"used at the same time.");
@@ -176,8 +188,36 @@ int main(int argc, char *argv[])
 	if (!cn)
 		errx(1, "efikeygen: --common-name must be specified");
 
-	if (is_ca && is_self_signed == -1)
-		is_self_signed = 1;
+	if (!is_self_signed && !signer)
+		errx(1, "efikeygen: signing certificate is required");
+
+	int outfd = open(outfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC, 0600);
+	if (outfd < 0)
+		err(1, "efikeygen: could not open \"%s\":", outfile);
+
+	int p12fd = open(poutfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC, 0600);
+	if (outfd < 0)
+		err(1, "efikeygen: could not open \"%s\":", poutfile);
+
+	SECItem pubkey = {
+		.type = siBuffer,
+		.data = NULL,
+		.len = -1
+	};
+
+	if (pubfile) {
+		int pubfd = open(pubfile, O_RDONLY);
+
+		char *data = NULL;
+		size_t *len = (size_t *)&pubkey.len;
+
+		rc = read_file(pubfd, &data, len);
+		if (rc < 0)
+			err(1, "efikeygen: %s:%s:%d: could not read public "
+				"key", __FILE__, __func__, __LINE__);
+		close(pubfd);
+		pubkey.data = (unsigned char *)data;
+	}
 
 	rc = cms_context_alloc(&cms);
 	if (rc < 0)
@@ -197,7 +237,7 @@ int main(int argc, char *argv[])
 				"context:", __func__, __LINE__);
 	}
 
-	SECStatus status = NSS_Init("/etc/pki/pesign");
+	SECStatus status = NSS_InitReadWrite("/etc/pki/pesign");
 	if (status != SECSuccess)
 		errx(1, "efikeygen: could not initialize NSS: %s",
 			PORT_ErrorToString(PORT_GetError()));
@@ -211,9 +251,15 @@ int main(int argc, char *argv[])
 				cms->certname);
 	}
 
+	errno = 0;
+	serial = strtoull(serial_str, NULL, 0);
+	if (errno == ERANGE && serial == ULLONG_MAX)
+		err(1, "efikeygen: invalid serial number");
+
 	SECItem certder;
 	rc = generate_signing_certificate(cms, &certder, cn, is_ca,
-				is_self_signed, url, serial);
+				is_self_signed, url, serial,
+				&pubkey);
 	if (rc < 0)
 		errx(1, "efikeygen: could not generate certificate");
 
@@ -223,17 +269,9 @@ int main(int argc, char *argv[])
 		errx(1, "efikeygen: could not find OID for SHA256+RSA: %s",
 			PORT_ErrorToString(PORT_GetError()));
 
-#if 0
-	PK11SlotInfo *slot = NULL;
-	if (!strcmp(tokenname, "NSS Certificate DB") ||
-			tokenname == NULL || tokenname[0] == '\0')
-		slot = PK11_GetInternalKeySlot();
-	else
-		slot = PK11_FindSlotByName(tokenname);
-
 	secuPWData pwdata_val = { 0, 0 };
 	void *pwdata = &pwdata_val;
-	SECKEYPrivateKey *privkey = PK11_FindKeyByAnyCert(signing_cert, pwdata);
+	SECKEYPrivateKey *privkey = PK11_FindKeyByAnyCert(cms->cert, pwdata);
 	if (!privkey)
 		errx(1, "efikeygen: could not find private key: %s",
 			PORT_ErrorToString(PORT_GetError()));
@@ -243,20 +281,18 @@ int main(int argc, char *argv[])
 				privkey, oid->offset);
 
 	SECItem sigder = { 0, };
-	bundle_signature(&sigder, &certder,
+	bundle_signature(cms, &sigder, &certder,
 				SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
 				&signature);
 
-	int fd = open(argv[3], O_RDWR|O_CREAT|O_TRUNC, 0644);
-	if (fd < 0)
-		err(1, "efikeygen: could not open signed.cer");
+	rc = write(outfd, sigder.data, sigder.len);
+	if (rc < 0) {
+		save_errno(unlink(outfile));
+		err(1, "efikeygen: could not write to %s", outfile);
+	}
+	close(outfd);
 
-	rc = write(fd, sigder.data, sigder.len);
-	if (rc < 0)
-		err(1, "efikeygen: could not write to signed.cer");
-
-	close(fd);
-#endif
+	close(p12fd);
 
 	NSS_Shutdown();
 	return 0;
