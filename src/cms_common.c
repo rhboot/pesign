@@ -1173,29 +1173,26 @@ wrap_in_seq(cms_context *cms, SECItem *der, SECItem *items, int num_items)
 
 	void *mark = PORT_ArenaMark(cms->arena);
 
-	SEC_ASN1Template *tmpl = PORT_ArenaZNewArray(cms->arena,
-			SEC_ASN1Template, num_items + 2);
-	if (!tmpl) {
-		cms->log(cms, LOG_ERR, "could not allocate memory: %s",
-			PORT_ErrorToString(PORT_GetError()));
-		PORT_ArenaRelease(cms->arena, mark);
-		return -1;
+	SEC_ASN1Template tmpl[num_items+2];
+
+	memcpy(&tmpl[0], &SeqTemplateHeader, sizeof(*tmpl));
+	tmpl[0].size = sizeof (SECItem) * num_items;
+
+	for (int i = 0; i < num_items; i++) {
+		memcpy(&tmpl[i+1], &SeqTemplateTemplate, sizeof(SEC_ASN1Template));
+		tmpl[i+1].offset = (i) * sizeof (SECItem);
 	}
-
-	memcpy(tmpl, &SeqTemplateHeader, sizeof(*tmpl));
-
-	for (int i = 0; i < num_items; i++)
-		memcpy(tmpl + i + 1, &SeqTemplateTemplate, sizeof(*tmpl));
-	memset(tmpl + num_items + 1, '\0', sizeof(*tmpl));
+	memset(&tmpl[num_items + 1], '\0', sizeof(SEC_ASN1Template));
 
 	int rc = 0;
-	ret = SEC_ASN1EncodeItem(NULL, der, items, tmpl);
+	ret = SEC_ASN1EncodeItem(cms->arena, der, items, tmpl);
 	if (ret == NULL) {
+		PORT_ArenaRelease(cms->arena, mark);
 		cms->log(cms, LOG_ERR, "could not encode set: %s",
 			PORT_ErrorToString(PORT_GetError()));
 		rc = -1;
 	}
-	PORT_ArenaRelease(cms->arena, mark);
+	PORT_ArenaUnmark(cms->arena, mark);
 	return rc;
 }
 
