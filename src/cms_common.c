@@ -1494,6 +1494,101 @@ generate_auth_info(cms_context *cms, SECItem *der, char *url)
 }
 
 typedef struct {
+	SECItem oid;
+	SECItem keyhash;
+} KeyId;
+
+static const SEC_ASN1Template KeyIdTemplate[] = {
+	{.kind = SEC_ASN1_SEQUENCE,
+	 .offset = 0,
+	 .sub = NULL,
+	 .size = sizeof (KeyId),
+	},
+	{.kind = SEC_ASN1_OBJECT_ID,
+	 .offset = offsetof(KeyId, oid),
+	 .sub = &SEC_ObjectIDTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_OCTET_STRING,
+	 .offset = offsetof(KeyId, keyhash),
+	 .sub = NULL,
+	 .size = sizeof (SECItem),
+	},
+	{ 0 }
+};
+
+static int
+generate_key_id(cms_context *cms, SECItem *der, SECOidTag tag, SECItem *pubkey)
+{
+#if 1
+	KeyId keyid;
+
+	SECOidData *oid = SECOID_FindOIDByTag(tag);
+	if (!oid) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d: could not locate OID: %s",
+			__FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	memcpy(&keyid.oid, &oid->oid, sizeof(keyid.oid));
+
+	SECItem *pubkey_id_der = PK11_MakeIDFromPubKey(pubkey);
+	if (pubkey_id_der == NULL) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d: could not encode key id: %s",
+			__FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	int header_len;
+	char header[4];
+	if (tag == SEC_OID_X509_SUBJECT_KEY_ID) {
+		header_len = 2;
+		memcpy(header, "\x04\x14", 2);
+	} else if (tag == SEC_OID_X509_AUTH_KEY_ID) {
+		header_len = 4;
+		memcpy(header, "\x30\x16\x80\x14", 4);
+	} else {
+		cms->log(cms, LOG_ERR, "%s:%s:%d: unsupported key id type %d",
+			__FILE__, __func__, __LINE__,
+			tag);
+		return -1;
+	}
+	keyid.keyhash.len = pubkey_id_der->len + header_len;
+	keyid.keyhash.data = PORT_ArenaAlloc(cms->arena, keyid.keyhash.len);
+	if (!keyid.keyhash.data) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d: could not allocate key "
+			"id: %s", __FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	memcpy(keyid.keyhash.data, header, header_len);
+	memcpy((char *)keyid.keyhash.data + header_len, pubkey_id_der->data,
+		pubkey_id_der->len);
+	keyid.keyhash.type = siBuffer;
+
+	void *ret;
+	ret = SEC_ASN1EncodeItem(cms->arena, der, &keyid, KeyIdTemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode key id: %s",
+			__FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+#else
+	der->data = (unsigned char *)"\x30\x1d\x06\x03\x55\x1d\x0e\x04\x16"
+		"\x04\x14"
+		"\x8c\xe3\xf6\xb8\x31\x42\x92\xfe\x6e\x2f"
+		"\x80\xd5\x32\xe0\x94\x3a\x53\x93\x3d\xba";
+	der->len = 31;
+	der->type = siBuffer;
+#endif
+	return 0;
+}
+
+typedef struct {
 	SECItem keyid;
 	SECItem keyusage;
 	SECItem basic_constraints;
