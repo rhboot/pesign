@@ -153,6 +153,13 @@ cms_context_init(cms_context *cms)
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
+	cms->arenab = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	if (!cms->arenab) {
+		cms->log(cms, LOG_ERR,
+			"Could not create cryptographic arena: %s",
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
 
 	cms->selected_digest = -1;
 
@@ -225,6 +232,7 @@ cms_context_fini(cms_context *cms)
 	cms->num_signatures = 0;
 
 	PORT_FreeArena(cms->arena, PR_TRUE);
+	PORT_FreeArena(cms->arenab, PR_TRUE);
 	memset(cms, '\0', sizeof(*cms));
 	xfree(cms);
 }
