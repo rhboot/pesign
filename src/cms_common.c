@@ -1144,7 +1144,8 @@ wrap_in_set(cms_context *cms, SECItem *der, SECItem **items)
 
 	ret = SEC_ASN1EncodeItem(cms->arena, der, &items, &SetTemplate);
 	if (ret == NULL) {
-		cms->log(cms, LOG_ERR, "could not encode set: %s",
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode set: %s",
+			__FILE__, __func__, __LINE__,
 			PORT_ErrorToString(PORT_GetError()));
 		return -1;
 	}
