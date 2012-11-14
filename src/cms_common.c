@@ -1254,6 +1254,137 @@ generate_common_name(cms_context *cms, SECItem *der, char *cn_str)
 }
 
 typedef struct {
+	SECItem type;
+	SECItem value;
+} ava;
+
+static const SEC_ASN1Template AVATemplate[] = {
+	{.kind = SEC_ASN1_SEQUENCE,
+	 .offset = 0,
+	 .sub = NULL,
+	 .size = sizeof (ava),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(ava, type),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(ava, value),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{ 0 }
+};
+
+/* I can't figure out how to get a CERTName out in a non-rediculous form, so
+ * we wind up encoding the whole thing manually :/ */
+static int
+generate_ava(cms_context *cms, SECItem *der, CERTAVA *certava)
+{
+	ava ava;
+
+	SECOidData *oid;
+
+	void *amark = PORT_ArenaMark(cms->arena);
+	void *bmark = PORT_ArenaMark(cms->arenab);
+
+	oid = SECOID_FindOID(&certava->type);
+	if (!oid) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not find oid: %s",
+			__FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	int rc = generate_object_id(cms, &ava.type, oid->offset);
+	if (rc < 0)
+		return -1;
+
+	memcpy(&ava.value, &certava->value, sizeof (ava.value));
+
+	void *ret;
+	SECItem tmp;
+	ret = SEC_ASN1EncodeItem(cms->arenab, &tmp, &ava, AVATemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d: could not encode AVA: %s",
+			__FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+	PORT_ArenaRelease(cms->arena, amark);
+
+	der->type = tmp.type;
+	der->len = tmp.len;
+	der->data = PORT_ArenaAlloc(cms->arena, tmp.len);
+	if (!der->data) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d: could not encode AVA: %s",
+			__FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		PORT_ArenaRelease(cms->arenab, bmark);
+		return -1;
+	}
+	memcpy(der->data, tmp.data, tmp.len);
+	PORT_ArenaRelease(cms->arenab, bmark);
+
+	return 0;
+}
+
+int
+generate_name(cms_context *cms, SECItem *der, CERTName *certname)
+{
+	void *marka = PORT_ArenaMark(cms->arena);
+	CERTRDN **rdns = certname->rdns;
+	CERTRDN *rdn;
+
+	int num_items = 0;
+	int rc = 0;
+
+	while (rdns && (rdn = *rdns++) != NULL) {
+		CERTAVA **avas = rdn->avas;
+		CERTAVA *ava;
+		while (avas && (ava = *avas++) != NULL)
+			num_items++;
+	}
+
+	SECItem items[num_items];
+
+	int i = 0;
+	rdns = certname->rdns;
+	while (rdns && (rdn = *rdns++) != NULL) {
+		CERTAVA **avas = rdn->avas;
+		CERTAVA *ava;
+		while (avas && (ava = *avas++) != NULL) {
+			SECItem avader;
+			rc = generate_ava(cms, &avader, ava);
+			if (rc < 0) {
+				PORT_ArenaRelease(cms->arena, marka);
+				return -1;
+			}
+
+			SECItem *list[2] = {
+				&avader,
+				NULL,
+			};
+			rc = wrap_in_set(cms, &items[i], list);
+			if (rc < 0) {
+				cms->log(cms, LOG_ERR, "%s:%s:%d could not "
+					"find allocate AVA list: %s",
+					__FILE__, __func__, __LINE__,
+					PORT_ErrorToString(PORT_GetError()));
+				PORT_ArenaRelease(cms->arena, marka);
+				return -1;
+			}
+			i++;
+		}
+	}
+	wrap_in_seq(cms, der, &items[0], num_items);
+	PORT_ArenaUnmark(cms->arena, marka);
+
+	return 0;
+}
+
+typedef struct {
 	SECItem oid;
 	SECItem url;
 } AuthInfo;
