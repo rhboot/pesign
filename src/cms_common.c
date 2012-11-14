@@ -1780,3 +1780,45 @@ generate_extensions(cms_context *cms, SECItem ***list, int is_ca,
 	PORT_ArenaUnmark(cms->arena, mark);
 	return 0;
 }
+
+static int
+generate_keys(cms_context *cms, SECKEYPrivateKey **privkey,
+		SECKEYPublicKey **pubkey)
+{
+	PK11SlotInfo *slot = NULL;
+	PK11RSAGenParams rsaparams = {
+		.keySizeInBits = 2048,
+		.pe = 0x010001,
+	};
+
+	slot = PK11_GetInternalKeySlot();
+	if (!slot) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not get "
+			"NSS internal slot: %s",
+			__FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	SECStatus rv;
+	rv = PK11_Authenticate(slot, PR_TRUE, cms->pwdata);
+	if (rv != SECSuccess) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not "
+			"authenticate with pk11 service: %s",
+			__FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	void *params = &rsaparams;
+	*privkey = PK11_GenerateKeyPair(slot, CKM_RSA_PKCS_KEY_PAIR_GEN,
+					params, pubkey, PR_TRUE, PR_TRUE,
+					cms->pwdata);
+	if (!*privkey) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not "
+			"generate RSA keypair: %s",
+			__FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+	}
+	return 0;
+}
