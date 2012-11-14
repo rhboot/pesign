@@ -1822,3 +1822,150 @@ generate_keys(cms_context *cms, SECKEYPrivateKey **privkey,
 	}
 	return 0;
 }
+
+typedef struct {
+	SECItem firstblob;
+	SECItem serial;
+	SECItem aid;
+	SECItem issuer;
+	SECItem times;
+	SECItem cn;
+	SECItem pubkey;
+	SECItem **extensions;
+} Cert;
+
+static SEC_ASN1Template CertTemplate[] = {
+	{.kind = SEC_ASN1_SEQUENCE,
+	 .offset = 0,
+	 .sub = NULL,
+	 .size = sizeof(Cert),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Cert, firstblob),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Cert, serial),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Cert, aid),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Cert, issuer),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Cert, times),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Cert, cn),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_ANY,
+	 .offset = offsetof(Cert, pubkey),
+	 .sub = &SEC_AnyTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_CONTEXT_SPECIFIC | 3 |
+		 SEC_ASN1_CONSTRUCTED |
+		 SEC_ASN1_OPTIONAL,
+	 .offset = offsetof(Cert, extensions),
+	 .sub = &SEC_SetOfAnyTemplate,
+	 .size = sizeof (SECItem*),
+	},
+	{ 0 }
+};
+
+int
+generate_signing_certificate(cms_context *cms, SECItem *der,
+				char *cn, int is_ca,
+				int is_self_signed, char *url,
+				unsigned long serial,
+				SECItem *pubkey)
+{
+	Cert cert;
+	int rc;
+
+	void *mark = PORT_ArenaMark(cms->arena);
+
+	cert.firstblob.data = (unsigned char *)"\xa0\x03\x02\x01\x02";
+	cert.firstblob.len = 5;
+	cert.firstblob.type = siBuffer;
+
+	rc = generate_integer(cms, &cert.serial, serial);
+	if (rc < 0) {
+err:
+		PORT_ArenaRelease(cms->arena, mark);
+		return rc;
+	}
+
+	rc = encode_algorithm_id(cms, &cert.aid,
+				SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION);
+	if (rc < 0)
+		goto err;
+
+	if (is_self_signed) {
+		cms->log(cms, LOG_ERR, "self signing not yet implemented");
+		goto err;
+	} else {
+		rc = generate_name(cms, &cert.issuer, &cms->cert->subject);
+		if (rc < 0)
+			goto err;
+	}
+
+	time_t start = time(NULL);
+	time_t end = start + 86400ULL * 3650ULL;
+	rc = generate_validity(cms, &cert.times, start, end);
+	if (rc < 0)
+		goto err;
+
+	rc = generate_common_name(cms, &cert.cn, cn);
+	if (rc < 0)
+		goto err;
+
+	if (pubkey != NULL && pubkey->len > 0) {
+		memcpy(&cert.pubkey, pubkey, sizeof (SECItem));
+	} else {
+		SECKEYPublicKey *pub = NULL;
+		SECKEYPrivateKey *priv = NULL;
+
+		rc = generate_keys(cms, &priv, &pub);
+		if (rc < 0)
+			goto err;
+
+		SECItem *pubkey_der = PK11_DEREncodePublicKey(pub);
+		if (pubkey_der == NULL) {
+			cms->log(cms, LOG_ERR, "%s:%s:%d could not encode "
+				"public key: %s", __FILE__, __func__, __LINE__,
+				PORT_ErrorToString(PORT_GetError()));
+			goto err;
+		}
+		memcpy(&cert.pubkey, pubkey_der, sizeof (SECItem));
+	}
+
+	rc = generate_extensions(cms, &cert.extensions, is_ca, is_self_signed,
+				&cert.pubkey, url);
+	if (rc < 0)
+		goto err;
+
+	void *ret;
+	ret = SEC_ASN1EncodeItem(cms->arena, der, &cert, CertTemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d: could not encode "
+			"certificate: %s", __FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		goto err;
+	}
+
+	PORT_ArenaUnmark(cms->arena, mark);
+	return 0;
+}
