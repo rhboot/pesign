@@ -1408,6 +1408,25 @@ static SEC_ASN1Template AuthInfoTemplate[] = {
 	{ 0 }
 };
 
+static SEC_ASN1Template AuthInfoWrapperTemplate[] = {
+	{.kind = SEC_ASN1_SEQUENCE,
+	 .offset = 0,
+	 .sub = NULL,
+	 .size = sizeof (AuthInfo),
+	},
+	{.kind = SEC_ASN1_OBJECT_ID,
+	 .offset = offsetof(AuthInfo, oid),
+	 .sub = &SEC_ObjectIDTemplate,
+	 .size = sizeof (SECItem),
+	},
+	{.kind = SEC_ASN1_OCTET_STRING,
+	 .offset = offsetof(AuthInfo, url),
+	 .sub = NULL,
+	 .size = sizeof (SECItem),
+	},
+	{ 0 }
+};
+
 int
 generate_auth_info(cms_context *cms, SECItem *der, char *url)
 {
@@ -1428,7 +1447,8 @@ generate_auth_info(cms_context *cms, SECItem *der, char *url)
 	ai.url.type = siBuffer;
 
 	void *ret;
-	ret = SEC_ASN1EncodeItem(NULL, der, &ai, AuthInfoTemplate);
+	SECItem unwrapped;
+	ret = SEC_ASN1EncodeItem(cms->arena, &unwrapped, &ai, AuthInfoTemplate);
 	if (ret == NULL) {
 		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode CA Issuers "
 			"OID: %s", __FILE__, __func__, __LINE__,
@@ -1439,13 +1459,37 @@ generate_auth_info(cms_context *cms, SECItem *der, char *url)
 	/* I've no idea how to get SEC_ASN1EncodeItem to spit out the thing
 	 * we actually want here.  So once again, just force the data to
 	 * look correct :( */
-	if (der->len < 12) {
+	if (unwrapped.len < 12) {
 		cms->log(cms, LOG_ERR, "%s:%s:%d generated CA Issuers Info "
 			"cannot possibly be valid",
 			__FILE__, __func__, __LINE__);
 		return -1;
 	}
-	der->data[12] = 0x86;
+	unwrapped.data[12] = 0x86;
+	unwrapped.type = siBuffer;
+
+	AuthInfo wrapper;
+	oid = SECOID_FindOIDByTag(SEC_OID_X509_AUTH_INFO_ACCESS);
+	if (!oid) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not get Auth Info "
+			"Access OID: %s", __FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
+	memcpy(&wrapper.oid, &oid->oid, sizeof (ai.oid));
+
+	wrap_in_seq(cms, &wrapper.url, &unwrapped, 1);
+
+	ret = SEC_ASN1EncodeItem(cms->arena, der, &wrapper,
+					AuthInfoWrapperTemplate);
+	if (ret == NULL) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d could not encode CA Issuers "
+			"OID: %s", __FILE__, __func__, __LINE__,
+			PORT_ErrorToString(PORT_GetError()));
+		return -1;
+	}
+
 	return 0;
 }
 
