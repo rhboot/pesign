@@ -57,7 +57,6 @@ typedef struct {
 	Pe *inpe;
 	Pe *outpe;
 
-	char *privkeyfile;
 	cms_context *cms_ctx;
 
 	int flags;

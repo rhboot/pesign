@@ -92,8 +92,6 @@ pesign_context_fini(pesign_context *ctx)
 		ctx->cms_ctx = NULL;
 	}
 
-	xfree(ctx->privkeyfile);
-
 	if (ctx->outpe) {
 		pe_end(ctx->outpe);
 		ctx->outpe = NULL;

@@ -7,8 +7,7 @@ pesign \- command line tool for signing UEFI applications
        [--out=\fIoutfile\fR | -o \fIoutfile\fR]
        [--token=\fItoken\fR | -t \fItoken\fR]
        [--certificate=\fInickname\fR | -c \fInickname\fR]
-       [--privkey=\fIprivkey\fR | -p \fIprivkey\fR] [--force | -f]
-       [--sign | -s] [--hash | -h]
+       [--force | -f] [--sign | -s] [--hash | -h]
        [--digest_type=\fIdigest\fR | -d \fIdigest\fR]
        [--show-signature | -S ] [--remove-signature | -r ]
        [--export-pubkey=\fIoutkey\fR | -K \fIoutkey\fR]
@@ -37,18 +36,13 @@ Use the specified NSS token's certificate database.
 Use the certificate database entry with the specified nickname for signing.
 
 .TP
-\fB-\-privkey\fR=\fIprivkey\fR
-Use the private key specified by \fIprivkey\fR for signing.
-
-.TP
 \fB-\-force\fR
 Overwrite output files. Without this parameter, \fBpesign\fR will refuse
 to overrite any output files which already exist.
 
 .TP
 \fB-\-sign\fR
-Sign the input binary with the key specified by \fB-\-certificate\fR or
-\fB-\-privkey\fR.
+Sign the input binary with the key specified by \fB-\-certificate\fR.
 
 .TP
 \fB-\-hash\fR
