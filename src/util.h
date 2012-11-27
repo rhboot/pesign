@@ -35,6 +35,44 @@
 		x;					\
 		errno = __saved_errno;			\
 	})
+#define save_pe_errno(x)					\
+	({							\
+		typeof (errno) __saved_errno = pe_errno();	\
+		x;						\
+		__libpe_seterrno(__saved_errno);		\
+	})
+
+#define nsserr(rv, fmt, args...) ({					\
+		errx((rv), "%s:%s:%d: " fmt ": %s",			\
+			__FILE__, __func__, __LINE__, ##args,		\
+			PORT_ErrorToString(PORT_GetError()));		\
+	})
+#define nssreterr(rv, fmt, args...) ({					\
+		fprintf(stderr, "%s:%s:%d: " fmt ": %s\n",		\
+			__FILE__, __func__, __LINE__, ##args,		\
+			PORT_ErrorToString(PORT_GetError()));		\
+		return rv;						\
+	})
+#define liberr(rv, fmt, args...) ({					\
+		err((rv), "%s:%s:%d: " fmt,				\
+			__FILE__, __func__, __LINE__, ##args);		\
+	})
+#define libreterr(rv, fmt, args...) ({					\
+		fprintf(stderr, "%s:%s:%d: " fmt ": %m\n",		\
+			__FILE__, __func__, __LINE__, ##args);		\
+		return rv;						\
+	})
+#define peerr(rv, fmt, args...) ({					\
+		errx((rv), "%s:%s:%d: " fmt ": %s",			\
+			__FILE__, __func__, __LINE__, ##args,		\
+			pe_errmsg(pe_errno()));				\
+	})
+#define pereterr(rv, fmt, args...) ({					\
+		fprintf(stderr, "%s:%s:%d: " fmt ": %s\n",		\
+			__FILE__, __func__, __LINE__, ##args,		\
+			pe_errmsg(pe_errno()));				\
+		return rv;						\
+	})
 
 static inline int
 __attribute__ ((unused))
