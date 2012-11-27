@@ -457,18 +457,18 @@ int main(int argc, char *argv[])
 
 	int rc = poptReadDefaultConfig(optCon, 0);
 	if (rc < 0)
-		errx(1, "efikeygen: poptReadDefaultConfig failed: %s",
+		errx(1, "poptReadDefaultConfig failed: %s",
 			poptStrerror(rc));
 
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
 
 	if (rc < -1)
-		errx(1, "efikeygen: invalid argument: %s: %s",
+		errx(1, "invalid argument: %s: %s",
 			poptBadOption(optCon, 0), poptStrerror(rc));
 
 	if (poptPeekArg(optCon))
-		errx(1, "efikeygen: invalid Argument: \"%s\"",
+		errx(1, "invalid Argument: \"%s\"",
 			poptPeekArg(optCon));
 
 	poptFreeContext(optCon);
@@ -477,18 +477,18 @@ int main(int argc, char *argv[])
 		is_self_signed = is_ca && !signer ? 1 : 0;
 
 	if (is_self_signed && signer)
-		errx(1, "efikeygen: --self-sign and --signer cannot be "
+		errx(1, "--self-sign and --signer cannot be "
 			"used at the same time.");
 
 	if (!cn)
-		errx(1, "efikeygen: --common-name must be specified");
+		errx(1, "--common-name must be specified");
 
 	if (!is_self_signed && !signer)
-		errx(1, "efikeygen: signing certificate is required");
+		errx(1, "signing certificate is required");
 
 	int outfd = open(outfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC, 0600);
 	if (outfd < 0)
-		err(1, "efikeygen: could not open \"%s\":", outfile);
+		err(1, "could not open \"%s\":", outfile);
 
 	int p12fd = open(poutfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC, 0600);
 	if (outfd < 0)
@@ -516,26 +516,22 @@ int main(int argc, char *argv[])
 
 	rc = cms_context_alloc(&cms);
 	if (rc < 0)
-		err(1, "efikeygen: %s:%d: could not allocate cms context:",
-			__func__, __LINE__);
+		liberr(1, "could not allocate cms context");
 
 	if (tokenname) {
 		cms->tokenname = strdup(tokenname);
 		if (!cms->tokenname)
-			err(1, "efikeygen: %s:%d could not allocate cms "
-				"context:", __func__, __LINE__);
+			liberr(1, "could not allocate cms context");
 	}
 	if (signer) {
 		cms->certname = strdup(signer);
 		if (!cms->certname)
-			err(1, "efikeygen: %s:%d could not allocate cms "
-				"context:", __func__, __LINE__);
+			liberr(1, "could not allocate cms context");
 	}
 
 	SECStatus status = NSS_InitReadWrite("/etc/pki/pesign");
 	if (status != SECSuccess)
-		errx(1, "efikeygen: could not initialize NSS: %s",
-			PORT_ErrorToString(PORT_GetError()));
+		nsserr(1, "could not initialize NSS");
 	atexit((void (*)(void))NSS_Shutdown);
 
 	if (!is_self_signed) {
@@ -549,7 +545,7 @@ int main(int argc, char *argv[])
 	errno = 0;
 	serial = strtoull(serial_str, NULL, 0);
 	if (errno == ERANGE && serial == ULLONG_MAX)
-		err(1, "efikeygen: invalid serial number");
+		liberr(1, "invalid serial number");
 
 	SECItem certder;
 	rc = generate_signing_certificate(cms, &certder, cn, is_ca,
@@ -583,7 +579,7 @@ int main(int argc, char *argv[])
 	rc = write(outfd, sigder.data, sigder.len);
 	if (rc < 0) {
 		save_errno(unlink(outfile));
-		err(1, "efikeygen: could not write to %s", outfile);
+		err(1, "could not write to %s", outfile);
 	}
 	close(outfd);
 
