@@ -49,7 +49,7 @@
 
 typedef struct {
 	SECItem data;
-	SECItem keytype;
+	SECAlgorithmID keytype;
 	SECItem sig;
 } SignedCert;
 
@@ -64,10 +64,10 @@ static SEC_ASN1Template SignedCertTemplate[] = {
 	 .sub = &SEC_AnyTemplate,
 	 .size = sizeof (SECItem),
 	},
-	{.kind = SEC_ASN1_ANY,
+	{.kind = SEC_ASN1_INLINE,
 	 .offset = offsetof(SignedCert, keytype),
-	 .sub = &SEC_AnyTemplate,
-	 .size = sizeof (SECItem),
+	 .sub = &SECOID_AlgorithmIDTemplate,
+	 .size = sizeof (SECAlgorithmID),
 	},
 	{.kind = SEC_ASN1_OCTET_STRING,
 	 .offset = offsetof(SignedCert, sig),
@@ -94,12 +94,14 @@ bundle_signature(cms_context *cms, SECItem *sigder, SECItem *data,
 
 	memcpy((void *)cert.sig.data + 1, signature->data, signature->len);
 
-	generate_object_id(cms, &cert.keytype, oid);
+	int rc = generate_algorithm_id(cms, &cert.keytype, oid);
+	if (rc < 0)
+		return -1;
 
 	void *ret;
 	ret = SEC_ASN1EncodeItem(NULL, sigder, &cert, SignedCertTemplate);
 	if (ret == NULL)
-		errx(1, "efikeygen: could not encode certificate: %s",
+		errx(1, "could not encode certificate: %s",
 			PORT_ErrorToString(PORT_GetError()));
 
 	sigder->data[sigder->len - 261] = DER_BIT_STRING;
