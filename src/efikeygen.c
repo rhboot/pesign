@@ -109,6 +109,245 @@ bundle_signature(cms_context *cms, SECItem *sigder, SECItem *data,
 	return 0;
 }
 
+static int
+add_subject_key_id(cms_context *cms, void *extHandle, SECKEYPublicKey *pubkey)
+{
+	SECItem *pubkey_der = PK11_DEREncodePublicKey(pubkey);
+	if (!pubkey_der)
+		cmsreterr(-1, cms, "could not encode subject key id extension");
+
+	SECItem *encoded = PK11_MakeIDFromPubKey(pubkey_der);
+	if (!encoded)
+		cmsreterr(-1, cms, "could not encode subject key id extension");
+
+	/* for some reason PK11_MakeIDFromPubKey() doesn't generate the final
+	 * wrapper for this... */
+	SECItem wrapped = { 0 };
+	int rc = generate_octet_string(cms, &wrapped, encoded);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not encode subject key id extension");
+
+	SECStatus status;
+	status = CERT_AddExtension(extHandle, SEC_OID_X509_SUBJECT_KEY_ID,
+					&wrapped, PR_FALSE, PR_TRUE);
+	if (status != SECSuccess)
+		cmsreterr(-1, cms, "could not encode subject key id extension");
+
+	return 0;
+}
+
+static int
+add_auth_key_id(cms_context *cms, void *extHandle, SECKEYPublicKey *pubkey)
+{
+	SECItem *pubkey_der = PK11_DEREncodePublicKey(pubkey);
+	if (!pubkey_der)
+		cmserr(-1, cms, "could not encode CA Key ID extension");
+
+	SECItem *encoded = PK11_MakeIDFromPubKey(pubkey_der);
+	if (!encoded)
+		cmserr(-1, cms, "could not encode CA Key ID extension");
+
+	SECItem cspecific = { 0 };
+	int rc = make_context_specific(cms, 0, &cspecific, encoded);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not encode subject key id extension");
+
+	/* for some reason PK11_MakeIDFromPubKey() doesn't generate the final
+	 * wrapper for this... */
+	SECItem wrapped = { 0 };
+	rc = wrap_in_seq(cms, &wrapped, &cspecific, 1);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not encode subject key id extension");
+
+	SECStatus status;
+	status = CERT_AddExtension(extHandle, SEC_OID_X509_AUTH_KEY_ID,
+					&wrapped, PR_FALSE, PR_TRUE);
+	if (status != SECSuccess)
+		cmserr(-1, cms, "could not encode CA Key ID extension");
+	return 0;
+}
+
+
+static int
+add_key_usage(cms_context *cms, void *extHandle)
+{
+	uint8_t value[4] = {0,0,0,0};
+	SECItem bitStringValue;
+
+#if 0
+	value[3] = NS_CERT_TYPE_SSL_SERVER |
+		   NS_CERT_TYPE_EMAIL_CA |
+		   NS_CERT_TYPE_OBJECT_SIGNING_CA;
+
+	while (!(value[3] & 0x8)) {
+		value[3] <<= 1;
+		value[2]++;
+	}
+#else
+	value[3] = 0x86;
+	value[2] = 0x01;
+	value[1] = 0x02;
+	value[0] = 0x03;
+#endif
+
+	bitStringValue.data = (unsigned char *)&value;
+	bitStringValue.len = sizeof (value);
+
+	SECStatus status;
+	status = CERT_AddExtension(extHandle, SEC_OID_X509_KEY_USAGE,
+					&bitStringValue, PR_TRUE, PR_TRUE);
+	if (status != SECSuccess)
+		cmsreterr(-1, cms, "could not encode key usage extension");
+
+	return 0;
+}
+
+static int
+add_basic_constraints(cms_context *cms, void *extHandle)
+{
+	CERTBasicConstraints basicConstraint;
+	basicConstraint.pathLenConstraint = CERT_UNLIMITED_PATH_CONSTRAINT;
+	basicConstraint.isCA = PR_TRUE;
+
+	SECStatus status;
+
+	SECItem encoded;
+
+	status = CERT_EncodeBasicConstraintValue(cms->arena, &basicConstraint,
+					&encoded);
+	if (status != SECSuccess)
+		cmsreterr(-1, cms, "could not encode basic constraints");
+
+	status = CERT_AddExtension(extHandle, SEC_OID_X509_BASIC_CONSTRAINTS,
+					&encoded, PR_TRUE, PR_TRUE);
+	if (status != SECSuccess)
+		cmsreterr(-1, cms, "could not encode basic constraints");
+
+	return 0;
+}
+
+static int
+add_extended_key_usage(cms_context *cms, void *extHandle)
+{
+	SECItem value = {
+		.data = (unsigned char *)"\x30\x0a\x06\x08\x2b\x06\x01"
+					 "\x05\x05\x07\x03\x03",
+		.len = 12,
+		.type = siBuffer
+	};
+
+
+	SECStatus status;
+
+	status = CERT_AddExtension(extHandle, SEC_OID_X509_EXT_KEY_USAGE,
+					&value, PR_FALSE, PR_TRUE);
+	if (status != SECSuccess)
+		cmsreterr(-1, cms, "could not encode extended key usage");
+
+	return 0;
+}
+
+static int
+add_auth_info(cms_context *cms, void *extHandle, char *url)
+{
+	SECItem value;
+	int rc;
+
+	rc = generate_auth_info(cms, &value, url);
+	if (rc < 0)
+		return rc;
+
+	SECStatus status;
+
+	status = CERT_AddExtension(extHandle, SEC_OID_X509_AUTH_INFO_ACCESS,
+				&value, PR_FALSE, PR_TRUE);
+	if (status != SECSuccess)
+		cmsreterr(-1, cms, "could not encode key authority information "
+				"access extension");
+
+	return 0;
+}
+
+static int
+add_extensions_to_crq(cms_context *cms, CERTCertificateRequest *crq,
+			int is_ca, int is_self_signed, SECKEYPublicKey *pubkey,
+			SECKEYPublicKey *spubkey,
+			char *url)
+{
+	void *mark = PORT_ArenaMark(cms->arena);
+
+	void *extHandle;
+	int rc;
+	extHandle = CERT_StartCertificateRequestAttributes(crq);
+	if (!extHandle)
+		cmsreterr(-1, cms, "could not generate certificate extensions");
+
+	rc = add_subject_key_id(cms, extHandle, pubkey);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not generate certificate extensions");
+
+	if (is_ca) {
+		rc = add_basic_constraints(cms, extHandle);
+		if (rc < 0)
+			cmsreterr(-1, cms, "could not generate certificate "
+					"extensions");
+
+		rc = add_key_usage(cms, extHandle);
+		if (rc < 0)
+			cmsreterr(-1, cms, "could not generate certificate extensions");
+	}
+
+	rc = add_extended_key_usage(cms, extHandle);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not generate certificate extensions");
+
+	if (is_self_signed)
+		rc = add_auth_key_id(cms, extHandle, pubkey);
+	else
+		rc = add_auth_key_id(cms, extHandle, spubkey);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not generate certificate extensions");
+
+	rc = add_auth_info(cms, extHandle, url);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not generate certificate extensions");
+
+	CERT_FinishExtensions(extHandle);
+	CERT_FinishCertificateRequestAttributes(crq);
+	PORT_ArenaUnmark(cms->arena, mark);
+	return 0;
+}
+
+static int
+populate_extensions(cms_context *cms, CERTCertificate *cert,
+			CERTCertificateRequest *crq)
+{
+	CERTAttribute *attr = NULL;
+	SECOidData *oid;
+
+	oid = SECOID_FindOIDByTag(SEC_OID_PKCS9_EXTENSION_REQUEST);
+
+	for (int i; crq->attributes[i]; i++) {
+		attr = crq->attributes[i];
+		if (attr->attrType.len != oid->oid.len)
+			continue;
+		if (!memcmp(attr->attrType.data, oid->oid.data, oid->oid.len))
+			break;
+		attr = NULL;
+	}
+
+	if (!attr)
+		cmsreterr(-1, cms, "could not find extension request");
+
+	SECStatus rv;
+	rv = SEC_QuickDERDecodeItem(cms->arena, &cert->extensions,
+				CERT_SequenceOfCertExtensionTemplate,
+				*attr->attrValue);
+	if (rv != SECSuccess)
+		cmsreterr(-1, cms, "could not decode certificate extensions");
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	int is_ca = 0;
