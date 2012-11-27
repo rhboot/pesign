@@ -570,6 +570,31 @@ generate_empty_sequence(cms_context *cms, SECItem *encoded)
 	return 0;
 }
 
+static SEC_ASN1Template ContextSpecificSequence[] = {
+	{
+	.kind = SEC_ASN1_CONTEXT_SPECIFIC | SEC_ASN1_EXPLICIT,
+	.offset = 0,
+	.sub = &SEC_AnyTemplate,
+	.size = sizeof (SECItem),
+	},
+	{ 0 }
+};
+
+int
+make_context_specific(cms_context *cms, int ctxt, SECItem *encoded,
+			SECItem *original)
+{
+	void *rv;
+	ContextSpecificSequence[0].kind = SEC_ASN1_EXPLICIT |
+					  SEC_ASN1_CONTEXT_SPECIFIC | ctxt;
+
+	rv = SEC_ASN1EncodeItem(cms->arena, encoded, original,
+				ContextSpecificSequence);
+	if (rv == NULL)
+		cmsreterr(-1, cms, "could not encode context specific data");
+	return 0;
+}
+
 int
 generate_octet_string(cms_context *cms, SECItem *encoded, SECItem *original)
 {
