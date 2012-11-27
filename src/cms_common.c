@@ -1460,9 +1460,9 @@ static SEC_ASN1Template AuthInfoTemplate[] = {
 	 .sub = &SEC_ObjectIDTemplate,
 	 .size = sizeof (SECItem),
 	},
-	{.kind = SEC_ASN1_UTF8_STRING,
+	{.kind = SEC_ASN1_ANY,
 	 .offset = offsetof(AuthInfo, url),
-	 .sub = NULL,
+	 .sub = &SEC_AnyTemplate,
 	 .size = sizeof (SECItem),
 	},
 	{ 0 }
@@ -1479,9 +1479,9 @@ static SEC_ASN1Template AuthInfoWrapperTemplate[] = {
 	 .sub = &SEC_ObjectIDTemplate,
 	 .size = sizeof (SECItem),
 	},
-	{.kind = SEC_ASN1_OCTET_STRING,
+	{.kind = SEC_ASN1_ANY,
 	 .offset = offsetof(AuthInfo, url),
-	 .sub = NULL,
+	 .sub = &SEC_AnyTemplate,
 	 .size = sizeof (SECItem),
 	},
 	{ 0 }
@@ -1498,15 +1498,25 @@ generate_auth_info(cms_context *cms, SECItem *der, char *url)
 
 	memcpy(&ai.oid, &oid->oid, sizeof (ai.oid));
 
-	ai.url.data = (unsigned char *)url;
-	ai.url.len = strlen(url);
-	ai.url.type = siBuffer;
+	SECItem urlitem = {
+		.data = (unsigned char *)url,
+		.len = strlen(url),
+		.type = siBuffer
+	};
+	int rc = make_context_specific(cms, 6, &ai.url, &urlitem);
+	if (rc < 0)
+		return rc;
 
 	void *ret;
 	SECItem unwrapped;
 	ret = SEC_ASN1EncodeItem(cms->arena, &unwrapped, &ai, AuthInfoTemplate);
 	if (ret == NULL)
 		cmsreterr(-1, cms, "could not encode CA Issuers");
+
+	rc = wrap_in_seq(cms, der, &unwrapped, 1);
+	if (rc < 0)
+		return rc;
+	return 0;
 
 	/* I've no idea how to get SEC_ASN1EncodeItem to spit out the thing
 	 * we actually want here.  So once again, just force the data to
