@@ -286,14 +286,12 @@ is_valid_cert(CERTCertificate *cert, void *data)
 	void *pwdata = cbdata->pwdata;
 
 	SECKEYPrivateKey *privkey = NULL;
-
 	privkey = PK11_FindPrivateKeyFromCert(slot, cert, pwdata);
 	if (privkey != NULL) {
 		cbdata->cert = cert;
 		SECKEY_DestroyPrivateKey(privkey);
 		return SECSuccess;
 	}
-
 	return SECFailure;
 }
 
