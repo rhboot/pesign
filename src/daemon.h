@@ -19,7 +19,7 @@
 #ifndef DAEMON_H
 #define DAEMON_H 1
 
-extern int daemonize(cms_context *ctx, int do_fork);
+extern int daemonize(cms_context *ctx, char *certdir, int do_fork);
 
 typedef struct {
 	uint32_t version;

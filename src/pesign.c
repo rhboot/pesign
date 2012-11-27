@@ -409,6 +409,7 @@ main(int argc, char *argv[])
 	char *tokenname = "NSS Certificate DB";
 	char *origtoken = tokenname;
 	char *certname = NULL;
+	char *certdir = "/etc/pki/pesign";
 
 	rc = pesign_context_new(&ctxp);
 	if (rc < 0) {
@@ -426,6 +427,10 @@ main(int argc, char *argv[])
 		{"certficate", 'c', POPT_ARG_STRING, &certname, 0,
 			"specify certificate nickname",
 			"<certificate nickname>" },
+		{"certdir", 'n', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
+			&certdir, 0,
+			"specify nss certificate database directory",
+			"<certificate directory path>" },
 		{"force", 'f', POPT_ARG_VAL, &ctxp->force,  1,
 			"force overwriting of output file", NULL },
 		{"sign", 's', POPT_ARG_VAL, &ctxp->sign, 1,
@@ -506,7 +511,7 @@ main(int argc, char *argv[])
 	poptFreeContext(optCon);
 
 	if (!daemon) {
-		SECStatus status = NSS_Init("/etc/pki/pesign");
+		SECStatus status = NSS_Init(certdir);
 		if (status != SECSuccess) {
 			fprintf(stderr, "Could not initialize nss: %s\n",
 				PORT_ErrorToString(PORT_GetError()));
@@ -764,7 +769,7 @@ main(int argc, char *argv[])
 			close_output(ctxp);
 			break;
 		case DAEMONIZE:
-			rc = daemonize(ctxp->cms_ctx, fork);
+			rc = daemonize(ctxp->cms_ctx, certdir, fork);
 			break;
 		default:
 			fprintf(stderr, "Incompatible flags (0x%08x): ", action);

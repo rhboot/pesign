@@ -862,7 +862,7 @@ err:
 }
 
 int
-daemonize(cms_context *cms_ctx, int do_fork)
+daemonize(cms_context *cms_ctx, char *certdir, int do_fork)
 {
 	int rc = 0;
 	context ctx = {
@@ -899,7 +899,7 @@ daemonize(cms_context *cms_ctx, int do_fork)
 	daemon_logger(ctx.backup_cms, ctx.priority|LOG_NOTICE,
 		"pesignd starting (pid %d)", ctx.pid);
 
-	SECStatus status = NSS_Init("/etc/pki/pesign");
+	SECStatus status = NSS_Init(certdir);
 	if (status != SECSuccess) {
 		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_NOTICE,
 			"Could not initialize nss: %s\n",
