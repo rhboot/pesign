@@ -62,7 +62,6 @@ typedef int (*cms_common_logger)(struct cms_context *, int priority,
 
 typedef struct cms_context {
 	PRArenaPool *arena;
-	PRArenaPool *arenab;
 	void *privkey;
 
 	char *tokenname;

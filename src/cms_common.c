@@ -147,19 +147,8 @@ cms_context_init(cms_context *cms)
 	cms->log = cms_common_log;
 
 	cms->arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-	if (!cms->arena) {
-		cms->log(cms, LOG_ERR,
-			"Could not create cryptographic arena: %s",
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
-	}
-	cms->arenab = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-	if (!cms->arenab) {
-		cms->log(cms, LOG_ERR,
-			"Could not create cryptographic arena: %s",
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
-	}
+	if (!cms->arena)
+		cmsreterr(-1, cms, "could not create cryptographic arena");
 
 	cms->selected_digest = -1;
 
@@ -232,7 +221,6 @@ cms_context_fini(cms_context *cms)
 	cms->num_signatures = 0;
 
 	PORT_FreeArena(cms->arena, PR_TRUE);
-	PORT_FreeArena(cms->arenab, PR_TRUE);
 	memset(cms, '\0', sizeof(*cms));
 	xfree(cms);
 }
@@ -1286,46 +1274,49 @@ generate_ava(cms_context *cms, SECItem *der, CERTAVA *certava)
 
 	SECOidData *oid;
 
-	void *amark = PORT_ArenaMark(cms->arena);
-	void *bmark = PORT_ArenaMark(cms->arenab);
+	void *arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	if (arena == NULL)
+		cmsreterr(-1, cms, "could not create arena");
+
+	void *real_arena = cms->arena;
+	cms->arena = arena;
 
 	oid = SECOID_FindOID(&certava->type);
 	if (!oid) {
-		cms->log(cms, LOG_ERR, "%s:%s:%d could not find oid: %s",
-			__FILE__, __func__, __LINE__,
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
+		save_port_err(PORT_FreeArena(arena, PR_TRUE));
+		cms->arena = real_arena;
+		cmsreterr(-1, cms, "could not find OID");
 	}
 
 	int rc = generate_object_id(cms, &ava.type, oid->offset);
-	if (rc < 0)
+	if (rc < 0) {
+		PORT_FreeArena(arena, PR_TRUE);
+		cms->arena = real_arena;
 		return -1;
+	}
 
 	memcpy(&ava.value, &certava->value, sizeof (ava.value));
 
 	void *ret;
 	SECItem tmp;
-	ret = SEC_ASN1EncodeItem(cms->arenab, &tmp, &ava, AVATemplate);
+	ret = SEC_ASN1EncodeItem(arena, &tmp, &ava, AVATemplate);
 	if (ret == NULL) {
-		cms->log(cms, LOG_ERR, "%s:%s:%d: could not encode AVA: %s",
-			__FILE__, __func__, __LINE__,
-			PORT_ErrorToString(PORT_GetError()));
-		return -1;
+		save_port_err(PORT_FreeArena(arena, PR_TRUE));
+		cms->arena = real_arena;
+		cmsreterr(-1, cms, "could not encode AVA");
 	}
-	PORT_ArenaRelease(cms->arena, amark);
 
 	der->type = tmp.type;
 	der->len = tmp.len;
-	der->data = PORT_ArenaAlloc(cms->arena, tmp.len);
+	der->data = PORT_ArenaAlloc(real_arena, tmp.len);
 	if (!der->data) {
-		cms->log(cms, LOG_ERR, "%s:%s:%d: could not encode AVA: %s",
-			__FILE__, __func__, __LINE__,
-			PORT_ErrorToString(PORT_GetError()));
-		PORT_ArenaRelease(cms->arenab, bmark);
-		return -1;
+		save_port_err(PORT_FreeArena(arena, PR_TRUE));
+		cms->arena = real_arena;
+		cmsreterr(-1, cms, "could not allocate AVA");
 	}
 	memcpy(der->data, tmp.data, tmp.len);
-	PORT_ArenaRelease(cms->arenab, bmark);
+	PORT_FreeArena(arena, PR_TRUE);
+	cms->arena = real_arena;
 
 	return 0;
 }
