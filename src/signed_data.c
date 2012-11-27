@@ -125,19 +125,6 @@ generate_certificate_list(cms_context *cms, SECItem ***certificate_list_p)
 	return 0;
 }
 
-static void
-free_certificate_list(cms_context *cms, SECItem **certificate_list)
-{
-	if (!certificate_list)
-		return;
-
-#if 0
-	for (int i = 0; certificate_list[i] != NULL; i++)
-		PORT_Free(certificate_list[i]);
-	PORT_ZFree(certificate_list, sizeof (SECItem) * 2);
-#endif
-}
-
 int
 generate_signerInfo_list(cms_context *cms, SpcSignerInfo ***signerInfo_list_p)
 {
@@ -158,7 +145,7 @@ generate_signerInfo_list(cms_context *cms, SpcSignerInfo ***signerInfo_list_p)
 		err = PORT_GetError();
 		goto err_list;
 	}
-	
+
 	if (generate_spc_signer_info(cms, signerInfo_list[0]) < 0) {
 		err = PORT_GetError();
 		goto err_item;
@@ -176,12 +163,6 @@ err_list:
 #endif
 	PORT_SetError(err);
 	return -1;
-}
-
-void
-free_signerInfo_list(cms_context *cms, SpcSignerInfo **signerInfo_list)
-{
-	
 }
 
 typedef struct {
@@ -269,7 +250,7 @@ SEC_ASN1Template ContentInfoTemplate[] = {
 	.sub = &SEC_AnyTemplate,
 	.size = sizeof (SECItem),
 	},
-	{ 0, } 
+	{ 0, }
 };
 
 int
@@ -281,30 +262,40 @@ generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 		return -1;
 
 	memset(&sd, '\0', sizeof (sd));
+	void *mark = PORT_ArenaMark(cms->arena);
 
-	if (SEC_ASN1EncodeInteger(cms->arena, &sd.version, 1) == NULL)
+	if (SEC_ASN1EncodeInteger(cms->arena, &sd.version, 1) == NULL) {
+		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		cmsreterr(-1, cms, "could not encode integer");
+	}
+
+	if (generate_algorithm_id_list(cms, &sd.algorithms) < 0) {
+		PORT_ArenaRelease(cms->arena, mark);
 		return -1;
+	}
 
-	if (generate_algorithm_id_list(cms, &sd.algorithms) < 0)
-		goto err;
-	
-	if (generate_spc_content_info(cms, &sd.cinfo) < 0)
-		goto err_algorithms;
+	if (generate_spc_content_info(cms, &sd.cinfo) < 0) {
+		PORT_ArenaRelease(cms->arena, mark);
+		return -1;
+	}
 
-	if (generate_certificate_list(cms, &sd.certificates) < 0)
-		goto err_cinfo;
+	if (generate_certificate_list(cms, &sd.certificates) < 0) {
+		PORT_ArenaRelease(cms->arena, mark);
+		return -1;
+	}
 
 	sd.crls = NULL;
 
-	if (generate_signerInfo_list(cms, &sd.signerInfos) < 0)
-		goto err_certificate_list;
+	if (generate_signerInfo_list(cms, &sd.signerInfos) < 0) {
+		PORT_ArenaRelease(cms->arena, mark);
+		return -1;
+	}
 
 	SECItem encoded = { 0, };
 	if (SEC_ASN1EncodeItem(cms->arena, &encoded, &sd, SignedDataTemplate)
 			== NULL) {
-		cms->log(cms, LOG_ERR, "could not encode SignedData: %s",
-			PORT_ErrorToString(PORT_GetError()));
-		goto err_signer_infos;
+		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		cmsreterr(-1, cms, "could not encode SignedData");
 	}
 
 	ContentInfo sdw;
@@ -318,26 +309,11 @@ generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 	SECItem wrapper = { 0, };
 	if (SEC_ASN1EncodeItem(cms->arena, &wrapper, &sdw,
 			ContentInfoTemplate) == NULL) {
-		cms->log(cms, LOG_ERR, "could not encode SignedData: %s",
-			PORT_ErrorToString(PORT_GetError()));
-		goto err_signed_data;
+		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		cmsreterr(-1, cms, "could not encode SignedData");
 	}
 
 	memcpy(sdp, &wrapper, sizeof(*sdp));
+	PORT_ArenaUnmark(cms->arena, mark);
 	return 0;
-err_signed_data:
-	SECITEM_FreeItem(&encoded, PR_FALSE);
-err_signer_infos:
-	free_signerInfo_list(cms, sd.signerInfos);
-err_certificate_list:
-	free_certificate_list(cms, sd.certificates);
-err_cinfo:
-	free_spc_content_info(cms, &sd.cinfo);
-err_algorithms:
-	free_algorithm_list(cms, sd.algorithms);
-err:
-#if 0
-	SECITEM_FreeItem(&sd.version, PR_TRUE);
-#endif
-	return -1;
 }
