@@ -295,6 +295,17 @@ is_valid_cert(CERTCertificate *cert, void *data)
 	return SECFailure;
 }
 
+int
+is_issuer_of(CERTCertificate *c0, CERTCertificate *c1)
+{
+	if (c0->derSubject.len != c1->derIssuer.len)
+		return 0;
+
+	if (memcmp(c0->derSubject.data, c1->derIssuer.data, c0->derSubject.len))
+		return 0;
+	return 1;
+}
+
 /* This is the dumbest function ever, but we need it anyway, because nss
  * is garbage. */
 static void
