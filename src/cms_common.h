@@ -19,9 +19,35 @@
 #ifndef CMS_COMMON_H
 #define CMS_COMMON_H 1
 
-#include <stdarg.h>
+#include <errno.h>
 #include <nss3/cert.h>
 #include <nss3/secpkcs7.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <syslog.h>
+#include <time.h>
+#include <unistd.h>
+
+#define save_port_err(x)				\
+	({						\
+		int __saved_errno = PORT_GetError();	\
+		x;					\
+		PORT_SetError(__saved_errno);		\
+	})
+
+#define cmserr(rv, cms, fmt, args...) ({					\
+		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt ": %s",	\
+			__FILE__, __func__, __LINE__, ## args,		\
+			PORT_ErrorToString(PORT_GetError()));		\
+		exit(rv);						\
+	})
+#define cmsreterr(rv, cms, fmt, args...) ({				\
+		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt ": %s",	\
+			__FILE__, __func__, __LINE__, ## args,		\
+			PORT_ErrorToString(PORT_GetError()));		\
+		return rv;						\
+	})
+
 
 struct digest {
 	PK11Context *pk11ctx;
