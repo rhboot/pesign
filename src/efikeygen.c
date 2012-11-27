@@ -348,6 +348,60 @@ populate_extensions(cms_context *cms, CERTCertificate *cert,
 	return 0;
 }
 
+static int
+get_pubkey_from_file(char *pubfile, SECKEYPublicKey **pubkey)
+{
+	SECItem pubkey_item = {
+		.type = siBuffer,
+		.data = NULL,
+		.len = -1
+	};
+
+	int pubfd = open(pubfile, O_RDONLY);
+	if (pubfd < 0)
+		libreterr(-1, "could not open \"%s\"", pubfile);
+
+	char *data = NULL;
+	size_t *len = (size_t *)&pubkey_item.len;
+
+	int rc = read_file(pubfd, &data, len);
+	if (rc < 0)
+		libreterr(-1, "could not read public key");
+
+	pubkey_item.data = (unsigned char *)data;
+	*pubkey = SECKEY_ImportDERPublicKey(&pubkey_item, CKK_RSA);
+	if (!*pubkey)
+		nssreterr(-1, "could not decode public key");
+
+	return 0;
+}
+
+static int
+get_signer_private_key(cms_context *cms, SECKEYPrivateKey **privkey)
+{
+	secuPWData pwdata_val = { 0, 0 };
+	void *pwdata = &pwdata_val;
+	SECKEYPrivateKey *sprivkey;
+	sprivkey = PK11_FindKeyByAnyCert(cms->cert, pwdata);
+	if (!sprivkey)
+		cmsreterr(-1, cms, "could not find private key");
+
+	*privkey = sprivkey;
+	return 0;
+}
+
+static int
+get_signer_public_key(cms_context *cms, SECKEYPublicKey **pubkey)
+{
+	SECKEYPublicKey *spubkey;
+	spubkey = CERT_ExtractPublicKey(cms->cert);
+	if (!spubkey)
+		cmsreterr(-1, cms, "could not find public key");
+
+	*pubkey = spubkey;
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	int is_ca = 0;
