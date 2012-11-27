@@ -414,8 +414,8 @@ int main(int argc, char *argv[])
 	char *cn = NULL;
 	char *url = NULL;
 	char *serial_str = NULL;
-	char *issuer;
-	unsigned long long serial = ULONG_MAX;
+	char *issuer = NULL;
+	unsigned long serial = ULONG_MAX;
 
 	cms_context *cms = NULL;
 
@@ -446,8 +446,8 @@ int main(int argc, char *argv[])
 			"Issuer URL", "<url>" },
 		{"serial", 's', POPT_ARG_STRING, &serial_str, 0,
 			"Serial number", "<serial>" },
-		{"issuer", 'i', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
-			&issuer, 0, "Issuer", "<issuer>" },
+		{"issuer-cn", 'i', POPT_ARG_STRING, &issuer, 0,
+			"Issuer Common Name", "<issuer-cn>" },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
@@ -529,42 +529,128 @@ int main(int argc, char *argv[])
 		nsserr(1, "could not initialize NSS");
 	atexit((void (*)(void))NSS_Shutdown);
 
-	if (!is_self_signed) {
+	SECKEYPublicKey *spubkey = NULL;
+	SECKEYPrivateKey *sprivkey = NULL;
+
+	SECKEYPublicKey *pubkey = NULL;
+	SECKEYPrivateKey *privkey = NULL;
+	if (pubfile) {
+		rc = get_pubkey_from_file(pubfile, &pubkey);
+	} else {
+		rc = generate_keys(cms, &privkey, &pubkey);
+	}
+	if (rc < 0)
+		exit(1);
+
+	CERTName *issuer_name = NULL;
+	if (issuer) {
+		issuer_name = CERT_AsciiToName(issuer);
+	} else if (is_self_signed) {
+		issuer_name = CERT_AsciiToName(cn);
+	} else {
 		rc = find_certificate(cms);
 		if (rc < 0)
-			errx(1, "efikeygen: could not find signing "
-				"certificate \"%s:%s\"", cms->tokenname,
-				cms->certname);
+			nsserr(1, "could not find signing certificate "
+				"\"%s:%s\"", cms->tokenname, cms->certname);
+		issuer_name = &cms->cert->subject;
+	}
+	if (!issuer_name)
+		nsserr(1, "could not find issuer name");
+
+	if (is_self_signed) {
+		spubkey = pubkey;
+		sprivkey = privkey;
+	} else {
+		rc = find_certificate(cms);
+		if (rc < 0)
+			exit(1);
+
+		rc = get_signer_private_key(cms, &sprivkey);
+		if (rc < 0)
+			exit(1);
+
+		rc = get_signer_public_key(cms, &spubkey);
+		if (rc < 0)
+			exit(1);
 	}
 
 	errno = 0;
-	serial = strtoull(serial_str, NULL, 0);
+	serial = strtoul(serial_str, NULL, 0);
 	if (errno == ERANGE && serial == ULLONG_MAX)
 		liberr(1, "invalid serial number");
 
-	SECItem certder;
-	rc = generate_signing_certificate(cms, &certder, cn, is_ca,
-				is_self_signed, url, serial,
-				&pubkey);
+	CERTValidity *validity = NULL;
+	PRTime not_before = time(NULL) * PR_USEC_PER_SEC;
+	PRTime not_after = not_before + (3650ULL * 86400ULL * PR_USEC_PER_SEC);
+	validity = CERT_CreateValidity(not_before, not_after);
+	if (!validity)
+		nsserr(1, "could not generate validity");
+
+	CERTName *name = CERT_AsciiToName(cn);
+	if (!name)
+		nsserr(1, "could not generate certificate name");
+
+	CERTSubjectPublicKeyInfo *spki = NULL;
+	spki = SECKEY_CreateSubjectPublicKeyInfo(pubkey);
+	if (!spki)
+		nsserr(1, "could not generate public key information");
+
+	SECItem *attributes = NULL;
+
+	CERTCertificateRequest *crq = NULL;
+	crq = CERT_CreateCertificateRequest(name, spki, &attributes);
+
+	rc = add_extensions_to_crq(cms, crq, is_ca, is_self_signed, pubkey,
+					spubkey, url);
 	if (rc < 0)
-		errx(1, "efikeygen: could not generate certificate");
+		exit(1);
+
+	CERTCertificate *cert = NULL;
+	cert = CERT_CreateCertificate(serial, issuer_name, validity, crq);
+	*(cert->version.data) = 2;
+	cert->version.len = 1;
+
+	cert->subjectName = cn;
+	cert->issuerName = is_self_signed ? cn : issuer;
+
+	memcpy(&cert->issuer, issuer_name, sizeof (cert->issuer));
+	memcpy(&cert->subject, name, sizeof (cert->subject));
+
+	rc = populate_extensions(cms, cert, crq);
+	if (rc < 0)
+		exit(1);
+
+	rc = generate_algorithm_id(cms, &cert->signature, SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION);
+	if (rc < 0)
+		nsserr(1, "could not generate certificate type OID");
+
+	SECItem certder;
+	memset(&certder, '\0', sizeof (certder));
+
+	void *ret;
+	ret = SEC_ASN1EncodeItem(cms->arena, &certder, cert,
+		CERT_CertificateTemplate);
+	if (ret == NULL)
+		nsserr(1, "could not encode certificate");
+
+	if (is_self_signed) {
+		cms->cert = cert;
+#if 0
+		status = SEC_QuickDERDecodeItem(cms->arena, &cms->cert,
+			CERT_CertificateTemplate, &certder);
+		if (status != SECSuccess)
+			nsserr(1, "could not decode certificate");
+#endif
+	}
 
 	SECOidData *oid;
 	oid = SECOID_FindOIDByTag(SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION);
 	if (!oid)
-		errx(1, "efikeygen: could not find OID for SHA256+RSA: %s",
-			PORT_ErrorToString(PORT_GetError()));
-
-	secuPWData pwdata_val = { 0, 0 };
-	void *pwdata = &pwdata_val;
-	SECKEYPrivateKey *privkey = PK11_FindKeyByAnyCert(cms->cert, pwdata);
-	if (!privkey)
-		errx(1, "efikeygen: could not find private key: %s",
-			PORT_ErrorToString(PORT_GetError()));
+		nsserr(1, "could not find OID for SHA256+RSA");
 
 	SECItem signature;
 	status = SEC_SignData(&signature, certder.data, certder.len,
-				privkey, oid->offset);
+				sprivkey, oid->offset);
 
 	SECItem sigder = { 0, };
 	bundle_signature(cms, &sigder, &certder,
