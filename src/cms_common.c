@@ -110,8 +110,6 @@ teardown_digests(cms_context *ctx)
 			PK11_DestroyContext(digests[i].pk11ctx, PR_TRUE);
 		}
 		if (digests[i].pe_digest) {
-			free_poison(digests[i].pe_digest->data,
-				    digests[i].pe_digest->len);
 			/* XXX sure seems like we should be freeing it here,
 			 * but that's segfaulting, and we know it'll get
 			 * cleaned up with PORT_FreeArena a couple of lines
@@ -120,7 +118,7 @@ teardown_digests(cms_context *ctx)
 			digests[i].pe_digest = NULL;
 		}
 	}
-	free(digests);
+	PORT_Free(digests);
 	ctx->digests = NULL;
 }
 
@@ -179,7 +177,6 @@ cms_context_fini(cms_context *cms)
 		memset(&cms->newsig, '\0', sizeof (cms->newsig));
 	}
 
-	teardown_digests(cms);
 	cms->selected_digest = -1;
 
 	if (cms->ci_digest) {
@@ -873,7 +870,7 @@ generate_digest_begin(cms_context *cms)
 	if (cms->digests) {
 		digests = cms->digests;
 	} else {
-		digests = PORT_ArenaZAlloc(cms->arena, n_digest_params * sizeof (*digests));
+		digests = PORT_ZAlloc(n_digest_params * sizeof (*digests));
 		if (digests == NULL)
 			cmsreterr(-1, cms, "could not allocate digest context");
 	}
