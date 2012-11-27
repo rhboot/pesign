@@ -76,20 +76,51 @@ static int
 generate_certificate_list(cms_context *cms, SECItem ***certificate_list_p)
 {
 	SECItem **certificates = NULL;
+	void *mark = PORT_ArenaMark(cms->arena);
 
-	certificates = PORT_ArenaZAlloc(cms->arena, sizeof (SECItem *) * 2);
-	if (!certificates)
-		return -1;
-	
-	certificates[0] = PORT_ArenaZAlloc(cms->arena, sizeof (SECItem));
-	if (!certificates[0]) {
-		int err = PORT_GetError();
-		PORT_ZFree(certificates, sizeof (SECItem) * 2);
-		PORT_SetError(err);
-		return -1;
+	certificates = PORT_ArenaZAlloc(cms->arena, sizeof (SECItem *) * 3);
+	if (!certificates) {
+		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		cmsreterr(-1, cms, "could not allocate certificate list");
+	}
+	int i = 0;
+
+	certificates[i] = PORT_ArenaZAlloc(cms->arena, sizeof (SECItem));
+	if (!certificates[i]) {
+		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		cmsreterr(-1, cms, "could not allocate certificate entry");
+	}
+	SECITEM_CopyItem(cms->arena, certificates[i++], &cms->cert->derCert);
+
+	if (!is_issuer_of(cms->cert, cms->cert)) {
+		CERTCertificate *signer = NULL;
+		int rc = find_named_certificate(cms, cms->cert->issuerName,
+						&signer);
+		if (rc < 0) {
+			PORT_ArenaRelease(cms->arena, mark);
+			return -1;
+		}
+
+		if (signer) {
+			if (signer->derCert.len != cms->cert->derCert.len ||
+					memcmp(signer->derCert.data,
+						cms->cert->derCert.data,
+						signer->derCert.len)) {
+				certificates[i] = PORT_ArenaZAlloc(cms->arena,
+							sizeof (SECItem));
+				if (!certificates[i]) {
+					save_port_err(
+						PORT_ArenaRelease(cms->arena, mark));
+					cmsreterr(-1, cms,"could not allocate "
+						"certificate entry");
+				}
+				SECITEM_CopyItem(cms->arena, certificates[i++],
+						&signer->derCert);
+			}
+			CERT_DestroyCertificate(signer);
+		}
 	}
 
-	SECITEM_CopyItem(cms->arena, certificates[0], &cms->cert->derCert);
 	*certificate_list_p = certificates;
 	return 0;
 }
