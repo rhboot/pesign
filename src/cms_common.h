@@ -141,10 +141,6 @@ extern int generate_keys(cms_context *cms, SECKEYPrivateKey **privkey,
 		SECKEYPublicKey **pubkey);
 extern int is_issuer_of(CERTCertificate *c0, CERTCertificate *c1);
 
-extern int generate_signing_certificate(cms_context *cms, SECItem *der,
-					char *cn, int is_ca, int is_self_signed,
-					char *url, unsigned long serial,
-					SECItem *pubkey);
 
 extern SECOidTag digest_get_digest_oid(cms_context *cms);
 extern SECOidTag digest_get_encryption_oid(cms_context *cms);
