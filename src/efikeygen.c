@@ -473,11 +473,24 @@ int main(int argc, char *argv[])
 
 	poptFreeContext(optCon);
 
+	/*
+	 * Scenarios that are okay (x == valid combination)
+	 *
+	 *         is_ca        is_self_signed       pubkey
+	 * i_c     x            x                    x
+	 * i_s_s   x            x                    o
+	 * pubkey  x            o                    o
+	 */
+
 	if (is_self_signed == -1)
 		is_self_signed = is_ca && !signer ? 1 : 0;
 
 	if (is_self_signed && signer)
 		errx(1, "--self-sign and --signer cannot be "
+			"used at the same time.");
+
+	if (is_self_signed && pubfile)
+		errx(1, "--self-sign and --pubkey cannot be "
 			"used at the same time.");
 
 	if (!cn)
@@ -490,29 +503,11 @@ int main(int argc, char *argv[])
 	if (outfd < 0)
 		err(1, "could not open \"%s\":", outfile);
 
+#if 0
 	int p12fd = open(poutfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC, 0600);
 	if (outfd < 0)
-		err(1, "efikeygen: could not open \"%s\":", poutfile);
-
-	SECItem pubkey = {
-		.type = siBuffer,
-		.data = NULL,
-		.len = -1
-	};
-
-	if (pubfile) {
-		int pubfd = open(pubfile, O_RDONLY);
-
-		char *data = NULL;
-		size_t *len = (size_t *)&pubkey.len;
-
-		rc = read_file(pubfd, &data, len);
-		if (rc < 0)
-			err(1, "efikeygen: %s:%s:%d: could not read public "
-				"key", __FILE__, __func__, __LINE__);
-		close(pubfd);
-		pubkey.data = (unsigned char *)data;
-	}
+		err(1, "could not open \"%s\":", poutfile);
+#endif
 
 	rc = cms_context_alloc(&cms);
 	if (rc < 0)
@@ -583,7 +578,9 @@ int main(int argc, char *argv[])
 	}
 	close(outfd);
 
+#if 0
 	close(p12fd);
+#endif
 
 	NSS_Shutdown();
 	return 0;
