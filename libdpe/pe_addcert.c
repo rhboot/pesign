@@ -59,7 +59,7 @@ pe_alloccert(Pe *pe, size_t size)
 	memset(addr, '\0', size);
 
 	dd->certs.virtual_address = compute_file_addr(pe, addr);
-	dd->certs.size = size;
+	dd->certs.size += size;
 
 	pe_set_image_size(pe);
 

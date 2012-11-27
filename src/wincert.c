@@ -204,7 +204,17 @@ available_cert_space(Pe *pe)
 	return totalsize - foundsize;
 }
 
-ssize_t calculate_signature_space(cms_context *cms, Pe *pe)
+static size_t
+get_reserved_sig_space(cms_context *cms, Pe *pe)
+{
+	size_t ret = 0;
+	for (int i = 0; i < cms->num_signatures; i++)
+		ret += cms->signatures[i]->len + sizeof (win_certificate);
+	return ret;
+}
+
+ssize_t
+calculate_signature_space(cms_context *cms, Pe *pe)
 {
 	int rc;
 
@@ -220,7 +230,9 @@ err:
 	if (rc < 0)
 		goto err;
 
-	ssize_t ret = sig.len + dd->certs.size + sizeof(win_certificate) -
+	size_t res = get_reserved_sig_space(cms, pe);
+
+	ssize_t ret = res + sig.len + sizeof(win_certificate) -
 						available_cert_space(pe);
 
 	//free(sig.data);

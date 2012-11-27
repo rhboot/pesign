@@ -24,6 +24,7 @@
 #include <sys/mman.h>
 
 static struct section_header *
+__attribute__((unused))
 __get_last_section(Pe *pe)
 {
 	Pe_Scn *scn = NULL;
@@ -79,6 +80,7 @@ compare_sections (const void *a, const void *b)
 }
 
 static void
+__attribute__((unused))
 sort_sections (Pe_Scn **scns, Pe_ScnList *list)
 {
 	Pe_Scn **scnp = scns;
@@ -131,7 +133,16 @@ __pe_updatemmap(Pe *pe, size_t shnum)
 	msync(msync_start, msync_end - msync_start, MS_SYNC);
 
 	#warning this is not done yet.
-	struct section_header *sh = __get_last_section(pe);
+	//struct section_header *sh = __get_last_section(pe);
+
+	size_t dd_size = sizeof (*dd) / sizeof (dd->exports);
+	data_dirent *dde = &dd->exports;
+	for (int i = 0; i < dd_size; i++, dde++) {
+		if (dde->size != 0) {
+			char *addr = compute_mem_addr(pe, dde->virtual_address);
+			msync(addr, dde->size, MS_SYNC);
+		}
+	}
 
 	return 0;
 }
