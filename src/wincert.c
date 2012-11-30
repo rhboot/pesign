@@ -204,13 +204,19 @@ available_cert_space(Pe *pe)
 	return totalsize - foundsize;
 }
 
-static size_t
+size_t
 get_reserved_sig_space(cms_context *cms, Pe *pe)
 {
 	size_t ret = 0;
 	for (int i = 0; i < cms->num_signatures; i++)
 		ret += cms->signatures[i]->len + sizeof (win_certificate);
 	return ret;
+}
+
+ssize_t
+calculate_signature_overhead(ssize_t size)
+{
+	return sizeof(win_certificate);
 }
 
 ssize_t

@@ -652,12 +652,27 @@ main(int argc, char *argv[])
 		/* add a signature from a file */
 		case IMPORT_SIGNATURE:
 			check_inputs(ctxp);
+			if (ctxp->signum > ctxp->cms_ctx->num_signatures + 1) {
+				fprintf(stderr, "Invalid signature number.\n");
+				exit(1);
+			}
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
 			open_sig_input(ctxp);
+			parse_signature(ctxp);
+			sigspace =
+				calculate_signature_overhead(
+					ctxp->cms_ctx->newsig.len) +
+				ctxp->cms_ctx->newsig.len +
+				get_reserved_sig_space(ctxp->cms_ctx,
+							ctxp->outpe);
+			allocate_signature_space(ctxp->outpe, sigspace);
 			check_signature_space(ctxp);
-			import_signature(ctxp);
+			insert_signature(ctxp->cms_ctx, ctxp->signum);
+			finalize_signatures(ctxp->cms_ctx->signatures,
+					ctxp->cms_ctx->num_signatures,
+					ctxp->outpe);
 			close_sig_input(ctxp);
 			close_output(ctxp);
 			break;
@@ -751,6 +766,10 @@ main(int argc, char *argv[])
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
 					ctxp->cms_ctx->certname);
+				exit(1);
+			}
+			if (ctxp->signum > ctxp->cms_ctx->num_signatures + 1) {
+				fprintf(stderr, "Invalid signature number.\n");
 				exit(1);
 			}
 			open_input(ctxp);

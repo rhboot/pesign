@@ -268,7 +268,7 @@ failure:
 	return ret;
 }
 
-static void
+void
 parse_signature(pesign_context *ctx)
 {
 	int rc;
@@ -387,23 +387,12 @@ generate_sattr_blob(pesign_context *ctx)
 void
 check_signature_space(pesign_context *ctx)
 {
-	parse_signature(ctx);
-
 	ssize_t available = available_cert_space(ctx->outpe);
 
 	if (available < ctx->cms_ctx->newsig.len) {
 		fprintf(stderr, "Could not add new signature: insufficient space.\n");
 		exit(1);
 	}
-}
-
-int
-import_signature(pesign_context *ctx)
-{
-	insert_signature(ctx->cms_ctx, ctx->signum);
-
-	return finalize_signatures(ctx->cms_ctx->signatures,
-				ctx->cms_ctx->num_signatures, ctx->outpe);
 }
 
 void
