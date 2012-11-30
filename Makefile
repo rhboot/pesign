@@ -4,7 +4,7 @@ include $(TOPDIR)/Make.defaults
 
 SUBDIRS := include libdpe src
 DOCDIR := /share/doc/
-VERSION = 0.99
+VERSION = 0.100
 
 all : $(SUBDIRS)
 
