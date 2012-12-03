@@ -141,7 +141,7 @@ done:
 
 		tmpcert = (win_certificate *)((uint8_t *)certs + n);
 
-		if ((uint64_t)tmpcert > (uint64_t)map + map_size)
+		if ((intptr_t)tmpcert >	(intptr_t)map + map_size)
 			return -1;
 
 		/* length _includes_ the size of the structure. */
