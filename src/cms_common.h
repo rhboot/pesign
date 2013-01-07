@@ -145,7 +145,7 @@ extern int is_issuer_of(CERTCertificate *c0, CERTCertificate *c1);
 
 extern int find_named_certificate(cms_context *cms, char *name,
 				CERTCertificate **cert);
-
+extern int find_slot_for_token(cms_context *cms, PK11SlotInfo **slot);
 
 extern SECOidTag digest_get_digest_oid(cms_context *cms);
 extern SECOidTag digest_get_encryption_oid(cms_context *cms);

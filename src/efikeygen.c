@@ -431,20 +431,20 @@ int main(int argc, char *argv[])
 		{"token", 't', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
 			&tokenname, 0, "NSS token holding signing key",
 			"<token>" },
-		{"signer", 'c', POPT_ARG_STRING, &signer, 0,
+		{"signer", '\0', POPT_ARG_STRING, &signer, 0,
 			"Nickname for signing certificate", "<signer>" },
 
 		/* type of thing we're creating */
-		{"ca", 'C', POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN, &is_ca, 1,
+		{"ca", 'C', POPT_ARG_VAL, &is_ca, 1,
 			"Generate a CA certificate", NULL },
-		{"self-sign", 'S', POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
+		{"self-sign", 'S', POPT_ARG_VAL,
 			&is_self_signed, 1,
 			"Generate a self-signed certificate", NULL },
 
 		/* stuff about the generated key */
 		{"nickname", 'n', POPT_ARG_STRING, &nickname, 0,
 			"Generated certificate's nickname", "<nickname>" },
-		{"common-name", 'n', POPT_ARG_STRING, &cn, 0,
+		{"common-name", 'c', POPT_ARG_STRING, &cn, 0,
 			"Common Name for generated certificate", "<cn>" },
 		{"url", 'u', POPT_ARG_STRING, &url, 0,
 			"Issuer URL", "<url>" },
