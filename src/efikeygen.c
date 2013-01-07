@@ -426,18 +426,20 @@ int main(int argc, char *argv[])
 		/* global nss-ish things */
 		{"dbdir", 'd', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
 			&dbdir, 0, "Directory for nss database", "<directory>"},
+		{"token", 't', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
+			&tokenname, 0, "NSS token holding signing key",
+			"<token>" },
+		{"signer", 'c', POPT_ARG_STRING, &signer, 0,
+			"Nickname for signing certificate", "<signer>" },
+
+		/* type of thing we're creating */
 		{"ca", 'C', POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN, &is_ca, 1,
 			"Generate a CA certificate", NULL },
 		{"self-sign", 'S', POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
 			&is_self_signed, 1,
 			"Generate a self-signed certificate", NULL },
-		{"signer", 'c', POPT_ARG_STRING, &signer, 0,
-			"Nickname for signing certificate", "<signer>" },
-		{"token", 't', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
-			&tokenname, 0, "NSS token holding signing key",
-			"<token>" },
-		{"pubkey", 'p', POPT_ARG_STRING, &pubfile, 0,
-			"Use public key from file", "<pubkey>" },
+
+		/* stuff about the generated key */
 		{"output", 'o', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
 			&outfile, 0, "Certificate output file name",
 			"<outfile>" },
@@ -450,8 +452,16 @@ int main(int argc, char *argv[])
 			"Issuer URL", "<url>" },
 		{"serial", 's', POPT_ARG_STRING, &serial_str, 0,
 			"Serial number", "<serial>" },
-		{"issuer-cn", 'i', POPT_ARG_STRING, &issuer, 0,
+
+		/* hidden things */
+		{"pubkey", 'p', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+			&pubfile, 0,
+			"Use public key from file", "<pubkey>" },
+		{"issuer-cn", 'i', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+			&issuer, 0,
 			"Issuer Common Name", "<issuer-cn>" },
+
+		/* automatic stuff */
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
