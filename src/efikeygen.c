@@ -408,8 +408,7 @@ int main(int argc, char *argv[])
 	int is_self_signed = -1;
 	char *tokenname = "NSS Certificate DB";
 	char *signer = NULL;
-	char *outfile = "signed.cer";
-	char *poutfile = NULL;
+	char *nickname = NULL;
 	char *pubfile = NULL;
 	char *cn = NULL;
 	char *url = NULL;
@@ -440,12 +439,8 @@ int main(int argc, char *argv[])
 			"Generate a self-signed certificate", NULL },
 
 		/* stuff about the generated key */
-		{"output", 'o', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
-			&outfile, 0, "Certificate output file name",
-			"<outfile>" },
-		{"privkey", 'P', POPT_ARG_STRING,
-			&poutfile, 0, "Private key output file name",
-			"<privkey>" },
+		{"nickname", 'n', POPT_ARG_STRING, &nickname, 0,
+			"Generated certificate's nickname", "<nickname>" },
 		{"common-name", 'n', POPT_ARG_STRING, &cn, 0,
 			"Common Name for generated certificate", "<cn>" },
 		{"url", 'u', POPT_ARG_STRING, &url, 0,
@@ -512,16 +507,6 @@ int main(int argc, char *argv[])
 
 	if (!is_self_signed && !signer)
 		errx(1, "signing certificate is required");
-
-	int outfd = open(outfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC, 0600);
-	if (outfd < 0)
-		err(1, "could not open \"%s\":", outfile);
-
-#if 0
-	int p12fd = open(poutfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC, 0600);
-	if (outfd < 0)
-		err(1, "could not open \"%s\":", poutfile);
-#endif
 
 	rc = cms_context_alloc(&cms);
 	if (rc < 0)
@@ -671,16 +656,7 @@ int main(int argc, char *argv[])
 				SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
 				&signature);
 
-	rc = write(outfd, sigder.data, sigder.len);
-	if (rc < 0) {
-		save_errno(unlink(outfile));
-		err(1, "could not write to %s", outfile);
-	}
-	close(outfd);
-
-#if 0
-	close(p12fd);
-#endif
+	/* XXX PJFIX: output the whole thing into the database */
 
 	NSS_Shutdown();
 	return 0;
