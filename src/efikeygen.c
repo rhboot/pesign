@@ -308,9 +308,12 @@ add_extensions_to_crq(cms_context *cms, CERTCertificateRequest *crq,
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not generate certificate extensions");
 
-	rc = add_auth_info(cms, extHandle, url);
-	if (rc < 0)
-		cmsreterr(-1, cms, "could not generate certificate extensions");
+	if (url) {
+		rc = add_auth_info(cms, extHandle, url);
+		if (rc < 0)
+			cmsreterr(-1, cms,
+				"could not generate certificate extensions");
+	}
 
 	CERT_FinishExtensions(extHandle);
 	CERT_FinishCertificateRequestAttributes(crq);
