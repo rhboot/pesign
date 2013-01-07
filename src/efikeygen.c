@@ -536,10 +536,17 @@ int main(int argc, char *argv[])
 
 	SECKEYPublicKey *pubkey = NULL;
 	SECKEYPrivateKey *privkey = NULL;
+
+	PK11SlotInfo *slot = NULL;
 	if (pubfile) {
 		rc = get_pubkey_from_file(pubfile, &pubkey);
 	} else {
-		rc = generate_keys(cms, &privkey, &pubkey);
+		rc = find_slot_for_token(cms, &slot);
+		if (rc < 0)
+			nsserr(1, "could not find NSS slot for token \"%s\"",
+				cms->tokenname);
+
+		rc = generate_keys(cms, slot, &privkey, &pubkey);
 	}
 	if (rc < 0)
 		exit(1);

@@ -1622,18 +1622,13 @@ static const SEC_ASN1Template KeyIdTemplate[] = {
 };
 
 int
-generate_keys(cms_context *cms, SECKEYPrivateKey **privkey,
-		SECKEYPublicKey **pubkey)
+generate_keys(cms_context *cms, PK11SlotInfo *slot,
+		SECKEYPrivateKey **privkey, SECKEYPublicKey **pubkey)
 {
-	PK11SlotInfo *slot = NULL;
 	PK11RSAGenParams rsaparams = {
 		.keySizeInBits = 2048,
 		.pe = 0x010001,
 	};
-
-	slot = PK11_GetInternalKeySlot();
-	if (!slot)
-		cmsreterr(-1, cms, "could not get NSS internal slot");
 
 	SECStatus rv;
 	rv = PK11_Authenticate(slot, PR_TRUE, cms->pwdata);
