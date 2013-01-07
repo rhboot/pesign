@@ -1,0 +1,62 @@
+.TH EFIKEYGEN 1 "Mon Jan 07 2013"
+.SH NAME
+efikeygen \- command line tool for generating keys to use for PE image signing
+
+.SH SYNOPSIS
+\fBefikeygen\fR <[--ca | -C] [--self-sign | -S] | [--signer=\fInickname\fR]>
+       [--token=\fItoken\fR | -t \fItoken\fR]
+       [--nickname=\fInickname\fR | -n \fInickname\fR]
+       [--common-name=\fIcommon name\fR | -c \fIcommon name\fR]
+       [--url=\fIurl\fR | -u \fIurl\fR]
+       [--serial=\fIserial\fR | -s \fIserial\fR]
+
+.SH DESCRIPTION
+\fBefikeygen\fR is a command line tool for generating keys and certificates
+to be used with pesign.  These are standard x509 certificates, and can
+potentially be generated with any certificate creation tool.  efikeygen simply
+sets generates keys with sensible options set for a key to be used for PE image
+signing.
+
+.SH OPTIONS
+.TP
+\fB-\-ca\fR
+The certificate being generated is for a CA.
+
+.TP
+\fB-\-self-sign\fR
+The generated certificate is to be self signed.
+
+.TP
+\fB-\-signer\fR=\fInickname\fR
+Nickname of certificate to be used to sign the generated certificate.
+
+.TP
+\fB-\-token\fR=\fItoken\fR
+Use the specified NSS token's certificate database.
+
+.TP
+\fB-\-nickname\fR=\fInickname\fR
+The nickname to use for the generated certificate.
+
+.TP
+\fB-\-common\-name\fR=\fIcommon-name\fR
+The x509 Common Name for the generated certificate.  This should be in rfc2253
+syntax, i.e. "CN=John Doe,OU=editing,O=New York Times,L=New York,ST=NY,C=US"
+
+.TP
+\fB-\-url\fR=\fIurl\fR
+Informational url regarding objects signed with this key.
+
+.TP
+\fB-\-serial\fR=\fIserial number\fR
+Serial number for use with this key.  A certificate is identified by its
+signer and its key, so it's best not to ever re-use this value with the same
+signer.
+
+.SH "SEE ALSO"
+.BR pesign (1)
+
+.SH AUTHORS
+.nf
+Peter Jones
+.fi

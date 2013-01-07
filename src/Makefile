@@ -83,12 +83,14 @@ install :
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(PREFIX)/bin/
 	$(INSTALL) -m 755 pesign $(INSTALLROOT)$(PREFIX)/bin/
 	$(INSTALL) -m 755 client $(INSTALLROOT)$(PREFIX)/bin/pesign-client
+	$(INSTALL) -m 755 efikeygen $(INSTALLROOT)$(PREFIX)/bin/
 	#$(INSTALL) -m 755 peverify $(INSTALLROOT)$(PREFIX)/bin/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -m 644 pesign.popt $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -m 644 pesign.1 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -m 644 pesign-client.1 $(INSTALLROOT)/usr/share/man/man1/
+	$(INSTALL) -m 644 efikeygen.1 $(INSTALLROOT)/usr/share/man/man1/
 	#$(INSTALL) -m 644 peverify.1 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
