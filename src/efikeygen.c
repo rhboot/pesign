@@ -666,7 +666,8 @@ int main(int argc, char *argv[])
 				SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
 				&signature);
 
-	/* XXX PJFIX: output the whole thing into the database */
+	status = PK11_ImportDERCert(slot, &sigder, CK_INVALID_HANDLE, nickname,
+				PR_FALSE);
 
 	NSS_Shutdown();
 	return 0;
