@@ -415,6 +415,7 @@ int main(int argc, char *argv[])
 	char *url = NULL;
 	char *serial_str = NULL;
 	char *issuer = NULL;
+	char *dbdir = "/etc/pki/pesign";
 	unsigned long serial = ULONG_MAX;
 
 	cms_context *cms = NULL;
@@ -422,6 +423,9 @@ int main(int argc, char *argv[])
 	poptContext optCon;
 	struct poptOption options[] = {
 		{NULL, '\0', POPT_ARG_INTL_DOMAIN, "pesign" },
+		/* global nss-ish things */
+		{"dbdir", 'd', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+			&dbdir, 0, "Directory for nss database", "<directory>"},
 		{"ca", 'C', POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN, &is_ca, 1,
 			"Generate a CA certificate", NULL },
 		{"self-sign", 'S', POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
@@ -524,7 +528,7 @@ int main(int argc, char *argv[])
 			liberr(1, "could not allocate cms context");
 	}
 
-	SECStatus status = NSS_InitReadWrite("/etc/pki/pesign");
+	SECStatus status = NSS_InitReadWrite(dbdir);
 	if (status != SECSuccess)
 		nsserr(1, "could not initialize NSS");
 	atexit((void (*)(void))NSS_Shutdown);
