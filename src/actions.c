@@ -373,6 +373,15 @@ generate_sattr_blob(pesign_context *ctx)
 {
 	int rc;
 	SECItem sa;
+	SpcContentInfo ci;
+
+	memset(&ci, '\0', sizeof (ci));
+	rc = generate_spc_content_info(ctx->cms_ctx, &ci);
+	if (rc < 0) {
+		fprintf(stderr, "Could not generate content info: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		exit(1);
+	}
 
 	rc = generate_signed_attributes(ctx->cms_ctx, &sa);
 	if (rc < 0) {
