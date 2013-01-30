@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
 		action |= SET;
 
 	if (ctx.cms_ctx.certname && *ctx.cms_ctx.certname) {
-		rc = find_certificate(&ctx.cms_ctx);
+		rc = find_certificate(&ctx.cms_ctx, 1);
 		if (rc < 0) {
 			fprintf(stderr, "authvar: Could not find certificate "
 				"for \"%s\"\n", ctx.cms_ctx.certname);

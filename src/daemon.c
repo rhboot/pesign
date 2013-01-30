@@ -412,7 +412,7 @@ malformed:
 		tn->value, cn->value);
 	free(buffer);
 
-	int rc = find_certificate(ctx->cms);
+	int rc = find_certificate(ctx->cms, 1);
 	if (rc < 0) {
 		goto finish;
 	}

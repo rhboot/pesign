@@ -558,7 +558,7 @@ int main(int argc, char *argv[])
 	} else if (is_self_signed) {
 		issuer_name = CERT_AsciiToName(cn);
 	} else {
-		rc = find_certificate(cms);
+		rc = find_certificate(cms, 1);
 		if (rc < 0)
 			nsserr(1, "could not find signing certificate "
 				"\"%s:%s\"", cms->tokenname, cms->certname);
@@ -571,7 +571,7 @@ int main(int argc, char *argv[])
 		spubkey = pubkey;
 		sprivkey = privkey;
 	} else {
-		rc = find_certificate(cms);
+		rc = find_certificate(cms, 1);
 		if (rc < 0)
 			exit(1);
 

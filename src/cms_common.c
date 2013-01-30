@@ -292,6 +292,17 @@ is_valid_cert(CERTCertificate *cert, void *data)
 	return SECFailure;
 }
 
+static SECStatus
+is_valid_cert_without_private_key(CERTCertificate *cert, void *data)
+{
+	struct cbdata *cbdata = (struct cbdata *)data;
+	if (cert) {
+		cbdata->cert = cert;
+		return SECSuccess;
+	}
+	return SECFailure;
+}
+
 int
 is_issuer_of(CERTCertificate *c0, CERTCertificate *c1)
 {
@@ -364,7 +375,7 @@ unlock_nss_token(cms_context *cms)
 }
 
 int
-find_certificate(cms_context *cms)
+find_certificate(cms_context *cms, int needs_private_key)
 {
 	if (!cms->certname || !*cms->certname) {
 		cms->log(cms, LOG_ERR, "no certificate name specified");
@@ -433,8 +444,15 @@ find_certificate(cms_context *cms)
 		.pwdata = pwdata,
 	};
 
-	status = PK11_TraverseCertsForNicknameInSlot(&nickname, psle->slot,
-						is_valid_cert, &cbdata);
+	if (needs_private_key) {
+		status = PK11_TraverseCertsForNicknameInSlot(&nickname,
+					psle->slot, is_valid_cert, &cbdata);
+	} else {
+		status = PK11_TraverseCertsForNicknameInSlot(&nickname,
+					psle->slot,
+					is_valid_cert_without_private_key,
+					&cbdata);
+	}
 	if (cbdata.cert == NULL) {
 		save_port_err(
 			CERT_DestroyCertList(certlist);

@@ -614,7 +614,7 @@ main(int argc, char *argv[])
 		 */
 		case IMPORT_RAW_SIGNATURE|IMPORT_SATTRS:
 			check_inputs(ctxp);
-			rc = find_certificate(ctxp->cms_ctx);
+			rc = find_certificate(ctxp->cms_ctx, 0);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
@@ -677,7 +677,7 @@ main(int argc, char *argv[])
 			close_output(ctxp);
 			break;
 		case EXPORT_PUBKEY:
-			rc = find_certificate(ctxp->cms_ctx);
+			rc = find_certificate(ctxp->cms_ctx, 1);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
@@ -688,7 +688,7 @@ main(int argc, char *argv[])
 			export_pubkey(ctxp);
 			break;
 		case EXPORT_CERT:
-			rc = find_certificate(ctxp->cms_ctx);
+			rc = find_certificate(ctxp->cms_ctx, 0);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
@@ -745,7 +745,7 @@ main(int argc, char *argv[])
 			break;
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:
-			rc = find_certificate(ctxp->cms_ctx);
+			rc = find_certificate(ctxp->cms_ctx, 1);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
@@ -761,7 +761,7 @@ main(int argc, char *argv[])
 		/* generate a signature and embed it in the binary */
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
 			check_inputs(ctxp);
-			rc = find_certificate(ctxp->cms_ctx);
+			rc = find_certificate(ctxp->cms_ctx, 1);
 			if (rc < 0) {
 				fprintf(stderr, "pesign: Could not find "
 					"certificate %s\n",
