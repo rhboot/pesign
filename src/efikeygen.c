@@ -45,6 +45,8 @@
 #include <nss3/secoidt.h>
 #include <nss3/pk11pub.h>
 
+#include <libdpe/libdpe.h>
+
 #include "cms_common.h"
 #include "util.h"
 
