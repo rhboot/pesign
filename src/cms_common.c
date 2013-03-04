@@ -592,7 +592,7 @@ find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 	 * in the database, we'll get back what is essentially a template
 	 * that's in NSS's cache waiting to be filled out.  We can't use that,
 	 * it'll just cause CERT_DupCertificate() to segfault. */
-	if (!node || !node->cert || !node->cert->derCert.data
+	if (CERT_LIST_END(node) || !node->cert || !node->cert->derCert.data
 				 || !node->cert->derCert.len
 				 || !node->cert->derIssuer.data
 				 || !node->cert->derIssuer.len) {
