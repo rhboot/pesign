@@ -726,11 +726,19 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			if (ctxp->signum > ctxp->cms_ctx->num_signatures) {
-				fprintf(stderr, "Invalid signature number.\n");
+			if (ctxp->signum < 0 ||
+					ctxp->signum >=
+					ctxp->cms_ctx->num_signatures) {
+				fprintf(stderr, "Invalid signature number %d.  "
+					"Must be between 0 and %d.\n",
+					ctxp->signum,
+					ctxp->cms_ctx->num_signatures - 1);
 				exit(1);
 			}
 			remove_signature(ctxp);
+			finalize_signatures(ctxp->cms_ctx->signatures,
+					ctxp->cms_ctx->num_signatures,
+					ctxp->outpe);
 			close_output(ctxp);
 			break;
 		/* list signatures in the binary */

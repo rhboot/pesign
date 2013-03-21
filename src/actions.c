@@ -421,9 +421,6 @@ remove_signature(pesign_context *p_ctx)
 {
 	cms_context *ctx = p_ctx->cms_ctx;
 
-	if (p_ctx->signum < 0)
-		p_ctx->signum = 0;
-
 	free(ctx->signatures[p_ctx->signum]->data);
 	free(ctx->signatures[p_ctx->signum]);
 	if (p_ctx->signum != ctx->num_signatures - 1)
