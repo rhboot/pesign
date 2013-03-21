@@ -124,6 +124,7 @@ list_signatures(pesign_context *ctx)
 
 		nsigs++;
 		printf("---------------------------------------------\n");
+		printf("certificate address is %p\n", data);
 		printf("Content was%s encrypted.\n",
 			SEC_PKCS7ContentIsEncrypted(cinfo) ? "" : " not");
 		if (SEC_PKCS7ContentIsSigned(cinfo)) {

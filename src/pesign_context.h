@@ -34,6 +34,7 @@ typedef struct {
 	mode_t outmode;
 
 	int force;
+	int verbose;
 
 	char *rawsig;
 	int rawsigfd;

@@ -479,6 +479,8 @@ main(int argc, char *argv[])
 			"run as a daemon process", NULL },
 		{"nofork", 'N', POPT_ARG_VAL, &fork, 0,
 			"don't fork when daemonizing", NULL },
+		{"verbose", 'v', POPT_ARG_VAL, &ctxp->verbose, 1,
+			"be very verbose", NULL },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
