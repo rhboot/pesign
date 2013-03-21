@@ -58,6 +58,9 @@ generate_cert_list(SECItem **signatures, int num_signatures,
 static int
 implant_cert_list(Pe *pe, void *cert_list, size_t cert_list_size)
 {
+	int rc = pe_alloccert(pe, cert_list_size);
+	if (rc < 0)
+		return rc;
 	return pe_populatecert(pe, cert_list, cert_list_size);
 }
 
