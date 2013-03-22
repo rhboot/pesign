@@ -95,6 +95,6 @@ install :
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
 
-.PHONY: all deps clean install
+.PHONY: all deps clean depclean install
 
 include $(TOPDIR)/Make.rules
