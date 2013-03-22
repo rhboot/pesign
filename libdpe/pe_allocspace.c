@@ -86,7 +86,7 @@ pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 	void *new = NULL;
 
 	if (align)
-		align = (pe->maximum_size + size) % align;
+		align = ALIGNMENT_PADDING(pe->maximum_size, align);
 	int extra = size + align;
 
 	int rc = ftruncate(pe->fildes, pe->maximum_size + extra);
@@ -119,7 +119,7 @@ pe_allocspace(Pe *pe, size_t size, uint32_t *offset)
 
 	/* XXX PJFIX TODO: this should try to find space in the already
 	 * mapped regions. */
-	rc = pe_extend_file(pe, size, offset, 0);
+	rc = pe_extend_file(pe, size, offset, 8);
 	if (rc < 0)
 		return -1;
 	return 0;

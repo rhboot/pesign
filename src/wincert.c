@@ -19,6 +19,8 @@
 
 #include "pesign.h"
 
+#define ALIGNMENT_PADDING(address, align) ((align - (address % align)) % align)
+
 struct cert_list_entry {
 	win_certificate wc;
 	uint8_t data[];
@@ -32,6 +34,7 @@ generate_cert_list(SECItem **signatures, int num_signatures,
 	for (int i = 0; i < num_signatures; i++) {
 		cl_size += sizeof (win_certificate);
 		cl_size += signatures[i]->len;
+		cl_size += ALIGNMENT_PADDING(cl_size, 8);
 	}
 
 	uint8_t *data = malloc(cl_size);
@@ -45,16 +48,16 @@ generate_cert_list(SECItem **signatures, int num_signatures,
 		/* pe-coff 8.2 adds some text that says each cert list
 		 * entry is 8-byte aligned, so that means we need to align
 		 * them here. */
-		if ((intptr_t)data % 8 != 0)
-			data = (uint8_t *)((intptr_t)data + (8 - ((intptr_t)data % 8)));
 		struct cert_list_entry *cle = (struct cert_list_entry *)data;
 		cle->wc.length = signatures[i]->len +
+			ALIGNMENT_PADDING(signatures[i]->len, 8) +
 			sizeof (win_certificate);
 		cle->wc.revision = WIN_CERT_REVISION_2_0;
 		cle->wc.cert_type = WIN_CERT_TYPE_PKCS_SIGNED_DATA;
 		memcpy(&cle->data[0], signatures[i]->data,
 					signatures[i]->len);
 		data += sizeof (win_certificate) + signatures[i]->len;
+		data += ALIGNMENT_PADDING(signatures[i]->len, 8);
 	}
 
 	return 0;
@@ -178,11 +181,6 @@ done:
 
 		iter->n += sizeof (*tmpcert) + length;
 
-		/* each cert list entry must be aligned to an 8-byte
-		 * boundary */
-		if (iter->n % 8 != 0)
-			iter->n += 8 - (iter->n % 8);
-
 		return 1;
 	}
 }
@@ -225,8 +223,7 @@ get_reserved_sig_space(cms_context *cms, Pe *pe)
 		ret += cms->signatures[i]->len + sizeof (win_certificate);
 		/* each certificate list entry must be 8-byte aligned,
 		 * so we need to account for that in our space calculation */
-		if (ret % 8 != 0)
-			ret += 8 - (ret % 8);
+		ret += ALIGNMENT_PADDING(ret, 8);
 	}
 	return ret;
 }
@@ -256,13 +253,12 @@ err:
 
 	size_t res = get_reserved_sig_space(cms, pe);
 
-	/* pe-coff 8.2 adds some text that says each cert list entry is
-	 * 8-byte aligned, so that means we need alignment space here. */
-	if (res % 8 != 0)
-		res += 8 - (res % 8);
-
 	ssize_t ret = res + sig.len + sizeof(win_certificate) -
 						available_cert_space(pe);
+
+	/* pe-coff 8.2 adds some text that says each cert list entry is
+	 * 8-byte aligned, so that means we need alignment space here. */
+	ret += ALIGNMENT_PADDING(ret, 8);
 
 	//free(sig.data);
 

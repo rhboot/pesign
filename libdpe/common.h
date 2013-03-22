@@ -31,6 +31,8 @@
 
 #define is_64_bit(pe) ((pe)->flags & IMAGE_FILE_32BIT_MACHINE)
 
+#define ALIGNMENT_PADDING(address, align) ((align - (address % align)) % align)
+
 #define xfree(x) ({if (x) { free(x); x = NULL; }})
 #define xmunmap(addr, size) ({if (addr) { munmap(addr,size); addr = NULL; }})
 
