@@ -428,7 +428,7 @@ malformed:
 		if (rc < 0)
 			goto finish;
 
-		rc = generate_digest(ctx->cms, outpe);
+		rc = generate_digest(ctx->cms, outpe, 1);
 		if (rc < 0) {
 err_attached:
 			pe_end(outpe);
@@ -439,7 +439,7 @@ err_attached:
 		if (sigspace < 0)
 			goto err_attached;
 		allocate_signature_space(outpe, sigspace);
-		rc = generate_digest(ctx->cms, outpe);
+		rc = generate_digest(ctx->cms, outpe, 1);
 		if (rc < 0)
 			goto err_attached;
 		rc = generate_signature(ctx->cms);
@@ -451,7 +451,7 @@ err_attached:
 		pe_end(outpe);
 	} else {
 		ftruncate(outfd, 0);
-		rc = generate_digest(ctx->cms, inpe);
+		rc = generate_digest(ctx->cms, inpe, 1);
 		if (rc < 0) {
 err_detached:
 			ftruncate(outfd, 0);

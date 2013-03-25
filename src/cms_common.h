@@ -134,7 +134,7 @@ extern int generate_spc_link(cms_context *cms, SpcLink *slp,
 extern int generate_spc_string(cms_context *cms, SECItem *ssp, char *str,
 				int len);
 
-extern int generate_digest(cms_context *cms, Pe *pe);
+extern int generate_digest(cms_context *cms, Pe *pe, int padded);
 extern int generate_signature(cms_context *ctx);
 extern int unlock_nss_token(cms_context *ctx);
 extern int find_certificate(cms_context *ctx, int needs_private_key);

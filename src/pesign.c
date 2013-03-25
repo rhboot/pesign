@@ -435,7 +435,8 @@ main(int argc, char *argv[])
 			"force overwriting of output file", NULL },
 		{"sign", 's', POPT_ARG_VAL, &ctxp->sign, 1,
 			"create a new signature", NULL },
-		{"hash", 'h', POPT_ARG_VAL, &ctxp->hash, 1, "hash binary", NULL },
+		{"hash", 'h', POPT_ARG_VAL, &ctxp->hash, 1,
+			"hash binary", NULL },
 		{"digest_type", 'd', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
 			&digest_name, 0, "digest type to use for pe hash" },
 		{"import-signed-certificate", 'm',
@@ -632,7 +633,7 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			generate_digest(ctxp->cms_ctx, ctxp->outpe);
+			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
 			sigspace = calculate_signature_space(ctxp->cms_ctx,
 								ctxp->outpe);
 			allocate_signature_space(ctxp->outpe, sigspace);
@@ -646,7 +647,7 @@ main(int argc, char *argv[])
 		case EXPORT_SATTRS:
 			open_input(ctxp);
 			open_sattr_output(ctxp);
-			generate_digest(ctxp->cms_ctx, ctxp->inpe);
+			generate_digest(ctxp->cms_ctx, ctxp->inpe, 1);
 			generate_sattr_blob(ctxp);
 			close_sattr_output(ctxp);
 			close_input(ctxp);
@@ -750,7 +751,7 @@ main(int argc, char *argv[])
 			break;
 		case GENERATE_DIGEST|PRINT_DIGEST:
 			open_input(ctxp);
-			generate_digest(ctxp->cms_ctx, ctxp->inpe);
+			generate_digest(ctxp->cms_ctx, ctxp->inpe, 0);
 			print_digest(ctxp);
 			break;
 		/* generate a signature and save it in a separate file */
@@ -764,7 +765,7 @@ main(int argc, char *argv[])
 			}
 			open_input(ctxp);
 			open_sig_output(ctxp);
-			generate_digest(ctxp->cms_ctx, ctxp->inpe);
+			generate_digest(ctxp->cms_ctx, ctxp->inpe, 1);
 			generate_signature(ctxp->cms_ctx);
 			export_signature(ctxp->cms_ctx, ctxp->outsigfd, ctxp->ascii);
 			break;
@@ -785,11 +786,11 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			generate_digest(ctxp->cms_ctx, ctxp->outpe);
+			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
 			sigspace = calculate_signature_space(ctxp->cms_ctx,
 							     ctxp->outpe);
 			allocate_signature_space(ctxp->outpe, sigspace);
-			generate_digest(ctxp->cms_ctx, ctxp->outpe);
+			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
 			generate_signature(ctxp->cms_ctx);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
 			finalize_signatures(ctxp->cms_ctx->signatures,

@@ -1035,7 +1035,7 @@ err:
 #endif
 
 int
-generate_digest(cms_context *cms, Pe *pe)
+generate_digest(cms_context *cms, Pe *pe, int padded)
 {
 	void *hash_base;
 	size_t hash_size;
@@ -1180,7 +1180,7 @@ generate_digest(cms_context *cms, Pe *pe)
 				"trailing data", __FILE__, __func__, __LINE__);
 			goto error_shdrs;
 		}
-		if (hash_size % 16 != 0) {
+		if (hash_size % 16 != 0 && padded) {
 			size_t tmp_size = hash_size + (16 - (hash_size % 16));
 			uint8_t tmp_array[tmp_size];
 			memset(tmp_array, '\0', tmp_size);
