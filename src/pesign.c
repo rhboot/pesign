@@ -404,6 +404,7 @@ main(int argc, char *argv[])
 	int remove = 0;
 	int daemon = 0;
 	int fork = 1;
+	int padding = 0;
 
 	char *digest_name = "sha256";
 	char *tokenname = "NSS Certificate DB";
@@ -482,6 +483,8 @@ main(int argc, char *argv[])
 			"don't fork when daemonizing", NULL },
 		{"verbose", 'v', POPT_ARG_VAL, &ctxp->verbose, 1,
 			"be very verbose", NULL },
+		{"padding", 'P', POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
+			&padding, 1, "pad data section", NULL },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
@@ -751,7 +754,7 @@ main(int argc, char *argv[])
 			break;
 		case GENERATE_DIGEST|PRINT_DIGEST:
 			open_input(ctxp);
-			generate_digest(ctxp->cms_ctx, ctxp->inpe, 0);
+			generate_digest(ctxp->cms_ctx, ctxp->inpe, padding);
 			print_digest(ctxp);
 			break;
 		/* generate a signature and save it in a separate file */
