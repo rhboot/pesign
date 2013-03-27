@@ -1180,8 +1180,9 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 				"trailing data", __FILE__, __func__, __LINE__);
 			goto error_shdrs;
 		}
-		if (hash_size % 16 != 0 && padded) {
-			size_t tmp_size = hash_size + (16 - (hash_size % 16));
+		if (hash_size % 8 != 0 && padded) {
+			size_t tmp_size = hash_size +
+					  ALIGNMENT_PADDING(hash_size, 8);
 			uint8_t tmp_array[tmp_size];
 			memset(tmp_array, '\0', tmp_size);
 			memcpy(tmp_array, hash_base, hash_size);

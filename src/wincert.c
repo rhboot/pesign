@@ -19,8 +19,6 @@
 
 #include "pesign.h"
 
-#define ALIGNMENT_PADDING(address, align) ((align - (address % align)) % align)
-
 struct cert_list_entry {
 	win_certificate wc;
 	uint8_t data[];

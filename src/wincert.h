@@ -48,5 +48,6 @@ extern int finalize_signatures(SECItem **sigs, int num_sigs, Pe *pe);
 extern size_t get_reserved_sig_space(cms_context *cms, Pe *pe);
 extern ssize_t calculate_signature_overhead(ssize_t size);
 
+#define ALIGNMENT_PADDING(address, align) ((align - (address % align)) % align)
 
 #endif /* PESIGN_WINCERT_H */

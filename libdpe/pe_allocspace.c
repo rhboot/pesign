@@ -119,7 +119,7 @@ pe_allocspace(Pe *pe, size_t size, uint32_t *offset)
 
 	/* XXX PJFIX TODO: this should try to find space in the already
 	 * mapped regions. */
-	rc = pe_extend_file(pe, size, offset, 16);
+	rc = pe_extend_file(pe, size, offset, 8);
 	if (rc < 0)
 		return -1;
 	return 0;
