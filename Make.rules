@@ -2,7 +2,7 @@
 	$(AR) -cvqs $@ $^
 
 % : %.o
-	$(CC) $(CCLDFLAGS) -o $@ $^ $(foreach lib,$(LIBS),-l$(lib)) $(foreach pklib,$(PKLIBS), $(shell pkg-config --libs-only-l --libs-only-other $(pklib)))
+	$(CC) $(CCLDFLAGS) -o $@ $^ $(foreach lib,$(LIBS),-l$(lib)) $(foreach pklib,$(PKLIBS), $(shell pkg-config --libs-only-l --libs-only-other $(pklib))) -lpthread
 
 %.so : 
 	$(CC) $(INCDIR) $(CFLAGS) -Wl,-soname,$(SONAME) $(CCLDFLAGS) $^ -o $@

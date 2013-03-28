@@ -24,14 +24,14 @@
 
 #include "pesign.h"
 
-#include <nss3/seccomon.h>
-#include <nss3/secitem.h>
-#include <nss3/secport.h>
-#include <nss3/pk11pub.h>
+#include <seccomon.h>
+#include <secitem.h>
+#include <secport.h>
+#include <pk11pub.h>
 
-#include <nspr4/prtypes.h>
-#include <nspr4/prerror.h>
-#include <nspr4/prprf.h>
+#include <prtypes.h>
+#include <prerror.h>
+#include <prprf.h>
 
 static void echoOff(int fd)
 {

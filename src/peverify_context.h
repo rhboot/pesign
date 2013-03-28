@@ -19,8 +19,8 @@
 #ifndef PEVERIFY_CONTEXT_H
 #define PEVERIFY_CONTEXT_H 1
 
-#include <nss3/cert.h>
-#include <nss3/secpkcs7.h>
+#include <cert.h>
+#include <secpkcs7.h>
 
 enum {
 	PEVERIFY_C_ALLOCATED = 1,

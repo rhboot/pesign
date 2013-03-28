@@ -20,8 +20,8 @@
 #define CMS_COMMON_H 1
 
 #include <errno.h>
-#include <nss3/cert.h>
-#include <nss3/secpkcs7.h>
+#include <cert.h>
+#include <secpkcs7.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <syslog.h>

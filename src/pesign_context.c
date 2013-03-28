@@ -21,8 +21,8 @@
 
 #include "pesign.h"
 
-#include <nss3/nss.h>
-#include <nss3/secitem.h>
+#include <nss.h>
+#include <secitem.h>
 
 int
 pesign_context_new(pesign_context **ctx)

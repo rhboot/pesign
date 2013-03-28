@@ -19,9 +19,9 @@
 #ifndef CONTENT_INFO_H
 #define CONTENT_INFO_H 1
 
-#include <nss3/secder.h>
-#include <nss3/secoid.h>
-#include <nss3/secasn1.h>
+#include <secder.h>
+#include <secoid.h>
+#include <secasn1.h>
 
 #include <stdint.h>
 

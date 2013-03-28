@@ -20,10 +20,10 @@
 #include <stdint.h>
 #include <syslog.h>
 
-#include <nspr4/prerror.h>
-#include <nss3/seccomon.h>
-#include <nss3/secitem.h>
-#include <nss3/secoid.h>
+#include <prerror.h>
+#include <seccomon.h>
+#include <secitem.h>
+#include <secoid.h>
 
 #include "pesign.h"
 

@@ -22,9 +22,9 @@
 #include <stddef.h>
 #include <syslog.h>
 
-#include <nspr4/prerror.h>
-#include <nss3/cms.h>
-#include <nss3/pk11pub.h>
+#include <prerror.h>
+#include <cms.h>
+#include <pk11pub.h>
 
 #include "content_info_priv.h"
 

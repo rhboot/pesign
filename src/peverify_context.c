@@ -22,8 +22,8 @@
 
 #include "peverify.h"
 
-#include <nss3/nss.h>
-#include <nss3/secitem.h>
+#include <nss.h>
+#include <secitem.h>
 
 int
 peverify_context_new(peverify_context **ctx)

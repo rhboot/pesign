@@ -33,8 +33,8 @@
 
 #include "pesign.h"
 
-#include <nspr4/prerror.h>
-#include <nss3/nss.h>
+#include <prerror.h>
+#include <nss.h>
 
 static int should_exit = 0;
 

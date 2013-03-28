@@ -29,15 +29,15 @@
 
 #include "pesign.h"
 
-#include <nspr4/prerror.h>
-#include <nss3/nss.h>
-#include <nss3/secport.h>
-#include <nss3/secpkcs7.h>
-#include <nss3/secder.h>
-#include <nss3/keyhi.h>
-#include <nss3/base64.h>
-#include <nss3/pk11pub.h>
-#include <nss3/secerr.h>
+#include <prerror.h>
+#include <nss.h>
+#include <secport.h>
+#include <secpkcs7.h>
+#include <secder.h>
+#include <keyhi.h>
+#include <base64.h>
+#include <pk11pub.h>
+#include <secerr.h>
 
 struct digest_param {
 	char *name;

@@ -19,8 +19,8 @@
 #ifndef PESIGN_CONTEXT_H
 #define PESIGN_CONTEXT_H 1
 
-#include <nss3/cert.h>
-#include <nss3/secpkcs7.h>
+#include <cert.h>
+#include <secpkcs7.h>
 
 enum {
 	PESIGN_C_ALLOCATED = 1,

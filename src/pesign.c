@@ -24,13 +24,13 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <nss3/nss.h>
+#include <nss.h>
 
 #include <popt.h>
 
-#include <nspr4/prerror.h>
-#include <nss3/cert.h>
-#include <nss3/pkcs7t.h>
+#include <prerror.h>
+#include <cert.h>
+#include <pkcs7t.h>
 
 #include "pesign.h"
 

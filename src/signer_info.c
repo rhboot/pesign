@@ -24,11 +24,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <nspr4/prerror.h>
-#include <nss3/cms.h>
-#include <nss3/cryptohi.h>
-#include <nss3/keyhi.h>
-#include <nss3/pk11pub.h>
+#include <prerror.h>
+#include <cms.h>
+#include <cryptohi.h>
+#include <keyhi.h>
+#include <pk11pub.h>
 
 SEC_ASN1Template AttributeTemplate[] = {
 	{

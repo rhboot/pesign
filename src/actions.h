@@ -19,8 +19,8 @@
 #ifndef PESIGN_CRYPTO_H
 #define PESIGN_CRYPTO_H 1
 
-#include <nss3/cert.h>
-#include <nss3/secpkcs7.h>
+#include <cert.h>
+#include <secpkcs7.h>
 
 #include "wincert.h"
 

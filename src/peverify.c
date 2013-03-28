@@ -27,8 +27,8 @@
 
 #include <popt.h>
 
-#include <nss3/cert.h>
-#include <nss3/pkcs7t.h>
+#include <cert.h>
+#include <pkcs7t.h>
 
 #include "peverify.h"
 

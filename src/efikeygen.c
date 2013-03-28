@@ -29,21 +29,21 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <nspr4/prtypes.h>
-#include <nspr4/prerror.h>
-#include <nspr4/prprf.h>
+#include <prtypes.h>
+#include <prerror.h>
+#include <prprf.h>
 
-#include <nss3/nss.h>
-#include <nss3/base64.h>
-#include <nss3/cert.h>
-#include <nss3/cryptohi.h>
-#include <nss3/keyhi.h>
-#include <nss3/secder.h>
-#include <nss3/secerr.h>
-#include <nss3/secport.h>
-#include <nss3/secpkcs7.h>
-#include <nss3/secoidt.h>
-#include <nss3/pk11pub.h>
+#include <nss.h>
+#include <base64.h>
+#include <cert.h>
+#include <cryptohi.h>
+#include <keyhi.h>
+#include <secder.h>
+#include <secerr.h>
+#include <secport.h>
+#include <secpkcs7.h>
+#include <secoidt.h>
+#include <pk11pub.h>
 
 #include <libdpe/libdpe.h>
 

@@ -22,8 +22,8 @@
 
 #include "pesign.h"
 
-#include <nspr4/prerror.h>
-#include <nss3/nss.h>
+#include <prerror.h>
+#include <nss.h>
 
 static int
 generate_algorithm_id_list(cms_context *cms, SECAlgorithmID ***algorithm_list_p)
