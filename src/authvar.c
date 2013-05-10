@@ -26,14 +26,12 @@
 #define GENERATE_APPEND		0x01
 #define GENERATE_CLEAR		0x02
 #define GENERATE_SET		0x04
-
+#define SIGN			0x08
 #define IMPORT			0x10
 #define EXPORT			0x20
 #define SET			0x40
 
-#define SIGN			0x100
-
-#define FLAG_LIST_END		0x1000
+#define FLAG_LIST_END		0x80
 
 static struct {
 	int flag;
@@ -42,10 +40,10 @@ static struct {
 	{GENERATE_APPEND, "append" },
 	{GENERATE_CLEAR, "clear" },
 	{GENERATE_SET, "set" },
+	{SIGN, "sign" },
 	{IMPORT, "import" },
 	{EXPORT, "export" },
 	{SET, "set_firmware" },
-	{SIGN, "sign" },
 	{FLAG_LIST_END, NULL },
 };
 
