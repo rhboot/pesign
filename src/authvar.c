@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Red Hat, Inc.
+ * Copyright 2012-2013 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -74,6 +74,15 @@ check_value(authvar_context *ctx, int needed)
 			(!ctx->valuefile || !*ctx->valuefile)) {
 		if (needed)
 			fprintf(stderr, "authvar: no value specified.\n");
+		else
+			fprintf(stderr,
+				"authvar: command does not take a value.\n");
+		exit(1);
+	}
+	if (ctx->value && *ctx->value && ctx->valuefile && *ctx->valuefile) {
+		if (needed)
+			fprintf(stderr, "authvar: --value and --valuefile "
+				"cannot be used together.\n");
 		else
 			fprintf(stderr,
 				"authvar: command does not take a value.\n");
