@@ -525,7 +525,7 @@ main(int argc, char *argv[])
 
 	poptFreeContext(optCon);
 
-	int sd = connect_to_server();
+	int sd = -1;
 
 	switch (action) {
 	case UNLOCK_TOKEN:
@@ -539,10 +539,12 @@ main(int argc, char *argv[])
 					"specified");
 			exit(1);
 		}
+		sd = connect_to_server();
 		unlock_token(sd, tokenname, tokenpin);
 		free(tokenpin);
 		break;
 	case KILL_DAEMON:
+		sd = connect_to_server();
 		send_kill_daemon(sd);
 		break;
 	case SIGN_BINARY:
@@ -561,6 +563,7 @@ main(int argc, char *argv[])
 				"spefified\n");
 			exit(1);
 		}
+		sd = connect_to_server();
 		sign(sd, infile, outfile, tokenname, certname, attached);
 		break;
 	default:
