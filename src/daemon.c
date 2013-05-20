@@ -570,6 +570,15 @@ handle_event(context *ctx, struct pollfd *pollfd)
 	if (n == 0)
 		return n;
 
+	if (n < sizeof (pm)) {
+		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
+			"got message with invalid size %zu", n);
+		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
+			"possible exploit attempt.  closing.");
+		close(pollfd->fd);
+		return -1;
+	}
+
 	if (pm.version != PESIGND_VERSION) {
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
 			"got version %d, expected version %d",
