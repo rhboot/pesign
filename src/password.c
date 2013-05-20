@@ -109,19 +109,20 @@ SECU_GetPasswordString(void *arg, char *prompt)
     /* open terminal */
     input = fopen(consoleName, "r");
     if (input == NULL) {
-	fprintf(stderr, "Error opening input terminal for read\n");
+	fprintf(stderr, "Error opening input terminal %s for read\n",
+		consoleName);
 	return NULL;
     }
 
     output = fopen(consoleName, "w");
     if (output == NULL) {
 	fclose(input);
-	fprintf(stderr, "Error opening output terminal for write\n");
+	fprintf(stderr, "Error opening output terminal %s for write\n",
+		consoleName);
 	return NULL;
     }
 
     p = SEC_GetPassword (input, output, prompt, SEC_BlindCheckPassword);
-        
 
     fclose(input);
     fclose(output);
