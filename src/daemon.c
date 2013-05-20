@@ -565,6 +565,11 @@ handle_event(context *ctx, struct pollfd *pollfd)
 		return n;
 	}
 
+	/* if recvmsg returned 0, we're not going to get any valid data. */
+	/* This *probably* means we were hung up on. */
+	if (n == 0)
+		return n;
+
 	if (pm.version != PESIGND_VERSION) {
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
 			"got version %d, expected version %d",
