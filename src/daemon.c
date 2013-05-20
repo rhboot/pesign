@@ -676,7 +676,6 @@ shutdown:
 			pollfds[nsockets-1].revents = pollfds[0].revents;
 		}
 		for (int i = 1; i < nsockets; i++) {
-		new_poll_result:
 			if (pollfds[i].revents & (POLLHUP|POLLNVAL)) {
 				close(pollfds[i].fd);
 				if (i == nsockets-1) {
@@ -691,7 +690,8 @@ shutdown:
 						pollfds[j].revents;
 				}
 				nsockets--;
-				goto new_poll_result;
+				i--;
+				continue;
 			}
 
 			if (pollfds[i].revents & (POLLIN|POLLPRI))
