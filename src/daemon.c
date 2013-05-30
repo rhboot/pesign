@@ -756,9 +756,6 @@ set_up_socket(context *ctx)
 		.sun_path = SOCKPATH,
 	};
 
-	/* unlink this before creation just in case there's a stale one. */
-	unlink(SOCKPATH);
-
 	rc = bind(sd, &addr_un, sizeof(addr_un));
 	if (rc < 0) {
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
