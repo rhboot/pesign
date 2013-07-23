@@ -483,7 +483,7 @@ main(int argc, char *argv[])
 			"don't fork when daemonizing", NULL },
 		{"verbose", 'v', POPT_ARG_VAL, &ctxp->verbose, 1,
 			"be very verbose", NULL },
-		{"padding", 'P', POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
+		{"padding", 'P', POPT_ARG_VAL,
 			&padding, 1, "pad data section", NULL },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
