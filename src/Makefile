@@ -10,7 +10,7 @@ LDFLAGS =
 CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --libs-only-L $(pklib)))
 CFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib))) -Werror
 
-TARGETS = pesign authvar client efisiglist efikeygen
+TARGETS = pesign authvar client efisiglist efikeygen peverify
 
 all : $(TARGETS)
 
