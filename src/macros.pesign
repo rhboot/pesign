@@ -12,12 +12,21 @@
 %_pesign /usr/bin/pesign
 %_pesign_client /usr/bin/pesign-client
 
-%pesign(i:o:C:e:s) \
+%pesign(i:o:C:e:c:s) \
   if [ -x %{_pesign} -a "%{_target_cpu}" == "x86_64" ]; then \
     if [ -e /var/run/pesign/socket ]; then \
       %{_pesign_client} -t "OpenSC Card (Fedora Signer)" \\\
       			-c "/CN=Fedora Secure Boot Signer" \\\
 			%{-i} %{-o} %{-e} %{-s} %{-C} \
+    elif [ -e /etc/rhel-release ]; then					\
+      mkdir nss								\
+      certutil -d nss -N						\
+      certutil -A -n "ca" -t "CT,C," -i %{-c*}.crt -a -d nss		\
+      certutil -A -n %{-c*} -t ",c," -i %{-c*}.crt -a -d nss		\
+      %{_pesign} %{-i} -E sattrs.der --certdir nss			\
+      rpm-sign --key "%{-c*}" --rsasign sattrs.der			\
+      %{_pesign} -R sattrs.der.sig -I sattrs.der %{-i}			\\\
+                 --certdir nss %{-c} %{-o}				\
     else \
       %{_pesign} %{__pesign_token} %{__pesign_cert} \\\
       		 %{-i} %{-o} %{-e} %{-s} %{-C} \
