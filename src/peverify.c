@@ -55,8 +55,8 @@ open_input(peverify_context *ctx)
 		exit(1);
 	}
 
-	int rc = parse_signatures(&ctx->cms_ctx->signatures,
-					&ctx->cms_ctx->num_signatures,
+	int rc = parse_signatures(&ctx->cms_ctx.signatures,
+					&ctx->cms_ctx.num_signatures,
 					ctx->inpe);
 	if (rc < 0) {
 		fprintf(stderr, "pesign: could not parse signature list in "
@@ -99,7 +99,7 @@ check_signature(peverify_context *ctx)
 
 	cert_iter iter;
 
-	generate_digest(&ctx->cms_ctx, ctx->inpe);
+	generate_digest(&ctx->cms_ctx, ctx->inpe, 1);
 	
 	if (check_db_hash(DBX, ctx) == FOUND)
 		return -1;
@@ -143,6 +143,27 @@ err:
 	return -1;
 }
 
+void
+callback(poptContext con, enum poptCallbackReason reason,
+	 const struct poptOption *opt,
+	 const char *arg, const void *data)
+{
+	peverify_context *ctx = (peverify_context *)data;
+	int rc = 0;
+	if (!opt)
+		return;
+	if (opt->shortName == 'D') {
+		rc = add_cert_db(ctx, arg);
+	} else if (opt->shortName == 'X') {
+		rc = add_cert_dbx(ctx, arg);
+	}
+	if (rc != 0) {
+		fprintf(stderr, "Could not add %s from file \"%s\": %m\n",
+			opt->shortName == 'D' ? "DB" : "DBX", arg);
+		exit(1);
+	}
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -152,14 +173,19 @@ main(int argc, char *argv[])
 
 	char *dbfile = NULL;
 	char *dbxfile = NULL;
+	int use_system_dbs = 1;
 
 	poptContext optCon;
 	struct poptOption options[] = {
+		{"dbfile", 'D', POPT_ARG_CALLBACK|POPT_CBFLAG_POST, (void *)callback, 0, (void *)ctxp, NULL },
 		{NULL, '\0', POPT_ARG_INTL_DOMAIN, "pesign" },
 		{"in", 'i', POPT_ARG_STRING, &ctx.infile, 0,
 			"specify input file", "<infile>"},
 		{"quiet", 'q', POPT_BIT_SET, &ctx.quiet, 1,
 			"return only; no text output.", NULL },
+		{"no-system-db", 'n', POPT_ARG_INT, &use_system_dbs, 0,
+			"inhibit the use of DB and DBX from the running system",
+			NULL },
 		{"dbfile", 'D', POPT_ARG_STRING, &dbfile, 0,
 			"use file for allowed certificate list", "<dbfile>" },
 		{"dbxfile", 'X', POPT_ARG_STRING, &dbxfile, 0,
@@ -198,7 +224,7 @@ main(int argc, char *argv[])
 	check_inputs(ctxp);
 	open_input(ctxp);
 
-	init_cert_db(ctxp, dbfile, dbxfile);
+	init_cert_db(ctxp, use_system_dbs);
 
 	rc = check_signature(ctxp);
 

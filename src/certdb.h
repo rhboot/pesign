@@ -45,6 +45,8 @@ extern db_status check_db_hash(db_specifier which, peverify_context *ctx);
 extern db_status check_db_cert(db_specifier which, peverify_context *ctx,
 				void *data, ssize_t datalen);
 
-extern void init_cert_db(peverify_context *ctx, char *dbfile, char *dbxfile);
+extern void init_cert_db(peverify_context *ctx, int use_system_dbs);
+extern int add_cert_db(peverify_context *ctx, const char *filename);
+extern int add_cert_dbx(peverify_context *ctx, const char *filename);
 
 #endif /* CERTDB_H */

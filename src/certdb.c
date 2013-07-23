@@ -25,8 +25,8 @@
 
 #include "peverify.h"
 
-int
-add_db_file(peverify_context *ctx, db_specifier which, char *dbfile)
+static int
+add_db_file(peverify_context *ctx, db_specifier which, const char *dbfile)
 {
 	dblist *db = calloc(1, sizeof (dblist));
 	
@@ -63,56 +63,54 @@ add_db_file(peverify_context *ctx, db_specifier which, char *dbfile)
 	return 0;
 }
 
+int
+add_cert_db(peverify_context *ctx, const char *filename)
+{
+	return add_db_file(ctx, DB, filename);
+}
+
+int
+add_cert_dbx(peverify_context *ctx, const char *filename)
+{
+	return add_db_file(ctx, DBX, filename);
+}
+
 #define DB_PATH "/sys/firmware/efi/vars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f/data"
 #define MOK_PATH "/sys/firmware/efi/vars/fixmefixmefixme/data"
 #define DBX_PATH "/sys/firmware/efi/vars/dbx-d719b2cb-3d3a-4596-a3bc-dad00e67656f/data"
 
 void
-init_cert_db(peverify_context *ctx, char *dbfile, char *dbxfile)
+init_cert_db(peverify_context *ctx, int use_system_dbs)
 {
-	int rc;
-	if (dbfile) {
-		rc = add_db_file(ctx, DB, dbfile);
-		if (rc < 0) {
-			fprintf(stderr, "peverify: Could not add key database "
-				"\"%s\": %m\n", dbfile);
-			exit(1);
-		}
-	} else {
-		rc = add_db_file(ctx, DB, DB_PATH);
-		if (rc < 0 && errno != ENOENT) {
-			fprintf(stderr, "peverify: Could not add key database "
-				"\"%s\": %m\n", DB_PATH);
-			exit(1);
-		}
+	int rc = 0;
 
-		rc = add_db_file(ctx, DB, MOK_PATH);
-		if (rc < 0 && errno != ENOENT) {
-			fprintf(stderr, "peverify: Could not add key database "
-				"\"%s\": %m\n", DB_PATH);
-			exit(1);
-		}
+	if (!use_system_dbs)
+		return;
 
-		if (ctx->db == NULL) {
-			fprintf(stderr, "peverify: warning: "
-				"No key database available\n");
-		}
+	rc = add_db_file(ctx, DB, DB_PATH);
+	if (rc < 0 && errno != ENOENT) {
+		fprintf(stderr, "peverify: Could not add key database "
+			"\"%s\": %m\n", DB_PATH);
+		exit(1);
 	}
 
-	if (dbxfile) {
-		rc = add_db_file(ctx, DBX, dbxfile);
-		if (rc < 0) {
-			fprintf(stderr, "peverify: Could not add revocation "
-				"database \"%s\": %m\n", dbxfile);
-			exit(1);
-		}
-	} else {
-		rc = add_db_file(ctx, DBX, DBX_PATH);
-		if (rc < 0 && errno != ENOENT) {
-			fprintf(stderr, "peverify: Could not add revocation "
-				"database \"%s\": %m\n", DBX_PATH);
-			exit(1);
-		}
+	rc = add_db_file(ctx, DB, MOK_PATH);
+	if (rc < 0 && errno != ENOENT) {
+		fprintf(stderr, "peverify: Could not add key database "
+			"\"%s\": %m\n", DB_PATH);
+		exit(1);
+	}
+
+	if (ctx->db == NULL) {
+		fprintf(stderr, "peverify: warning: "
+			"No key database available\n");
+	}
+
+	rc = add_db_file(ctx, DBX, DBX_PATH);
+	if (rc < 0 && errno != ENOENT) {
+		fprintf(stderr, "peverify: Could not add revocation "
+			"database \"%s\": %m\n", DBX_PATH);
+		exit(1);
 	}
 }
 
@@ -120,7 +118,7 @@ typedef db_status (*checkfn)(peverify_context *ctx, void *sigdata,
 			     efi_guid_t *sigtype);
 
 static db_status
-check_db(db_specifier which, peverify_context *ctx, checkfn *check)
+check_db(db_specifier which, peverify_context *ctx, checkfn check)
 {
 	dblist *dbl = which == DB ? ctx->db : ctx->dbx;
 	db_status found = NOT_FOUND;
@@ -142,7 +140,7 @@ check_db(db_specifier which, peverify_context *ctx, checkfn *check)
 			for (int i = 0; i < certcount; i++) {
 				found = check(ctx,
 					      cert->SignatureData,
-					      certlist->SignatureType);
+					      &certlist->SignatureType);
 				if (found == FOUND)
 					return FOUND;
 			}
@@ -155,7 +153,7 @@ check_db(db_specifier which, peverify_context *ctx, checkfn *check)
 static db_status
 check_hash(peverify_context *ctx, void *sigdata, efi_guid_t *sigtype)
 {
-	
+	return NOT_FOUND;
 }
 
 db_status
@@ -167,11 +165,11 @@ check_db_hash(db_specifier which, peverify_context *ctx)
 static db_status
 check_cert(peverify_context *ctx, void *sigdata, efi_guid_t *sigtype)
 {
-
+	return NOT_FOUND;
 }
 
 db_status
-check_db_cert(db_specifier which, peverify_context *ctx)
+check_db_cert(db_specifier which, peverify_context *ctx, void *data, ssize_t datalen)
 {
 	return check_db(which, ctx, check_cert);
 }
