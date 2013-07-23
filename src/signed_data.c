@@ -101,7 +101,7 @@ generate_certificate_list(cms_context *cms, SECItem ***certificate_list_p)
 			return -1;
 		}
 
-		if (signer) {
+		if (signer && signer->derCert.len && signer->derCert.data) {
 			if (signer->derCert.len != cms->cert->derCert.len ||
 					memcmp(signer->derCert.data,
 						cms->cert->derCert.data,
