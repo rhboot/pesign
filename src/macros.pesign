@@ -12,21 +12,31 @@
 %_pesign /usr/bin/pesign
 %_pesign_client /usr/bin/pesign-client
 
-%pesign(i:o:C:e:c:s)							\
+# -i <input filename>
+# -o <output filename>
+# -C <output cert filename>
+# -e <output sattr filename>
+# -c <input certificate filename>	# rhel only
+# -n <input certificate name>		# rhel only
+# -a <input ca cert filename>		# rhel only
+# -s 					# perform signing
+%pesign(i:o:C:e:c:n:a:s)						\
   if [ -x %{_pesign} -a "%{_target_cpu}" == "x86_64" ]; then		\
     if [ -e /var/run/pesign/socket ]; then				\
       %{_pesign_client} -t "OpenSC Card (Fedora Signer)"		\\\
                         -c "/CN=Fedora Secure Boot Signer"		\\\
                         %{-i} %{-o} %{-e} %{-s} %{-C}			\
     elif [ -e /etc/rhel-release ]; then					\
-      mkdir nss								\
-      certutil -d nss -N						\
-      certutil -A -n "ca" -t "CT,C," -i %{-c*}.crt -a -d nss		\
-      certutil -A -n %{-c*} -t ",c," -i %{-c*}.crt -a -d nss		\
-      %{_pesign} %{-i} -E sattrs.der --certdir nss			\
-      rpm-sign --key "%{-c*}" --rsasign sattrs.der			\
-      %{_pesign} -R sattrs.der.sig -I sattrs.der %{-i}			\\\
-                 --certdir nss %{-c} %{-o}				\
+      nss=$(mktemp -p $PWD -d)						\
+      certutil -d ${nss} -N						\
+      certutil -A -n "ca" -t "CT,C," -i %{-a*} -a -d ${nss}		\
+      certutil -A -n "signer" -t ",c," -i %{-c*} -a -d ${nss}		\
+      sattrs=$(mktemp -p $PWD --suffix=.der)				\
+      %{_pesign} %{-i} -E ${sattrs} --certdir ${nss}			\
+      rpm-sign --key "%{-n*}" --rsasign ${sattrs}			\
+      %{_pesign} -R ${sattrs}.sig -I ${sattrs} %{-i}			\\\
+                 --certdir ${nss} -c signer %{-o}			\
+      rm -rf ${sattrs} ${sattrs}.sig ${nss}				\
     else								\
       %{_pesign} %{__pesign_token} %{__pesign_cert}			\\\
                  %{-i} %{-o} %{-e} %{-s} %{-C}				\
