@@ -22,7 +22,7 @@
 # -s 					# perform signing
 %pesign(i:o:C:e:c:n:a:s)						\
   if [ -x %{_pesign} -a "%{_target_cpu}" == "x86_64" ]; then		\
-    if [ -e /etc/rhel-release ]; then					\
+    if [ "0%{?rhel}" -ge "7" ]; then					\
       nss=$(mktemp -p $PWD -d)						\
       certutil -d ${nss} -N						\
       certutil -A -n "ca" -t "CT,C," -i %{-a*} -a -d ${nss}		\
