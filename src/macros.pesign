@@ -25,8 +25,8 @@
     if [ "0%{?rhel}" -ge "7" ]; then					\
       nss=$(mktemp -p $PWD -d)						\
       certutil -d ${nss} -N						\
-      certutil -A -n "ca" -t "CT,C," -i %{-a*} -a -d ${nss}		\
-      certutil -A -n "signer" -t ",c," -i %{-c*} -a -d ${nss}		\
+      certutil -A -n "ca" -t "CT,C," -i %{-a*} -d ${nss}		\
+      certutil -A -n "signer" -t ",c," -i %{-c*} -d ${nss}		\
       sattrs=$(mktemp -p $PWD --suffix=.der)				\
       %{_pesign} %{-i} -E ${sattrs} --certdir ${nss}			\
       rpm-sign --key "%{-n*}" --rsasign ${sattrs}			\
