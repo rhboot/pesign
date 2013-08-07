@@ -47,5 +47,8 @@
     elif [ -n "%{-i*}" -a -n "%{-e*}" ]; then				\
       touch %{-e*}							\
     fi									\
+  fi									\
+  if [ ! -s %{-o} ]; then						\
+    exit 1								\
   fi ;
 
