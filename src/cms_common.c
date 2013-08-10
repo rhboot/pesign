@@ -38,6 +38,7 @@
 #include <base64.h>
 #include <pk11pub.h>
 #include <secerr.h>
+#include <certt.h>
 
 struct digest_param {
 	char *name;
@@ -592,10 +593,11 @@ find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 	 * in the database, we'll get back what is essentially a template
 	 * that's in NSS's cache waiting to be filled out.  We can't use that,
 	 * it'll just cause CERT_DupCertificate() to segfault. */
-	if (CERT_LIST_END(node) || !node->cert || !node->cert->derCert.data
-				 || !node->cert->derCert.len
-				 || !node->cert->derIssuer.data
-				 || !node->cert->derIssuer.len) {
+	if (CERT_LIST_END(node, certlist)
+			|| !node->cert || !node->cert->derCert.data
+			|| !node->cert->derCert.len
+			|| !node->cert->derIssuer.data
+			|| !node->cert->derIssuer.len) {
 		PK11_DestroySlotListElement(slots, &psle);
 		PK11_FreeSlotList(slots);
 		CERT_DestroyCertList(certlist);
