@@ -49,6 +49,9 @@
     fi									\
   fi									\
   if [ ! -s %{-o} ]; then						\
+    if [ -e "%{-o*}" ]; then						\
+      rm -f %{-o*}							\
+    fi									\
     exit 1								\
   fi ;
 
