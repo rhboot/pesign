@@ -12,7 +12,7 @@ efikeygen \- command line tool for generating keys to use for PE image signing
 
 .SH DESCRIPTION
 \fBefikeygen\fR is a command line tool for generating keys and certificates
-to be used with pesign.  These are standard x509 certificates, and can
+to be used with pesign.  These are standard X.509 certificates, and can
 potentially be generated with any certificate creation tool.  efikeygen simply
 sets generates keys with sensible options set for a key to be used for PE image
 signing.
@@ -40,7 +40,7 @@ The nickname to use for the generated certificate.
 
 .TP
 \fB-\-common\-name\fR=\fIcommon-name\fR
-The x509 Common Name for the generated certificate.  This should be in rfc2253
+The X.509 Common Name for the generated certificate.  This should be in rfc2253
 syntax, i.e. "CN=John Doe,OU=editing,O=New York Times,L=New York,ST=NY,C=US"
 
 .TP
@@ -50,8 +50,8 @@ Informational url regarding objects signed with this key.
 .TP
 \fB-\-serial\fR=\fIserial number\fR
 Serial number for use with this key.  A certificate is identified by its
-signer and its key, so it's best not to ever re-use this value with the same
-signer.
+signer and its serial number,  so it's best not to ever re-use this value
+with the same signer.
 
 .SH "SEE ALSO"
 .BR pesign (1)
