@@ -367,7 +367,7 @@ oom:
 	if (n < sizeof(tn->size)) {
 malformed:
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"unlock-token: invalid data");
+			"handle_signing: invalid data");
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
 			"possible exploit attempt. closing.");
 		close(pollfd->fd);
