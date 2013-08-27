@@ -30,6 +30,7 @@
 #include <sys/un.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <grp.h>
 
 #include "pesign.h"
 
@@ -1000,7 +1001,7 @@ daemonize(cms_context *cms_ctx, char *certdir, int do_fork)
 
 	if (getuid() == 0) {
 		/* process is running as root, drop privileges */
-		if (setgid(ctx.gid) != 0) {
+		if (setgid(ctx.gid) != 0 || setgroups(0, NULL)) {
 			ctx.backup_cms->log(ctx.backup_cms,
 				ctx.priority|LOG_ERR,
 				"unable to drop group privileges: %m");
