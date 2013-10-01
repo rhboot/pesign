@@ -411,6 +411,7 @@ main(int argc, char *argv[])
 	char *origtoken = tokenname;
 	char *certname = NULL;
 	char *certdir = "/etc/pki/pesign";
+	char *signum = NULL;
 
 	rc = pesign_context_new(&ctxp);
 	if (rc < 0) {
@@ -455,7 +456,7 @@ main(int argc, char *argv[])
 		{"import-raw-signature", 'R',
 			POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN, &ctxp->rawsig,
 			0, "import raw signature from file", "<inraw>" },
-		{"signature-number", 'u', POPT_ARG_INT, &ctxp->signum, -1,
+		{"signature-number", 'u', POPT_ARG_STRING, &signum, 0,
 			"specify which signature to operate on","<sig-number>"},
 		{"list-signatures", 'l',
 			POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
@@ -515,6 +516,15 @@ main(int argc, char *argv[])
 	}
 
 	poptFreeContext(optCon);
+
+	if (signum) {
+		errno = 0;
+		ctxp->signum = strtol(signum, NULL, 0);
+		if (errno != 0) {
+			fprintf(stderr, "invalid signature number: %m\n");
+			exit(1);
+		}
+	}
 
 	if (!daemon) {
 		SECStatus status = NSS_Init(certdir);
