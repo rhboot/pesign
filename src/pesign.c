@@ -652,9 +652,6 @@ main(int argc, char *argv[])
 			allocate_signature_space(ctxp->outpe, sigspace);
 			generate_signature(ctxp->cms_ctx);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
-			finalize_signatures(ctxp->cms_ctx->signatures,
-					ctxp->cms_ctx->num_signatures,
-					ctxp->outpe);
 			close_output(ctxp);
 			break;
 		case EXPORT_SATTRS:
@@ -686,9 +683,6 @@ main(int argc, char *argv[])
 			allocate_signature_space(ctxp->outpe, sigspace);
 			check_signature_space(ctxp);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
-			finalize_signatures(ctxp->cms_ctx->signatures,
-					ctxp->cms_ctx->num_signatures,
-					ctxp->outpe);
 			close_sig_input(ctxp);
 			close_output(ctxp);
 			break;
@@ -752,9 +746,6 @@ main(int argc, char *argv[])
 				exit(1);
 			}
 			remove_signature(ctxp);
-			finalize_signatures(ctxp->cms_ctx->signatures,
-					ctxp->cms_ctx->num_signatures,
-					ctxp->outpe);
 			close_output(ctxp);
 			break;
 		/* list signatures in the binary */
@@ -806,9 +797,6 @@ main(int argc, char *argv[])
 			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
 			generate_signature(ctxp->cms_ctx);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
-			finalize_signatures(ctxp->cms_ctx->signatures,
-					ctxp->cms_ctx->num_signatures,
-					ctxp->outpe);
 			close_output(ctxp);
 			break;
 		case DAEMONIZE:
