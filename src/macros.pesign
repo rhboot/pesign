@@ -24,7 +24,8 @@
   if [ -x %{_pesign} -a "%{_target_cpu}" == "x86_64" ]; then		\
     if [ "0%{?rhel}" -ge "7" ]; then					\
       nss=$(mktemp -p $PWD -d)						\
-      certutil -d ${nss} -N						\
+      echo > ${nss}/pwfile						\
+      certutil -N -d ${nss} -f ${nss}/pwfile				\
       certutil -A -n "ca" -t "CT,C," -i %{-a*} -d ${nss}		\
       certutil -A -n "signer" -t ",c," -i %{-c*} -d ${nss}		\
       sattrs=$(mktemp -p $PWD --suffix=.der)				\
