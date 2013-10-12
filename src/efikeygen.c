@@ -172,35 +172,53 @@ add_auth_key_id(cms_context *cms, void *extHandle, SECKEYPublicKey *pubkey)
 
 
 static int
-add_key_usage(cms_context *cms, void *extHandle)
+add_key_usage(cms_context *cms, void *extHandle, int is_ca)
 {
-	uint8_t value[4] = {0,0,0,0};
+	SECCertificateUsage usage;
 	SECItem bitStringValue;
 
-#if 0
-	value[3] = NS_CERT_TYPE_SSL_SERVER |
-		   NS_CERT_TYPE_EMAIL_CA |
-		   NS_CERT_TYPE_OBJECT_SIGNING_CA;
-
-	while (!(value[3] & 0x8)) {
-		value[3] <<= 1;
-		value[2]++;
+	if (is_ca) {
+		usage = KU_KEY_CERT_SIGN |
+			KU_CRL_SIGN |
+			KU_DIGITAL_SIGNATURE;
+	} else {
+		usage = KU_KEY_ENCIPHERMENT |
+			KU_DATA_ENCIPHERMENT |
+			KU_DIGITAL_SIGNATURE;
 	}
-#else
-	value[3] = 0x86;
-	value[2] = 0x01;
-	value[1] = 0x02;
-	value[0] = 0x03;
-#endif
 
-	bitStringValue.data = (unsigned char *)&value;
-	bitStringValue.len = sizeof (value);
+	bitStringValue.data = (unsigned char *)&usage;
+	bitStringValue.len = sizeof (usage);
 
 	SECStatus status;
-	status = CERT_AddExtension(extHandle, SEC_OID_X509_KEY_USAGE,
-					&bitStringValue, PR_TRUE, PR_TRUE);
+	status = CERT_EncodeAndAddBitStrExtension(extHandle,
+				SEC_OID_X509_KEY_USAGE,
+				&bitStringValue, PR_TRUE);
 	if (status != SECSuccess)
 		cmsreterr(-1, cms, "could not encode key usage extension");
+
+	return 0;
+}
+
+static int
+add_cert_type(cms_context *cms, void *extHandle, int is_ca)
+{
+	SECItem bitStringValue;
+	unsigned char type = NS_CERT_TYPE_APP;
+
+	if (is_ca)
+		type |= NS_CERT_TYPE_SSL_CA |
+			NS_CERT_TYPE_EMAIL_CA |
+			NS_CERT_TYPE_OBJECT_SIGNING_CA;
+	bitStringValue.data = (unsigned char *)&type;
+	bitStringValue.len = sizeof (type);
+
+	SECStatus status;
+	status = CERT_EncodeAndAddBitStrExtension(extHandle,
+				SEC_OID_NS_CERT_EXT_CERT_TYPE,
+				&bitStringValue, PR_TRUE);
+	if (status != SECSuccess)
+		cmsreterr(-1, cms, "could not encode certificate type extension");
 
 	return 0;
 }
@@ -294,13 +312,17 @@ add_extensions_to_crq(cms_context *cms, CERTCertificateRequest *crq,
 		if (rc < 0)
 			cmsreterr(-1, cms, "could not generate certificate "
 					"extensions");
-
-		rc = add_key_usage(cms, extHandle);
-		if (rc < 0)
-			cmsreterr(-1, cms, "could not generate certificate extensions");
 	}
 
+	rc = add_key_usage(cms, extHandle, is_ca);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not generate certificate extensions");
+
 	rc = add_extended_key_usage(cms, extHandle);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not generate certificate extensions");
+
+	rc = add_cert_type(cms, extHandle, is_ca);
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not generate certificate extensions");
 
