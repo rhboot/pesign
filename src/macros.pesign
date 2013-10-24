@@ -30,7 +30,7 @@
       certutil -A -n "signer" -t ",c," -i %{-c*} -d ${nss}		\
       sattrs=$(mktemp -p $PWD --suffix=.der)				\
       %{_pesign} %{-i} -E ${sattrs} --certdir ${nss} --force		\
-      rpm-sign --key "%{-n*}" --rsasign ${sattrs}			\
+      rpm-sign --key "%{-n*}" --rsadgstsign ${sattrs}			\
       %{_pesign} -R ${sattrs}.sig -I ${sattrs} %{-i}			\\\
                  --certdir ${nss} -c signer %{-o}			\
       rm -rf ${sattrs} ${sattrs}.sig ${nss}				\
