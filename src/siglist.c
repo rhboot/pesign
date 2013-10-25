@@ -147,6 +147,8 @@ signature_list_add_sig(signature_list *sl, efi_guid_t owner,
 	}
 
 	struct efi_signature_data *sd = calloc(1, sl->SignatureSize);
+	if (!sd)
+		return -1;
 	memcpy(&sd->SignatureOwner, &owner, sizeof (owner));
 	memcpy(sd->SignatureData, sig, sl->SignatureSize -
 						sizeof (efi_guid_t));
