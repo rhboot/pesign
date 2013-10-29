@@ -22,7 +22,7 @@
 # -s 					# perform signing
 %pesign(i:o:C:e:c:n:a:s)						\
   if [ -x %{_pesign} -a "%{_target_cpu}" == "x86_64" ]; then		\
-    if [ "0%{?rhel}" -ge "7" ]; then					\
+    if [ "0%{?rhel}" -ge "7" -a -f /usr/bin/rpm-sign ]; then		\
       nss=$(mktemp -p $PWD -d)						\
       echo > ${nss}/pwfile						\
       certutil -N -d ${nss} -f ${nss}/pwfile				\
