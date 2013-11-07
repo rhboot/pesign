@@ -405,6 +405,7 @@ main(int argc, char *argv[])
 	int daemon = 0;
 	int fork = 1;
 	int padding = 0;
+	int need_db = 0;
 
 	char *digest_name = "sha256";
 	char *tokenname = "NSS Certificate DB";
@@ -526,8 +527,59 @@ main(int argc, char *argv[])
 		}
 	}
 
+	int action = 0;
+	if (daemon)
+		action |= DAEMONIZE;
+
+	if (ctxp->rawsig) {
+		action |= IMPORT_RAW_SIGNATURE;
+		need_db = 1;
+	}
+
+	if (ctxp->insattrs)
+		action |= IMPORT_SATTRS;
+
+	if (ctxp->outsattrs)
+		action |= EXPORT_SATTRS;
+
+	if (ctxp->insig)
+		action |= IMPORT_SIGNATURE;
+
+	if (ctxp->outkey) {
+		action |= EXPORT_PUBKEY;
+		need_db = 1;
+	}
+
+	if (ctxp->outcert) {
+		action |= EXPORT_CERT;
+		need_db = 1;
+	}
+
+	if (ctxp->outsig)
+		action |= EXPORT_SIGNATURE;
+
+	if (remove != 0)
+		action |= REMOVE_SIGNATURE;
+
+	if (list != 0)
+		action |= LIST_SIGNATURES;
+
+	if (ctxp->sign) {
+		action |= GENERATE_SIGNATURE;
+		if (!(action & EXPORT_SIGNATURE))
+			action |= IMPORT_SIGNATURE;
+		need_db = 1;
+	}
+
+	if (ctxp->hash)
+		action |= GENERATE_DIGEST|PRINT_DIGEST;
+
 	if (!daemon) {
-		SECStatus status = NSS_Init(certdir);
+		SECStatus status;
+		if (need_db)
+			status = NSS_Init(certdir);
+		else
+			status = NSS_NoDB_Init(NULL);
 		if (status != SECSuccess) {
 			fprintf(stderr, "Could not initialize nss: %s\n",
 				PORT_ErrorToString(PORT_GetError()));
@@ -571,51 +623,14 @@ main(int argc, char *argv[])
 	if (certname)
 		free(certname);
 
-	int action = 0;
-	if (daemon)
-		action |= DAEMONIZE;
-
-	if (ctxp->rawsig)
-		action |= IMPORT_RAW_SIGNATURE;
-
-	if (ctxp->insattrs)
-		action |= IMPORT_SATTRS;
-
-	if (ctxp->outsattrs)
-		action |= EXPORT_SATTRS;
-
-	if (ctxp->insig)
-		action |= IMPORT_SIGNATURE;
-
-	if (ctxp->outkey)
-		action |= EXPORT_PUBKEY;
-
-	if (ctxp->outcert)
-		action |= EXPORT_CERT;
-
-	if (ctxp->outsig)
-		action |= EXPORT_SIGNATURE;
-
-	if (remove != 0)
-		action |= REMOVE_SIGNATURE;
-
-	if (list != 0)
-		action |= LIST_SIGNATURES;
 
 	if (ctxp->sign) {
-		action |= GENERATE_SIGNATURE;
-		if (!(action & EXPORT_SIGNATURE))
-			action |= IMPORT_SIGNATURE;
-
 		if (!ctxp->cms_ctx->certname) {
 			fprintf(stderr, "pesign: signing requested but no "
 				"certificate nickname provided\n");
 			exit(1);
 		}
 	}
-
-	if (ctxp->hash)
-		action |= GENERATE_DIGEST|PRINT_DIGEST;
 
 	ssize_t sigspace = 0;
 
