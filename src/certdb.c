@@ -144,6 +144,10 @@ check_db(db_specifier which, peverify_context *ctx, checkfn check)
 				if (found == FOUND)
 					return FOUND;
 			}
+
+			dbsize -= certlist->SignatureListSize;
+			certlist = (EFI_SIGNATURE_LIST *)((uint8_t *)certlist +
+			            certlist->SignatureListSize);
 		}
 		dbl = dbl->next;
 	}
