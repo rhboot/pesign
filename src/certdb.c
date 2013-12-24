@@ -75,9 +75,9 @@ add_cert_dbx(peverify_context *ctx, const char *filename)
 	return add_db_file(ctx, DBX, filename);
 }
 
-#define DB_PATH "/sys/firmware/efi/vars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f/data"
-#define MOK_PATH "/sys/firmware/efi/vars/fixmefixmefixme/data"
-#define DBX_PATH "/sys/firmware/efi/vars/dbx-d719b2cb-3d3a-4596-a3bc-dad00e67656f/data"
+#define DB_PATH "/sys/firmware/efi/efivars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f"
+#define MOK_PATH "/sys/firmware/efi/efivars/MokListRT-605dab50-e046-4300-abb6-3dd810dd8b23"
+#define DBX_PATH "/sys/firmware/efi/efivars/dbx-d719b2cb-3d3a-4596-a3bc-dad00e67656f"
 
 void
 init_cert_db(peverify_context *ctx, int use_system_dbs)
@@ -97,7 +97,7 @@ init_cert_db(peverify_context *ctx, int use_system_dbs)
 	rc = add_db_file(ctx, DB, MOK_PATH);
 	if (rc < 0 && errno != ENOENT) {
 		fprintf(stderr, "peverify: Could not add key database "
-			"\"%s\": %m\n", DB_PATH);
+			"\"%s\": %m\n", MOK_PATH);
 		exit(1);
 	}
 
