@@ -24,11 +24,15 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <ftw.h>
+#include <nss.h>
 
 #include <popt.h>
 
+#include <prerror.h>
 #include <cert.h>
 #include <pkcs7t.h>
+#include <pk11pub.h>
 
 #include "peverify.h"
 
@@ -87,7 +91,34 @@ check_inputs(peverify_context *ctx)
 static int
 cert_matches_digest(peverify_context *ctx, void *data, ssize_t datalen)
 {
-	return -1;
+	SECItem sig, *pe_digest, *content;
+	uint8_t *digest;
+	SEC_PKCS7ContentInfo *cinfo = NULL;
+	int ret = -1;
+
+	sig.data = data;
+	sig.len = datalen;
+	sig.type = siBuffer;
+
+	cinfo = SEC_PKCS7DecodeItem(&sig, NULL, NULL, NULL, NULL, NULL,
+				    NULL, NULL);
+
+	if (!SEC_PKCS7ContentIsSigned(cinfo))
+		goto out;
+
+	/* TODO Find out the digest type in spc_content */
+	pe_digest = ctx->cms_ctx->digests[0].pe_digest;
+	content = cinfo->content.signedData->contentInfo.content.data;
+	digest = content->data + content->len - pe_digest->len;
+	if (memcmp(pe_digest->data, digest, pe_digest->len) != 0)
+		goto out;
+
+	ret = 0;
+out:
+	if (cinfo)
+		SEC_PKCS7DestroyContentInfo(cinfo);
+
+	return ret;
 }
 
 static int
@@ -164,6 +195,23 @@ callback(poptContext con, enum poptCallbackReason reason,
 	}
 }
 
+static int
+delete_files(const char *fpath, const struct stat *sb, int typeflag)
+{
+	if (typeflag == FTW_F)
+		remove(fpath);
+
+	return 0;
+}
+
+static void
+remove_certdir(const char *certdir)
+{
+	ftw(certdir, delete_files, 3);
+
+	remove(certdir);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -174,6 +222,10 @@ main(int argc, char *argv[])
 	char *dbfile = NULL;
 	char *dbxfile = NULL;
 	int use_system_dbs = 1;
+
+	char template[] = "/tmp/peverify-XXXXXX";
+	char *certdir = NULL;
+	SECStatus status;
 
 	poptContext optCon;
 	struct poptOption options[] = {
@@ -226,6 +278,14 @@ main(int argc, char *argv[])
 
 	init_cert_db(ctxp, use_system_dbs);
 
+	certdir = mkdtemp(template);
+	status = NSS_InitReadWrite(certdir);
+	if (status != SECSuccess) {
+		fprintf(stderr, "Could not initialize nss: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		exit(1);
+	}
+
 	rc = check_signature(ctxp);
 
 	close_input(ctxp);
@@ -233,5 +293,9 @@ main(int argc, char *argv[])
 		printf("peverify: \"%s\" is %s.\n", ctx.infile,
 			rc >= 0 ? "valid" : "invalid");
 	peverify_context_fini(&ctx);
+
+	NSS_Shutdown();
+	remove_certdir(certdir);
+
 	return (rc < 0);
 }

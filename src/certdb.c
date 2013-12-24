@@ -23,6 +23,12 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <nss.h>
+#include <prerror.h>
+#include <cert.h>
+#include <pkcs7t.h>
+#include <pk11pub.h>
+
 #include "peverify.h"
 
 static int
@@ -123,14 +129,22 @@ init_cert_db(peverify_context *ctx, int use_system_dbs)
 	}
 }
 
-typedef db_status (*checkfn)(peverify_context *ctx, void *sigdata,
-			     efi_guid_t *sigtype);
+typedef db_status (*checkfn)(peverify_context *ctx, SECItem *sig,
+			     efi_guid_t *sigtype, SECItem *pkcs7sig);
 
 static db_status
-check_db(db_specifier which, peverify_context *ctx, checkfn check)
+check_db(db_specifier which, peverify_context *ctx, checkfn check,
+	 void *data, ssize_t datalen)
 {
+	SECItem pkcs7sig, sig;
 	dblist *dbl = which == DB ? ctx->db : ctx->dbx;
 	db_status found = NOT_FOUND;
+
+	pkcs7sig.data = data;
+	pkcs7sig.len = datalen;
+	pkcs7sig.type = siBuffer;
+
+	sig.type = siBuffer;
 
 	while (dbl) {
 		EFI_SIGNATURE_LIST *certlist;
@@ -148,9 +162,10 @@ check_db(db_specifier which, peverify_context *ctx, checkfn check)
 				certlist->SignatureHeaderSize);
 			
 			for (int i = 0; i < certcount; i++) {
-				found = check(ctx,
-					      cert->SignatureData,
-					      &certlist->SignatureType);
+				sig.data = cert->SignatureData;
+				sig.len = certlist->SignatureSize - sizeof(efi_guid_t);
+				found = check(ctx, &sig, &certlist->SignatureType,
+					      &pkcs7sig);
 				if (found == FOUND)
 					return FOUND;
 				cert = (EFI_SIGNATURE_DATA *)((uint8_t *)cert +
@@ -167,7 +182,8 @@ check_db(db_specifier which, peverify_context *ctx, checkfn check)
 }
 
 static db_status
-check_hash(peverify_context *ctx, void *sigdata, efi_guid_t *sigtype)
+check_hash(peverify_context *ctx, SECItem *sig, efi_guid_t *sigtype,
+	   SECItem *pkcs7sig)
 {
 	efi_guid_t efi_sha256 = EFI_CERT_SHA256_GUID;
 	efi_guid_t efi_sha1 = EFI_CERT_SHA1_GUID;
@@ -175,11 +191,11 @@ check_hash(peverify_context *ctx, void *sigdata, efi_guid_t *sigtype)
 
 	if (memcmp(sigtype, &efi_sha256, sizeof(efi_guid_t)) == 0) {
 		digest = ctx->cms_ctx->digests[0].pe_digest->data;
-		if (memcmp (digest, sigdata, 32) == 0)
+		if (memcmp (digest, sig->data, 32) == 0)
 			return FOUND;
 	} else if (memcmp(sigtype, &efi_sha1, sizeof(efi_guid_t)) == 0) {
 		digest = ctx->cms_ctx->digests[1].pe_digest->data;
-		if (memcmp (digest, sigdata, 20) == 0)
+		if (memcmp (digest, sig->data, 20) == 0)
 			return FOUND;
 	}
 
@@ -189,17 +205,102 @@ check_hash(peverify_context *ctx, void *sigdata, efi_guid_t *sigtype)
 db_status
 check_db_hash(db_specifier which, peverify_context *ctx)
 {
-	return check_db(which, ctx, check_hash);
+	return check_db(which, ctx, check_hash, NULL, 0);
 }
 
 static db_status
-check_cert(peverify_context *ctx, void *sigdata, efi_guid_t *sigtype)
+check_cert(peverify_context *ctx, SECItem *sig, efi_guid_t *sigtype,
+	   SECItem *pkcs7sig)
 {
-	return NOT_FOUND;
+	SEC_PKCS7ContentInfo *cinfo = NULL;
+	CERTCertificate *cert = NULL;
+	CERTCertTrust trust;
+	SECItem *content, *digest = NULL;
+	PK11Context *pk11ctx = NULL;
+	SECOidData *oid;
+	PRBool result;
+	SECStatus rv;
+	db_status status = NOT_FOUND;
+
+	efi_guid_t efi_x509 = EFI_CERT_X509_GUID;
+
+	if (memcmp(sigtype, &efi_x509, sizeof(efi_guid_t)) != 0)
+		return NOT_FOUND;
+
+	cinfo = SEC_PKCS7DecodeItem(pkcs7sig, NULL, NULL, NULL, NULL, NULL,
+				    NULL, NULL);
+	if (!cinfo)
+		goto out;
+
+	/* Generate the digest of contentInfo */
+	/* XXX support only sha256 for now */
+	digest = SECITEM_AllocItem(NULL, NULL, 32);
+	if (digest == NULL)
+		goto out;
+
+	content = cinfo->content.signedData->contentInfo.content.data;
+	oid = SECOID_FindOIDByTag(SEC_OID_SHA256);
+	if (oid == NULL)
+		goto out;
+	pk11ctx = PK11_CreateDigestContext(oid->offset);
+	if (ctx == NULL)
+		goto out;
+	if (PK11_DigestBegin(pk11ctx) != SECSuccess)
+		goto out;
+	/*   Skip the SEQUENCE tag */
+	if (PK11_DigestOp(pk11ctx, content->data + 2, content->len - 2) != SECSuccess)
+		goto out;
+	if (PK11_DigestFinal(pk11ctx, digest->data, &digest->len, 32) != SECSuccess)
+		goto out;
+
+	/* Import the trusted certificate */
+	cert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(), sig, "Temp CA",
+				       PR_FALSE, PR_TRUE);
+	if (!cert) {
+		fprintf(stderr, "Unable to create cert: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		goto out;
+	}
+
+	rv = CERT_DecodeTrustString(&trust, ",,P");
+	if (rv != SECSuccess) {
+		fprintf(stderr, "Unable to decode trust string: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		goto out;
+	}
+
+	rv = CERT_ChangeCertTrust(CERT_GetDefaultCertDB(), cert, &trust);
+	if (rv != SECSuccess) {
+		fprintf(stderr, "Failed to change cert trust: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		goto out;
+	}
+
+	/* Verify the signature */
+	result = SEC_PKCS7VerifyDetachedSignature(cinfo, certUsageObjectSigner,
+						  digest, HASH_AlgSHA256,
+						  PR_FALSE);
+	if (!result) {
+		fprintf(stderr, "%s\n",	PORT_ErrorToString(PORT_GetError()));
+		goto out;
+	}
+
+	status = FOUND;
+out:
+	if (cinfo)
+		SEC_PKCS7DestroyContentInfo(cinfo);
+	if (cert)
+		CERT_DestroyCertificate(cert);
+	if (pk11ctx)
+		PK11_DestroyContext(pk11ctx, PR_TRUE);
+	if (digest)
+		SECITEM_FreeItem(digest, PR_FALSE);
+
+	return status;
 }
 
 db_status
 check_db_cert(db_specifier which, peverify_context *ctx, void *data, ssize_t datalen)
 {
-	return check_db(which, ctx, check_cert);
+	return check_db(which, ctx, check_cert, data, datalen);
 }
