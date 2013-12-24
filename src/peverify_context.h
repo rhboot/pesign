@@ -57,7 +57,7 @@ typedef struct peverify_context {
 	dblist *db;
 	dblist *dbx;
 
-	cms_context cms_ctx;
+	cms_context *cms_ctx;
 } peverify_context;
 
 extern int peverify_context_new(peverify_context **ctx);

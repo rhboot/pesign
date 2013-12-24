@@ -55,8 +55,8 @@ open_input(peverify_context *ctx)
 		exit(1);
 	}
 
-	int rc = parse_signatures(&ctx->cms_ctx.signatures,
-					&ctx->cms_ctx.num_signatures,
+	int rc = parse_signatures(&ctx->cms_ctx->signatures,
+					&ctx->cms_ctx->num_signatures,
 					ctx->inpe);
 	if (rc < 0) {
 		fprintf(stderr, "pesign: could not parse signature list in "
@@ -99,7 +99,7 @@ check_signature(peverify_context *ctx)
 
 	cert_iter iter;
 
-	generate_digest(&ctx->cms_ctx, ctx->inpe, 1);
+	generate_digest(ctx->cms_ctx, ctx->inpe, 1);
 	
 	if (check_db_hash(DBX, ctx) == FOUND)
 		return -1;

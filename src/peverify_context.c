@@ -54,7 +54,7 @@ peverify_context_init(peverify_context *ctx)
 
 	ctx->infd = -1;
 
-	int rc = cms_context_init(&ctx->cms_ctx);
+	int rc = cms_context_alloc(&ctx->cms_ctx);
 	if (rc < 0)
 		return rc;
 
@@ -67,7 +67,7 @@ peverify_context_fini(peverify_context *ctx)
 	if (!ctx)
 		return;
 
-	cms_context_fini(&ctx->cms_ctx);
+	cms_context_fini(ctx->cms_ctx);
 
 	xfree(ctx->infile);
 
