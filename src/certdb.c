@@ -26,7 +26,7 @@
 #include "peverify.h"
 
 static int
-add_db_file(peverify_context *ctx, db_specifier which, const char *dbfile)
+add_db_file(peverify_context *ctx, db_specifier which, const char *dbfile, int efivar)
 {
 	dblist *db = calloc(1, sizeof (dblist));
 	
@@ -55,6 +55,15 @@ add_db_file(peverify_context *ctx, db_specifier which, const char *dbfile)
 		return -1;
 	}
 
+	/* skip the first 4 bytes (EFI attributes) in the efi variable */
+	if (efivar == 1) {
+		db->data = db->map + 4;
+		db->datalen = db->size - 4;
+	} else {
+		db->data = db->map;
+		db->datalen = db->size;
+	}
+
 	dblist **tmp = which == DB ? &ctx->db : &ctx->dbx;
 
 	db->next = *tmp;
@@ -66,13 +75,13 @@ add_db_file(peverify_context *ctx, db_specifier which, const char *dbfile)
 int
 add_cert_db(peverify_context *ctx, const char *filename)
 {
-	return add_db_file(ctx, DB, filename);
+	return add_db_file(ctx, DB, filename, 0);
 }
 
 int
 add_cert_dbx(peverify_context *ctx, const char *filename)
 {
-	return add_db_file(ctx, DBX, filename);
+	return add_db_file(ctx, DBX, filename, 0);
 }
 
 #define DB_PATH "/sys/firmware/efi/efivars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f"
@@ -87,14 +96,14 @@ init_cert_db(peverify_context *ctx, int use_system_dbs)
 	if (!use_system_dbs)
 		return;
 
-	rc = add_db_file(ctx, DB, DB_PATH);
+	rc = add_db_file(ctx, DB, DB_PATH, 1);
 	if (rc < 0 && errno != ENOENT) {
 		fprintf(stderr, "peverify: Could not add key database "
 			"\"%s\": %m\n", DB_PATH);
 		exit(1);
 	}
 
-	rc = add_db_file(ctx, DB, MOK_PATH);
+	rc = add_db_file(ctx, DB, MOK_PATH, 1);
 	if (rc < 0 && errno != ENOENT) {
 		fprintf(stderr, "peverify: Could not add key database "
 			"\"%s\": %m\n", MOK_PATH);
@@ -106,7 +115,7 @@ init_cert_db(peverify_context *ctx, int use_system_dbs)
 			"No key database available\n");
 	}
 
-	rc = add_db_file(ctx, DBX, DBX_PATH);
+	rc = add_db_file(ctx, DBX, DBX_PATH, 1);
 	if (rc < 0 && errno != ENOENT) {
 		fprintf(stderr, "peverify: Could not add revocation "
 			"database \"%s\": %m\n", DBX_PATH);
@@ -126,10 +135,10 @@ check_db(db_specifier which, peverify_context *ctx, checkfn check)
 	while (dbl) {
 		EFI_SIGNATURE_LIST *certlist;
 		EFI_SIGNATURE_DATA *cert;
-		size_t dbsize = dbl->size;
+		size_t dbsize = dbl->datalen;
 		unsigned long certcount;
 
-		certlist = dbl->map;
+		certlist = dbl->data;
 		while (dbsize > 0 && dbsize >= certlist->SignatureListSize) {
 			certcount = (certlist->SignatureListSize -
 				     certlist->SignatureHeaderSize)

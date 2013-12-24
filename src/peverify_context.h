@@ -31,6 +31,8 @@ struct dblist {
 	struct dblist *next;
 	size_t size;
 	void *map;
+	size_t datalen;
+	void *data;
 };
 
 typedef struct dblist dblist;
