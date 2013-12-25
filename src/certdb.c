@@ -144,7 +144,8 @@ check_db(db_specifier which, peverify_context *ctx, checkfn check)
 				     certlist->SignatureHeaderSize)
 				    / certlist->SignatureSize;
 			cert = (EFI_SIGNATURE_DATA *)((uint8_t *)certlist +
-				sizeof(*cert) + certlist->SignatureHeaderSize);
+				sizeof(EFI_SIGNATURE_LIST) +
+				certlist->SignatureHeaderSize);
 			
 			for (int i = 0; i < certcount; i++) {
 				found = check(ctx,
@@ -152,6 +153,8 @@ check_db(db_specifier which, peverify_context *ctx, checkfn check)
 					      &certlist->SignatureType);
 				if (found == FOUND)
 					return FOUND;
+				cert = (EFI_SIGNATURE_DATA *)((uint8_t *)cert +
+				        certlist->SignatureSize);
 			}
 
 			dbsize -= certlist->SignatureListSize;
@@ -166,6 +169,20 @@ check_db(db_specifier which, peverify_context *ctx, checkfn check)
 static db_status
 check_hash(peverify_context *ctx, void *sigdata, efi_guid_t *sigtype)
 {
+	efi_guid_t efi_sha256 = EFI_CERT_SHA256_GUID;
+	efi_guid_t efi_sha1 = EFI_CERT_SHA1_GUID;
+	void *digest;
+
+	if (memcmp(sigtype, &efi_sha256, sizeof(efi_guid_t)) == 0) {
+		digest = ctx->cms_ctx->digests[0].pe_digest->data;
+		if (memcmp (digest, sigdata, 32) == 0)
+			return FOUND;
+	} else if (memcmp(sigtype, &efi_sha1, sizeof(efi_guid_t)) == 0) {
+		digest = ctx->cms_ctx->digests[1].pe_digest->data;
+		if (memcmp (digest, sigdata, 20) == 0)
+			return FOUND;
+	}
+
 	return NOT_FOUND;
 }
 
