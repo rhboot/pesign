@@ -40,21 +40,21 @@ static void
 open_input(peverify_context *ctx)
 {
 	if (!ctx->infile) {
-		fprintf(stderr, "pesign: No input file specified.\n");
+		fprintf(stderr, "peverify: No input file specified.\n");
 		exit(1);
 	}
 
 	ctx->infd = open(ctx->infile, O_RDONLY|O_CLOEXEC);
 
 	if (ctx->infd < 0) {
-		fprintf(stderr, "pesign: Error opening input: %m\n");
+		fprintf(stderr, "peverify: Error opening input: %m\n");
 		exit(1);
 	}
 
 	Pe_Cmd cmd = ctx->infd == STDIN_FILENO ? PE_C_READ : PE_C_READ_MMAP;
 	ctx->inpe = pe_begin(ctx->infd, cmd, NULL);
 	if (!ctx->inpe) {
-		fprintf(stderr, "pesign: could not load input file: %s\n",
+		fprintf(stderr, "peverify: could not load input file: %s\n",
 			pe_errmsg(pe_errno()));
 		exit(1);
 	}
@@ -63,7 +63,7 @@ open_input(peverify_context *ctx)
 					&ctx->cms_ctx->num_signatures,
 					ctx->inpe);
 	if (rc < 0) {
-		fprintf(stderr, "pesign: could not parse signature list in "
+		fprintf(stderr, "peverify: could not parse signature list in "
 			"EFI binary\n");
 		exit(1);
 	}
