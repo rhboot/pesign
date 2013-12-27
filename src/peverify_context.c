@@ -82,6 +82,8 @@ peverify_context_fini(peverify_context *ctx)
 	while (ctx->db) {
 		dblist *db = ctx->db;
 
+		if (db->type == DB_CERT)
+			free(db->data);
 		munmap(db->map, db->size);
 		close(db->fd);
 		ctx->db = db->next;
@@ -90,6 +92,8 @@ peverify_context_fini(peverify_context *ctx)
 	while (ctx->dbx) {
 		dblist *db = ctx->dbx;
 
+		if (db->type == DB_CERT)
+			free(db->data);
 		munmap(db->map, db->size);
 		close(db->fd);
 		ctx->dbx = db->next;

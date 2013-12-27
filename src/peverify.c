@@ -187,6 +187,8 @@ callback(poptContext con, enum poptCallbackReason reason,
 		rc = add_cert_db(ctx, arg);
 	} else if (opt->shortName == 'X') {
 		rc = add_cert_dbx(ctx, arg);
+	} else if (opt->shortName == 'c') {
+		rc = add_cert_file(ctx, arg);
 	}
 	if (rc != 0) {
 		fprintf(stderr, "Could not add %s from file \"%s\": %m\n",
@@ -221,6 +223,7 @@ main(int argc, char *argv[])
 
 	char *dbfile = NULL;
 	char *dbxfile = NULL;
+	char *certfile = NULL;
 	int use_system_dbs = 1;
 
 	char template[] = "/tmp/peverify-XXXXXX";
@@ -242,6 +245,8 @@ main(int argc, char *argv[])
 			"use file for allowed certificate list", "<dbfile>" },
 		{"dbxfile", 'X', POPT_ARG_STRING, &dbxfile, 0,
 			"use file for disallowed certificate list","<dbxfile>"},
+		{"certfile", 'c', POPT_ARG_STRING, &certfile, 0,
+			"the certificate (in DER form) for verification ","<certfile>"},
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND

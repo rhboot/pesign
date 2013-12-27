@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 
 #include <nss.h>
 #include <prerror.h>
@@ -32,12 +33,15 @@
 #include "peverify.h"
 
 static int
-add_db_file(peverify_context *ctx, db_specifier which, const char *dbfile, int efivar)
+add_db_file(peverify_context *ctx, db_specifier which, const char *dbfile,
+	    db_f_type type)
 {
 	dblist *db = calloc(1, sizeof (dblist));
 	
 	if (!db)
 		return -1;
+
+	db->type = type;
 
 	db->fd = open(dbfile, O_RDONLY);
 	if (db->fd < 0) {
@@ -61,13 +65,38 @@ add_db_file(peverify_context *ctx, db_specifier which, const char *dbfile, int e
 		return -1;
 	}
 
-	/* skip the first 4 bytes (EFI attributes) in the efi variable */
-	if (efivar == 1) {
-		db->data = db->map + 4;
-		db->datalen = db->size - 4;
-	} else {
+	EFI_SIGNATURE_LIST *certlist;
+	EFI_SIGNATURE_DATA *cert;
+	efi_guid_t efi_x509 = EFI_CERT_X509_GUID;
+
+	switch (type) {
+	case DB_FILE:
 		db->data = db->map;
 		db->datalen = db->size;
+		break;
+	case DB_EFIVAR:
+		/* skip the first 4 bytes (EFI attributes) */
+		db->data = db->map + 4;
+		db->datalen = db->size - 4;
+		break;
+	case DB_CERT:
+		db->datalen = db->size + sizeof(EFI_SIGNATURE_LIST) +
+			      sizeof(efi_guid_t);
+		db->data = calloc(1, db->datalen);
+		if (!db->data)
+			return -1;
+
+		certlist = (EFI_SIGNATURE_LIST *)db->data;
+		memcpy((void *)&certlist->SignatureType, &efi_x509, sizeof(efi_guid_t));
+		certlist->SignatureListSize = db->datalen;
+		certlist->SignatureHeaderSize = 0;
+		certlist->SignatureSize = db->size + sizeof(efi_guid_t);
+
+		cert = (EFI_SIGNATURE_DATA *)(db->data + sizeof(EFI_SIGNATURE_LIST));
+		memcpy((void *)cert->SignatureData, db->map, db->size);
+		break;
+	default:
+		break;
 	}
 
 	dblist **tmp = which == DB ? &ctx->db : &ctx->dbx;
@@ -81,13 +110,19 @@ add_db_file(peverify_context *ctx, db_specifier which, const char *dbfile, int e
 int
 add_cert_db(peverify_context *ctx, const char *filename)
 {
-	return add_db_file(ctx, DB, filename, 0);
+	return add_db_file(ctx, DB, filename, DB_FILE);
 }
 
 int
 add_cert_dbx(peverify_context *ctx, const char *filename)
 {
-	return add_db_file(ctx, DBX, filename, 0);
+	return add_db_file(ctx, DBX, filename, DB_FILE);
+}
+
+int
+add_cert_file(peverify_context *ctx, const char *filename)
+{
+	return add_db_file(ctx, DB, filename, DB_CERT);
 }
 
 #define DB_PATH "/sys/firmware/efi/efivars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f"
@@ -102,14 +137,14 @@ init_cert_db(peverify_context *ctx, int use_system_dbs)
 	if (!use_system_dbs)
 		return;
 
-	rc = add_db_file(ctx, DB, DB_PATH, 1);
+	rc = add_db_file(ctx, DB, DB_PATH, DB_EFIVAR);
 	if (rc < 0 && errno != ENOENT) {
 		fprintf(stderr, "peverify: Could not add key database "
 			"\"%s\": %m\n", DB_PATH);
 		exit(1);
 	}
 
-	rc = add_db_file(ctx, DB, MOK_PATH, 1);
+	rc = add_db_file(ctx, DB, MOK_PATH, DB_EFIVAR);
 	if (rc < 0 && errno != ENOENT) {
 		fprintf(stderr, "peverify: Could not add key database "
 			"\"%s\": %m\n", MOK_PATH);
@@ -121,7 +156,7 @@ init_cert_db(peverify_context *ctx, int use_system_dbs)
 			"No key database available\n");
 	}
 
-	rc = add_db_file(ctx, DBX, DBX_PATH, 1);
+	rc = add_db_file(ctx, DBX, DBX_PATH, DB_EFIVAR);
 	if (rc < 0 && errno != ENOENT) {
 		fprintf(stderr, "peverify: Could not add revocation "
 			"database \"%s\": %m\n", DBX_PATH);

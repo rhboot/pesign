@@ -26,7 +26,14 @@ enum {
 	PEVERIFY_C_ALLOCATED = 1,
 };
 
+typedef enum {
+	DB_FILE,
+	DB_EFIVAR,
+	DB_CERT,
+} db_f_type;
+
 struct dblist {
+	db_f_type type;
 	int fd;
 	struct dblist *next;
 	size_t size;
