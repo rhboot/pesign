@@ -116,7 +116,7 @@ resize_entries(signature_list *sl, uint32_t newsize)
 
 		memcpy(new_sd, sd, sl->SignatureSize);
 		free(sd);
-		sl->Signatures[i] = sd;
+		sl->Signatures[i] = new_sd;
 	}
 	sl->SignatureListSize = newsize;
 	return 0;
