@@ -19,7 +19,9 @@ In no particular order, this stuff still needs to be done (or is in progress):
  i) implant cert in table *eh*
 3) make hash algorithm configurable
 4) test suite
-5) docs
+5) test suite
+6) docs
+7) efikeygen - random serial number + check for dupes against local nss db
 
 See also: https://github.com/vathpela/pesign/issues/milestones
 
