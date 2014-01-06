@@ -16,14 +16,14 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PEVERIFY_CONTEXT_H
-#define PEVERIFY_CONTEXT_H 1
+#ifndef pesigcheck_CONTEXT_H
+#define pesigcheck_CONTEXT_H 1
 
 #include <cert.h>
 #include <secpkcs7.h>
 
 enum {
-	PEVERIFY_C_ALLOCATED = 1,
+	pesigcheck_C_ALLOCATED = 1,
 };
 
 typedef enum {
@@ -52,7 +52,7 @@ struct hashlist {
 };
 typedef struct hashlist hashlist;
 
-typedef struct peverify_context {
+typedef struct pesigcheck_context {
 	int flags;
 
 	char *infile;
@@ -67,12 +67,12 @@ typedef struct peverify_context {
 	dblist *dbx;
 
 	cms_context *cms_ctx;
-} peverify_context;
+} pesigcheck_context;
 
-extern int peverify_context_new(peverify_context **ctx);
-extern void peverify_context_free_private(peverify_context **ctx_ptr);
-extern int peverify_context_init(peverify_context *ctx);
-extern void peverify_context_fini(peverify_context *ctx);
-#define peverify_context_free(ctx) peverify_context_free_private(&(ctx))
+extern int pesigcheck_context_new(pesigcheck_context **ctx);
+extern void pesigcheck_context_free_private(pesigcheck_context **ctx_ptr);
+extern int pesigcheck_context_init(pesigcheck_context *ctx);
+extern void pesigcheck_context_fini(pesigcheck_context *ctx);
+#define pesigcheck_context_free(ctx) pesigcheck_context_free_private(&(ctx))
 
-#endif /* PEVERIFY_CONTEXT_H */
+#endif /* pesigcheck_CONTEXT_H */

@@ -20,15 +20,15 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#include "peverify.h"
+#include "pesigcheck.h"
 
 #include <nss.h>
 #include <secitem.h>
 
 int
-peverify_context_new(peverify_context **ctx)
+pesigcheck_context_new(pesigcheck_context **ctx)
 {
-	peverify_context *context = NULL;
+	pesigcheck_context *context = NULL;
 	int rc = 0;
 
 	if (ctx == NULL)
@@ -38,15 +38,15 @@ peverify_context_new(peverify_context **ctx)
 	if (!context)
 		return -1;
 
-	peverify_context_init(context);
-	context->flags |= PEVERIFY_C_ALLOCATED;
+	pesigcheck_context_init(context);
+	context->flags |= pesigcheck_C_ALLOCATED;
 
 	*ctx = context;
 	return rc;
 }
 
 int
-peverify_context_init(peverify_context *ctx)
+pesigcheck_context_init(pesigcheck_context *ctx)
 {
 	if (!ctx)
 		return -1;
@@ -62,7 +62,7 @@ peverify_context_init(peverify_context *ctx)
 }
 
 void
-peverify_context_fini(peverify_context *ctx)
+pesigcheck_context_fini(pesigcheck_context *ctx)
 {
 	if (!ctx)
 		return;
@@ -76,8 +76,8 @@ peverify_context_fini(peverify_context *ctx)
 		ctx->inpe = NULL;
 	}
 
-	if (!(ctx->flags & PEVERIFY_C_ALLOCATED))
-		peverify_context_init(ctx);
+	if (!(ctx->flags & pesigcheck_C_ALLOCATED))
+		pesigcheck_context_init(ctx);
 
 	while (ctx->db) {
 		dblist *db = ctx->db;
@@ -108,15 +108,15 @@ peverify_context_fini(peverify_context *ctx)
 }
 
 void
-peverify_context_free_private(peverify_context **ctx_ptr)
+pesigcheck_context_free_private(pesigcheck_context **ctx_ptr)
 {
-	peverify_context *ctx;
+	pesigcheck_context *ctx;
 	if (!ctx_ptr || !*ctx_ptr)
 		return;
 
 	ctx = *ctx_ptr;
-	peverify_context_fini(ctx);
+	pesigcheck_context_fini(ctx);
 
-	if (ctx->flags & PEVERIFY_C_ALLOCATED)
+	if (ctx->flags & pesigcheck_C_ALLOCATED)
 		xfree(*ctx_ptr);
 }

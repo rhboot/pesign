@@ -34,27 +34,27 @@
 #include <pkcs7t.h>
 #include <pk11pub.h>
 
-#include "peverify.h"
+#include "pesigcheck.h"
 
 static void
-open_input(peverify_context *ctx)
+open_input(pesigcheck_context *ctx)
 {
 	if (!ctx->infile) {
-		fprintf(stderr, "peverify: No input file specified.\n");
+		fprintf(stderr, "pesigcheck: No input file specified.\n");
 		exit(1);
 	}
 
 	ctx->infd = open(ctx->infile, O_RDONLY|O_CLOEXEC);
 
 	if (ctx->infd < 0) {
-		fprintf(stderr, "peverify: Error opening input: %m\n");
+		fprintf(stderr, "pesigcheck: Error opening input: %m\n");
 		exit(1);
 	}
 
 	Pe_Cmd cmd = ctx->infd == STDIN_FILENO ? PE_C_READ : PE_C_READ_MMAP;
 	ctx->inpe = pe_begin(ctx->infd, cmd, NULL);
 	if (!ctx->inpe) {
-		fprintf(stderr, "peverify: could not load input file: %s\n",
+		fprintf(stderr, "pesigcheck: could not load input file: %s\n",
 			pe_errmsg(pe_errno()));
 		exit(1);
 	}
@@ -63,14 +63,14 @@ open_input(peverify_context *ctx)
 					&ctx->cms_ctx->num_signatures,
 					ctx->inpe);
 	if (rc < 0) {
-		fprintf(stderr, "peverify: could not parse signature list in "
+		fprintf(stderr, "pesigcheck: could not parse signature list in "
 			"EFI binary\n");
 		exit(1);
 	}
 }
 
 static void
-close_input(peverify_context *ctx)
+close_input(pesigcheck_context *ctx)
 {
 	pe_end(ctx->inpe);
 	ctx->inpe = NULL;
@@ -80,7 +80,7 @@ close_input(peverify_context *ctx)
 }
 
 static void
-check_inputs(peverify_context *ctx)
+check_inputs(pesigcheck_context *ctx)
 {
 	if (!ctx->infile) {
 		fprintf(stderr, "pesign: No input file specified.\n");
@@ -89,7 +89,7 @@ check_inputs(peverify_context *ctx)
 }
 
 static int
-cert_matches_digest(peverify_context *ctx, void *data, ssize_t datalen)
+cert_matches_digest(pesigcheck_context *ctx, void *data, ssize_t datalen)
 {
 	SECItem sig, *pe_digest, *content;
 	uint8_t *digest;
@@ -122,7 +122,7 @@ out:
 }
 
 static int
-check_signature(peverify_context *ctx)
+check_signature(pesigcheck_context *ctx)
 {
 	int has_valid_cert = 0;
 	int has_invalid_cert = 0;
@@ -179,7 +179,7 @@ callback(poptContext con, enum poptCallbackReason reason,
 	 const struct poptOption *opt,
 	 const char *arg, const void *data)
 {
-	peverify_context *ctx = (peverify_context *)data;
+	pesigcheck_context *ctx = (pesigcheck_context *)data;
 	int rc = 0;
 	if (!opt)
 		return;
@@ -219,14 +219,14 @@ main(int argc, char *argv[])
 {
 	int rc;
 
-	peverify_context ctx, *ctxp = &ctx;
+	pesigcheck_context ctx, *ctxp = &ctx;
 
 	char *dbfile = NULL;
 	char *dbxfile = NULL;
 	char *certfile = NULL;
 	int use_system_dbs = 1;
 
-	char template[] = "/tmp/peverify-XXXXXX";
+	char template[] = "/tmp/pesigcheck-XXXXXX";
 	char *certdir = NULL;
 	SECStatus status;
 
@@ -252,26 +252,26 @@ main(int argc, char *argv[])
 		POPT_TABLEEND
 	};
 
-	rc = peverify_context_init(ctxp);
+	rc = pesigcheck_context_init(ctxp);
 	if (rc < 0) {
-		fprintf(stderr, "peverify: Could not initialize context: %m\n");
+		fprintf(stderr, "pesigcheck: Could not initialize context: %m\n");
 		exit(1);
 	}
 
-	optCon = poptGetContext("peverify", argc, (const char **)argv,
+	optCon = poptGetContext("pesigcheck", argc, (const char **)argv,
 				options,0);
 
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
 
 	if (rc < -1) {
-		fprintf(stderr, "peverify: Invalid argument: %s: %s\n",
+		fprintf(stderr, "pesigcheck: Invalid argument: %s: %s\n",
 			poptBadOption(optCon, 0), poptStrerror(rc));
 		exit(1);
 	}
 
 	if (poptPeekArg(optCon)) {
-		fprintf(stderr, "peverify: Invalid Argument: \"%s\"\n",
+		fprintf(stderr, "pesigcheck: Invalid Argument: \"%s\"\n",
 				poptPeekArg(optCon));
 		exit(1);
 	}
@@ -295,9 +295,9 @@ main(int argc, char *argv[])
 
 	close_input(ctxp);
 	if (!ctx.quiet)
-		printf("peverify: \"%s\" is %s.\n", ctx.infile,
+		printf("pesigcheck: \"%s\" is %s.\n", ctx.infile,
 			rc >= 0 ? "valid" : "invalid");
-	peverify_context_fini(&ctx);
+	pesigcheck_context_fini(&ctx);
 
 	NSS_Shutdown();
 	remove_certdir(certdir);

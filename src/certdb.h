@@ -41,13 +41,13 @@ typedef struct {
 	uint32_t	SignatureSize;
 } EFI_SIGNATURE_LIST;
 
-extern db_status check_db_hash(db_specifier which, peverify_context *ctx);
-extern db_status check_db_cert(db_specifier which, peverify_context *ctx,
+extern db_status check_db_hash(db_specifier which, pesigcheck_context *ctx);
+extern db_status check_db_cert(db_specifier which, pesigcheck_context *ctx,
 				void *data, ssize_t datalen);
 
-extern void init_cert_db(peverify_context *ctx, int use_system_dbs);
-extern int add_cert_db(peverify_context *ctx, const char *filename);
-extern int add_cert_dbx(peverify_context *ctx, const char *filename);
-extern int add_cert_file(peverify_context *ctx, const char *filename);
+extern void init_cert_db(pesigcheck_context *ctx, int use_system_dbs);
+extern int add_cert_db(pesigcheck_context *ctx, const char *filename);
+extern int add_cert_dbx(pesigcheck_context *ctx, const char *filename);
+extern int add_cert_file(pesigcheck_context *ctx, const char *filename);
 
 #endif /* CERTDB_H */

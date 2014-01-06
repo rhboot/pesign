@@ -24,7 +24,7 @@
 
 #include "efitypes.h"
 #include "cms_common.h"
-#include "peverify_context.h"
+#include "pesigcheck_context.h"
 #include "certdb.h"
 
 #include "util.h"

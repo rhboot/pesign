@@ -10,7 +10,7 @@ LDFLAGS =
 CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --libs-only-L $(pklib)))
 CFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib))) -Werror
 
-TARGETS = pesign authvar client efisiglist efikeygen peverify
+TARGETS = pesign authvar client efisiglist efikeygen pesigcheck
 
 all : $(TARGETS)
 
@@ -29,10 +29,10 @@ pesign_OBJECTS = $(foreach source,$(pesign_SOURCES),$(patsubst %.c,%,$(source)).
 pesign_DEPS = $(foreach source,$(pesign_SOURCES),.$(patsubst %.c,%,$(source)).P)
 pesign : $(pesign_OBJECTS) $(STATIC_LIBS)
 
-peverify_SOURCES = peverify.c peverify_context.c certdb.c
-peverify_OBJECTS = $(foreach source,$(peverify_SOURCES),$(patsubst %.c,%,$(source)).o) generic.a
-peverify_DEPS = $(foreach source,$(peverify_SOURCES),.$(patsubst %.c,%,$(source)).P)
-peverify : $(peverify_OBJECTS) $(STATIC_LIBS)
+pesigcheck_SOURCES = pesigcheck.c pesigcheck_context.c certdb.c
+pesigcheck_OBJECTS = $(foreach source,$(pesigcheck_SOURCES),$(patsubst %.c,%,$(source)).o) generic.a
+pesigcheck_DEPS = $(foreach source,$(pesigcheck_SOURCES),.$(patsubst %.c,%,$(source)).P)
+pesigcheck : $(pesigcheck_OBJECTS) $(STATIC_LIBS)
 
 client_SOURCES = pesign_context.c actions.c client.c
 client_OBJECTS = $(foreach source,$(client_SOURCES),$(patsubst %.c,%,$(source)).o) generic.a
@@ -55,7 +55,7 @@ fuzzsocket_DEPS = $(foreach source,$(fuzzsocket_SOURCES),.$(patsubst %.c,%,$(sou
 fuzzsocket : $(fuzzsocket_OBJECTS) -lrt
 
 DEPS = $(generic_DEPS) $(authvar_DEPS) $(pesign_DEPS) $(client_DEPS) \
-	$(peverify_DEPS) $(efisiglist_DEPS) $(efikeygen_DEPS)
+	$(pesigcheck_DEPS) $(efisiglist_DEPS) $(efikeygen_DEPS)
 
 deps : $(DEPS)
 
@@ -84,14 +84,14 @@ install :
 	$(INSTALL) -m 755 pesign $(INSTALLROOT)$(PREFIX)/bin/
 	$(INSTALL) -m 755 client $(INSTALLROOT)$(PREFIX)/bin/pesign-client
 	$(INSTALL) -m 755 efikeygen $(INSTALLROOT)$(PREFIX)/bin/
-	#$(INSTALL) -m 755 peverify $(INSTALLROOT)$(PREFIX)/bin/
+	#$(INSTALL) -m 755 pesigcheck $(INSTALLROOT)$(PREFIX)/bin/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -m 644 pesign.popt $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -m 644 pesign.1 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -m 644 pesign-client.1 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -m 644 efikeygen.1 $(INSTALLROOT)/usr/share/man/man1/
-	#$(INSTALL) -m 644 peverify.1 $(INSTALLROOT)/usr/share/man/man1/
+	#$(INSTALL) -m 644 pesigcheck.1 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
 

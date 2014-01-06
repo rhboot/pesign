@@ -30,10 +30,10 @@
 #include <pkcs7t.h>
 #include <pk11pub.h>
 
-#include "peverify.h"
+#include "pesigcheck.h"
 
 static int
-add_db_file(peverify_context *ctx, db_specifier which, const char *dbfile,
+add_db_file(pesigcheck_context *ctx, db_specifier which, const char *dbfile,
 	    db_f_type type)
 {
 	dblist *db = calloc(1, sizeof (dblist));
@@ -108,19 +108,19 @@ add_db_file(peverify_context *ctx, db_specifier which, const char *dbfile,
 }
 
 int
-add_cert_db(peverify_context *ctx, const char *filename)
+add_cert_db(pesigcheck_context *ctx, const char *filename)
 {
 	return add_db_file(ctx, DB, filename, DB_FILE);
 }
 
 int
-add_cert_dbx(peverify_context *ctx, const char *filename)
+add_cert_dbx(pesigcheck_context *ctx, const char *filename)
 {
 	return add_db_file(ctx, DBX, filename, DB_FILE);
 }
 
 int
-add_cert_file(peverify_context *ctx, const char *filename)
+add_cert_file(pesigcheck_context *ctx, const char *filename)
 {
 	return add_db_file(ctx, DB, filename, DB_CERT);
 }
@@ -130,7 +130,7 @@ add_cert_file(peverify_context *ctx, const char *filename)
 #define DBX_PATH "/sys/firmware/efi/efivars/dbx-d719b2cb-3d3a-4596-a3bc-dad00e67656f"
 
 void
-init_cert_db(peverify_context *ctx, int use_system_dbs)
+init_cert_db(pesigcheck_context *ctx, int use_system_dbs)
 {
 	int rc = 0;
 
@@ -139,36 +139,36 @@ init_cert_db(peverify_context *ctx, int use_system_dbs)
 
 	rc = add_db_file(ctx, DB, DB_PATH, DB_EFIVAR);
 	if (rc < 0 && errno != ENOENT) {
-		fprintf(stderr, "peverify: Could not add key database "
+		fprintf(stderr, "pesigcheck: Could not add key database "
 			"\"%s\": %m\n", DB_PATH);
 		exit(1);
 	}
 
 	rc = add_db_file(ctx, DB, MOK_PATH, DB_EFIVAR);
 	if (rc < 0 && errno != ENOENT) {
-		fprintf(stderr, "peverify: Could not add key database "
+		fprintf(stderr, "pesigcheck: Could not add key database "
 			"\"%s\": %m\n", MOK_PATH);
 		exit(1);
 	}
 
 	if (ctx->db == NULL) {
-		fprintf(stderr, "peverify: warning: "
+		fprintf(stderr, "pesigcheck: warning: "
 			"No key database available\n");
 	}
 
 	rc = add_db_file(ctx, DBX, DBX_PATH, DB_EFIVAR);
 	if (rc < 0 && errno != ENOENT) {
-		fprintf(stderr, "peverify: Could not add revocation "
+		fprintf(stderr, "pesigcheck: Could not add revocation "
 			"database \"%s\": %m\n", DBX_PATH);
 		exit(1);
 	}
 }
 
-typedef db_status (*checkfn)(peverify_context *ctx, SECItem *sig,
+typedef db_status (*checkfn)(pesigcheck_context *ctx, SECItem *sig,
 			     efi_guid_t *sigtype, SECItem *pkcs7sig);
 
 static db_status
-check_db(db_specifier which, peverify_context *ctx, checkfn check,
+check_db(db_specifier which, pesigcheck_context *ctx, checkfn check,
 	 void *data, ssize_t datalen)
 {
 	SECItem pkcs7sig, sig;
@@ -217,7 +217,7 @@ check_db(db_specifier which, peverify_context *ctx, checkfn check,
 }
 
 static db_status
-check_hash(peverify_context *ctx, SECItem *sig, efi_guid_t *sigtype,
+check_hash(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	   SECItem *pkcs7sig)
 {
 	efi_guid_t efi_sha256 = EFI_CERT_SHA256_GUID;
@@ -238,13 +238,13 @@ check_hash(peverify_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 }
 
 db_status
-check_db_hash(db_specifier which, peverify_context *ctx)
+check_db_hash(db_specifier which, pesigcheck_context *ctx)
 {
 	return check_db(which, ctx, check_hash, NULL, 0);
 }
 
 static db_status
-check_cert(peverify_context *ctx, SECItem *sig, efi_guid_t *sigtype,
+check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	   SECItem *pkcs7sig)
 {
 	SEC_PKCS7ContentInfo *cinfo = NULL;
@@ -335,7 +335,7 @@ out:
 }
 
 db_status
-check_db_cert(db_specifier which, peverify_context *ctx, void *data, ssize_t datalen)
+check_db_cert(db_specifier which, pesigcheck_context *ctx, void *data, ssize_t datalen)
 {
 	return check_db(which, ctx, check_cert, data, datalen);
 }
