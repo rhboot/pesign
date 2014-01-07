@@ -24,7 +24,6 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <ftw.h>
 #include <nss.h>
 
 #include <popt.h>
@@ -197,23 +196,6 @@ callback(poptContext con, enum poptCallbackReason reason,
 	}
 }
 
-static int
-delete_files(const char *fpath, const struct stat *sb, int typeflag)
-{
-	if (typeflag == FTW_F)
-		remove(fpath);
-
-	return 0;
-}
-
-static void
-remove_certdir(const char *certdir)
-{
-	ftw(certdir, delete_files, 3);
-
-	remove(certdir);
-}
-
 int
 main(int argc, char *argv[])
 {
@@ -226,8 +208,6 @@ main(int argc, char *argv[])
 	char *certfile = NULL;
 	int use_system_dbs = 1;
 
-	char template[] = "/tmp/pesigcheck-XXXXXX";
-	char *certdir = NULL;
 	SECStatus status;
 
 	poptContext optCon;
@@ -283,8 +263,7 @@ main(int argc, char *argv[])
 
 	init_cert_db(ctxp, use_system_dbs);
 
-	certdir = mkdtemp(template);
-	status = NSS_InitReadWrite(certdir);
+	status = NSS_NoDB_Init(NULL);
 	if (status != SECSuccess) {
 		fprintf(stderr, "Could not initialize nss: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
@@ -300,7 +279,6 @@ main(int argc, char *argv[])
 	pesigcheck_context_fini(&ctx);
 
 	NSS_Shutdown();
-	remove_certdir(certdir);
 
 	return (rc < 0);
 }
