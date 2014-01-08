@@ -70,9 +70,9 @@ static int8_t hexchar_to_bin(char hex)
 	if (hex >= '0' && hex <= '9')
 		return hex - '0';
 	if (hex >= 'A' && hex <= 'F')
-		return hex - 'A';
+		return hex - 'A' + 10;
 	if (hex >= 'a' && hex <= 'f')
-		return hex - 'a';
+		return hex - 'a' + 10;
 	return -1;
 }
 
@@ -83,7 +83,7 @@ hex_to_bin(char *hex, size_t size)
 	if (!ret)
 		return NULL;
 
-	for (int i = 0, j = 0; i < size; i+= 2, j++) {
+	for (int i = 0, j = 0; i < size*2; i+= 2, j++) {
 		uint8_t val;
 
 		val = hexchar_to_bin(hex[i]);
@@ -94,7 +94,7 @@ out_of_range:
 			return NULL;
 		}
 		ret[j] = (val & 0xf) << 4;
-		val = hexchar_to_bin(hex[i]);
+		val = hexchar_to_bin(hex[i+1]);
 		if (val < 0)
 			goto out_of_range;
 		ret[j] |= val & 0xf;
