@@ -23,6 +23,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 
 #include "efitypes.h"
 #include "siglist.h"
@@ -106,11 +109,15 @@ int
 main(int argc, char *argv[])
 {
 	poptContext optCon;
+	efi_guid_t owner = RH_GUID;
 	int rc;
 	char *outfile = NULL;
 	char *hash = NULL;
 	char *hash_type = "sha256";
 	char *certfile = NULL;
+	int certfd = -1;
+	void *cert_data = NULL;
+	size_t cert_size = 0;
 
 	int add = 1;
 
@@ -126,7 +133,7 @@ main(int argc, char *argv[])
 			"hash value to add", "<hash>" },
 		{"hash-type", 't', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
 			&hash_type, 0, "hash type to add", "<hash-type>" },
-		{"certificate", 'c', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+		{"certificate", 'c', POPT_ARG_STRING,
 			&certfile, 0, "certificate to add", "<certfile>" },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
@@ -197,6 +204,29 @@ main(int argc, char *argv[])
 				hash_params[hash_index].size * 8, x * 4);
 			exit(1);
 		}
+	} else if (certfile) {
+		certfd = open(certfile, O_RDONLY, 0644);
+		if (certfd < 0) {
+			fprintf(stderr, "efisiglist: could not open \"%s\": "
+				"%m\n", certfile);
+			exit(1);
+		}
+
+		struct stat sb;
+		if (fstat(certfd, &sb) < 0) {
+			fprintf(stderr, "efisiglist: could not get the size "
+				"of \"%s\": %m\n", certfile);
+			exit(1);
+		}
+		cert_size = sb.st_size;
+
+		cert_data = mmap(NULL, cert_size, PROT_READ, MAP_PRIVATE,
+				 certfd, 0);
+		if (cert_data == MAP_FAILED) {
+			fprintf(stderr, "efisiglist: could not map \"%s\": "
+				"%m\n", certfile);
+			exit(1);
+		}
 	}
 
 	if (add) {
@@ -209,7 +239,6 @@ main(int argc, char *argv[])
 				unlink(outfile);
 				exit(1);
 			}
-			efi_guid_t owner = RH_GUID;
 			uint8_t *binary_hash = hex_to_bin(hash,
 				hash_params[hash_index].size);
 			if (!binary_hash) {
@@ -243,6 +272,45 @@ main(int argc, char *argv[])
 				unlink(outfile);
 				exit(1);
 			}
+			close(outfd);
+			exit(0);
+		} else if (certfile) {
+			efi_guid_t sig_type = EFI_CERT_X509_GUID;
+			signature_list *sl = signature_list_new(sig_type);
+			if (!sl) {
+				fprintf(stderr, "efisiglist: could not "
+					"allocate signature list: %m\n");
+				unlink(outfile);
+				exit(1);
+			}
+			rc = signature_list_add_sig(sl, owner, cert_data,
+				cert_size);
+			if (rc < 0) {
+				fprintf(stderr,"efisiglist: could not add "
+					"cert to list: %m\n");
+				unlink(outfile);
+				exit(1);
+			}
+
+			void *blah;
+			size_t size = 0;
+			rc = signature_list_realize(sl, &blah, &size);
+			if (rc < 0) {
+				fprintf(stderr, "efisiglist: Could not realize "
+					"signature list: %m\n");
+				unlink(outfile);
+				exit(1);
+			}
+			rc = write(outfd, blah, size);
+			if (rc < 0) {
+				fprintf(stderr, "efisiglist: Could not write "
+					"signature list: %m\n");
+				unlink(outfile);
+				exit(1);
+			}
+
+			munmap(cert_data, cert_size);
+			close(certfd);
 			close(outfd);
 			exit(0);
 		}
