@@ -100,6 +100,7 @@ signature_list_new(efi_guid_t SignatureType)
 
 	sl->SignatureType = SignatureType;
 	sl->SignatureSize = size + sizeof (efi_guid_t);
+	sl->SignatureListSize = sizeof (struct efi_signature_list);
 
 	return sl;
 }
@@ -107,7 +108,8 @@ signature_list_new(efi_guid_t SignatureType)
 static int
 resize_entries(signature_list *sl, uint32_t newsize)
 {
-	for (int i = 0; i < sl->SignatureListSize; i++) {
+	int count = (sl->SignatureListSize - sizeof (struct efi_signature_list)) / sl->SignatureSize;
+	for (int i = 0; i < count; i++) {
 		struct efi_signature_data *sd = sl->Signatures[i];
 		struct efi_signature_data *new_sd = calloc(1, newsize);
 
@@ -118,7 +120,8 @@ resize_entries(signature_list *sl, uint32_t newsize)
 		free(sd);
 		sl->Signatures[i] = sd;
 	}
-	sl->SignatureListSize = newsize;
+	sl->SignatureSize = newsize;
+	sl->SignatureListSize = sizeof (struct efi_signature_list) + count * newsize;
 	return 0;
 }
 
@@ -153,17 +156,17 @@ signature_list_add_sig(signature_list *sl, efi_guid_t owner,
 	memcpy(sd->SignatureData, sig, sl->SignatureSize -
 						sizeof (efi_guid_t));
 
-	struct efi_signature_data **sdl = calloc(sl->SignatureListSize+1,
+	int count = (sl->SignatureListSize - sizeof (struct efi_signature_list)) / sl->SignatureSize;
+	struct efi_signature_data **sdl = calloc(count+1,
 					sizeof (struct efi_signature_data *));
 	if (!sdl) {
 		free(sd);
 		return -1;
 	}
 
-	memcpy(sdl, sl->Signatures, sl->SignatureListSize *
-					sizeof (struct efi_signature_data *));
-	sdl[sl->SignatureListSize] = sd;
-	sl->SignatureListSize++;
+	memcpy(sdl, sl->Signatures, count * sl->SignatureSize);
+	sdl[count] = sd;
+	sl->SignatureListSize += sl->SignatureSize;
 
 	free(sl->Signatures);
 	sl->Signatures = sdl;
@@ -197,9 +200,10 @@ signature_list_realize(signature_list *sl, void **out, size_t *outsize)
 		sl->realized = NULL;
 	}
 
+	int count = (sl->SignatureListSize - sizeof (struct efi_signature_list)) / sl->SignatureSize;
 	struct efi_signature_list *esl = NULL;
 	uint32_t size = sizeof (*esl) +
-			+ sl->SignatureListSize * sl->SignatureSize;
+			+ count * sl->SignatureSize;
 
 	void *ret = calloc(1, size);
 	if (!ret)
@@ -209,7 +213,7 @@ signature_list_realize(signature_list *sl, void **out, size_t *outsize)
 	memcpy(esl, sl, sizeof (*esl));
 
 	uint8_t *pos = ret + sizeof (*esl);
-	for (int i = 0; i < sl->SignatureListSize; i++) {
+	for (int i = 0; i < count; i++) {
 		memcpy(pos, sl->Signatures[i], sl->SignatureSize);
 		pos += sl->SignatureSize;
 	}
@@ -227,7 +231,8 @@ signature_list_free(signature_list *sl)
 	if (sl->realized)
 		free(sl->realized);
 
-	for (int i = 0; i < sl->SignatureListSize; i++)
+	int count = (sl->SignatureListSize - sizeof (struct efi_signature_list)) / sl->SignatureSize;
+	for (int i = 0; i < count; i++)
 		free(sl->Signatures[i]);
 
 	free(sl);
