@@ -81,6 +81,20 @@ Spawn a daemon for use with \fBpesign-client(1)\fR
 \fB-\-nofork\fR
 Do not fork when using \fB-\-daemonize\fR.
 
+.SH EXAMPLES
+If you have a certificate file and private key file, use following steps
+to sign a file. Say cert file is xyz_cert.x509.PEM and private key file is
+signing_key.PEM.
+
+ Create a pkcs12 file from private key and certificate file.
+ # openssl pkcs12 -export -out foo_key.p12 -inkey signing_key.PEM -in xyz_cert.x509.PEM
+
+ Import pkcs12 file into pesign db
+ # pk12util -i foo_key.p12 -d /etc/pki/pesign
+
+ Do the signing
+ pesign -i <input-file> -o <output-file> -c <cert nickname>  -s
+
 .SH "SEE ALSO"
 .BR pesign-client (1)
 
