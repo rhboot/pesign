@@ -19,6 +19,7 @@
 
 #include "libdpe.h"
 
+#include <assert.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/types.h>

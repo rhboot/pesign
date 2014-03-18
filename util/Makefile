@@ -7,7 +7,7 @@ FORMAT=efi-app-$(HOSTARCH)
 LDFLAGS = -nostdlib -T $(LIBDIR)/gnuefi/elf_$(HOSTARCH)_efi.lds -shared -Bsymbolic $(LIBDIR)/gnuefi/crt0-efi-$(HOSTARCH).o -L$(LIBDIR)
 LIBS=-lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name)
 CCLDFLAGS =
-CFLAGS = -I/usr/include/efi/ -I/usr/include/efi/$(HOSTARCH)/ -I/usr/include/efi/protocol -fpic -fshort-wchar -fno-reorder-functions -fno-strict-aliasing -fno-merge-constants -mno-red-zone -Wimplicit-function-declaration
+BUILDFLAGS = -I/usr/include/efi/ -I/usr/include/efi/$(HOSTARCH)/ -I/usr/include/efi/protocol -fpic -fshort-wchar -fno-reorder-functions -fno-strict-aliasing -fno-merge-constants -mno-red-zone -Wimplicit-function-declaration
 
 TARGETS = setupsb.efi dumpsb.efi clearpk.efi
 

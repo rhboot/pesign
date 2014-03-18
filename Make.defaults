@@ -5,7 +5,8 @@ HOSTARCH   = $(shell uname -m | sed s,i[3456789]86,ia32,)
 ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
 INCDIR	   = -I$(TOPDIR)/include
 CPPFLAGS   = -DCONFIG_$(ARCH)
-CFLAGS	   = $(ARCH3264) -g -O0 -fpic -Wall -fshort-wchar -fno-strict-aliasing -fno-merge-constants --std=gnu99 -D_GNU_SOURCE
+CFLAGS	   = -g -O0
+BUILDFLAGS := $(CFLAGS) $(ARCH3264) -fpic -Wall -fshort-wchar -fno-strict-aliasing -fno-merge-constants --std=gnu99 -D_GNU_SOURCE -Wno-unused-result -Wno-unused-function
 ASFLAGS    = $(ARCH3264)
 LDFLAGS	   = -nostdlib
 CCLDFLAGS  = -shared
@@ -21,7 +22,7 @@ RANLIB        = $(bindir)ranlib
 OBJCOPY       = $(bindir)objcopy
 
 ifeq ($(ARCH),ia64)
-  CFLAGS += -mfixed-range=f32-f127
+  BUILDFLAGS += -mfixed-range=f32-f127
   LIBDIR = $(PREFIX)/lib64
 endif
 
@@ -33,7 +34,7 @@ ifeq ($(ARCH), ia32)
 endif
 
 ifeq ($(ARCH), x86_64)
-  CFLAGS += -mno-red-zone
+  BUILDFLAGS += -mno-red-zone
   LIBDIR := $(PREFIX)/lib64
   ifeq ($(HOSTARCH), ia32)
     ARCH3264 := -m64

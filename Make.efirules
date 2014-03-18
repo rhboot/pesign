@@ -6,10 +6,10 @@
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 %.o: %.c
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -D__UEFI__ -c $< -o $@
+	$(CC) $(INCDIR) $(BUILDFLAGS) $(CPPFLAGS) -D__UEFI__ -c $< -o $@
 
 %.S: %.c
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -D__UEFI__ -S $< -o $@
+	$(CC) $(INCDIR) $(BUILDFLAGS) $(CPPFLAGS) -D__UEFI__ -S $< -o $@
 
 %.E: %.c
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -D__UEFI__ -E $< -o $@
+	$(CC) $(INCDIR) $(BUILDFLAGS) $(CPPFLAGS) -D__UEFI__ -E $< -o $@
