@@ -5,18 +5,18 @@
 	$(CC) $(CCLDFLAGS) -o $@ $^ $(foreach lib,$(LIBS),-l$(lib)) $(foreach pklib,$(PKLIBS), $(shell pkg-config --libs-only-l --libs-only-other $(pklib))) -lpthread
 
 %.so : 
-	$(CC) $(INCDIR) $(CFLAGS) -Wl,-soname,$(SONAME) $(CCLDFLAGS) $^ -o $@
+	$(CC) $(INCDIR) $(BUILDFLAGS) -Wl,-soname,$(SONAME) $(CCLDFLAGS) $^ -o $@
 
 %.o: %.c
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+	$(CC) $(INCDIR) $(BUILDFLAGS) $(CPPFLAGS) -c $< -o $@
 
 .%.P : %.c
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -M -MM -MF $@ $^
+	$(CC) $(INCDIR) $(BUILDFLAGS) $(CPPFLAGS) -M -MM -MF $@ $^
 
 %.S: %.c
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -S $< -o $@
+	$(CC) $(INCDIR) $(BUILDFLAGS) $(CPPFLAGS) -S $< -o $@
 
 %.E: %.c
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -E $< -o $@
+	$(CC) $(INCDIR) $(BUILDFLAGS) $(CPPFLAGS) -E $< -o $@
 
 %.c : %.h
