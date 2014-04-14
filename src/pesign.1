@@ -82,21 +82,50 @@ Spawn a daemon for use with \fBpesign-client(1)\fR
 Do not fork when using \fB-\-daemonize\fR.
 
 .SH EXAMPLES
-If you have a certificate file and private key file, use following steps
-to sign a file. Say cert file is xyz_cert.x509.PEM and private key file is
-signing_key.PEM.
+If you have a certificate file and private key file, the following steps
+may be used to sign a PE image:
 
- Create a pkcs12 file from private key and certificate file.
- # openssl pkcs12 -export -out foo_key.p12 -inkey signing_key.PEM -in xyz_cert.x509.PEM
-
- Import pkcs12 file into pesign db
- # pk12util -i foo_key.p12 -d /etc/pki/pesign
-
- Do the signing
- pesign -i <input-file> -o <output-file> -c <cert nickname>  -s
-
+.RS 4
+# Create a pkcs12 file from private key and
+.RE
+.RS 4
+# certificate file.
+.RE
+.RS 4
+host:~$ openssl pkcs12 -export -out foo_key.p12 \\
+.RE
+.RS 20
+-inkey signing_key.pem \\
+.RE
+.RS 20
+-in xyz_cert.x509.pem
+.LP
+.RE
+.RS 4
+# Import pkcs12 file into pesign db
+.RE
+.RS 4
+host:~$ pk12util -i foo_key.p12 -d /etc/pki/pesign
+.LP
+.RE
+.RS 4
+# Do the signing
+.RE
+.RS 4
+host:~$ pesign -i <input-file> -o <output-file> \\
+.RE
+.RS 19
+-c <cert nickname>  -s
+.RE
+.LP
+Please note that this is just an example, and that recommended best practice
+is to always store private keys in a FIPS 140-2 hardware security
+module, level 2 or higher.
 .SH "SEE ALSO"
 .BR pesign-client (1)
+.LP
+.BR FIPS\ 140-2
+http://csrc.nist.gov/publications/PubsFIPS.html
 
 .SH AUTHORS
 .nf
