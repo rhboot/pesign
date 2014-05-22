@@ -198,6 +198,19 @@ read_unmmapped_file(int fildes, size_t maxsize, Pe_Cmd cmd, Pe *parent)
 	return allocate_pe(fildes, NULL, maxsize, cmd, parent, PE_K_NONE, 0);
 }
 
+Pe *pe_memory(char *image, size_t size)
+{
+	if (image == NULL) {
+		__libpe_seterrno(PE_E_INVALID_OPERAND);
+		return NULL;
+	}
+
+	struct Pe *result = __libpe_read_mmapped_file(-1,
+					image, size,
+					PE_C_READ, NULL);
+	return result;
+}
+
 static Pe *
 read_file(int fildes, size_t maxsize, Pe_Cmd cmd, Pe *parent)
 {

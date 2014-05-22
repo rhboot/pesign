@@ -26,11 +26,6 @@ Pe *pe_clone(Pe *pe, Pe_Cmd cmd)
 	return NULL;
 }
 
-Pe *pe_memory(char *image, size_t size)
-{
-	return NULL;
-}
-
 Pe_Kind pe_kind(Pe *pe)
 {
 	return pe == NULL ? PE_K_NONE : pe->kind;
