@@ -113,7 +113,7 @@ struct Pe {
 
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
-			
+
 			Pe_ScnList scns;
 		} pe32_obj;
 
@@ -126,7 +126,7 @@ struct Pe {
 
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
-			
+
 			Pe_ScnList scns;
 		} pe32_rom;
 
@@ -139,7 +139,7 @@ struct Pe {
 
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
-			
+
 			Pe_ScnList scns;
 		} pe32_exe;
 
@@ -152,7 +152,7 @@ struct Pe {
 
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
-			
+
 			Pe_ScnList scns;
 		} pe32plus_obj;
 
@@ -165,7 +165,7 @@ struct Pe {
 
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
-			
+
 			Pe_ScnList scns;
 		} pe32plus_exe;
 	} state;
