@@ -49,11 +49,6 @@ efikeygen_OBJECTS = $(foreach source,$(efikeygen_SOURCES),$(patsubst %.c,%,$(sou
 efikeygen_DEPS = $(foreach source,$(efikeygen_SOURCES),.$(patsubst %.c,%,$(source)).P)
 efikeygen : $(efikeygen_OBJECTS) $(STATIC_LIBS)
 
-fuzzsocket_SOURCES = fuzzsocket.c
-fuzzsocket_OBJECTS = $(foreach source,$(fuzzsocket_SOURCES),$(patsubst %.c,%,$(source)).o)
-fuzzsocket_DEPS = $(foreach source,$(fuzzsocket_SOURCES),.$(patsubst %.c,%,$(source)).P)
-fuzzsocket : $(fuzzsocket_OBJECTS) -lrt
-
 DEPS = $(generic_DEPS) $(authvar_DEPS) $(pesign_DEPS) $(client_DEPS) \
 	$(pesigcheck_DEPS) $(efisiglist_DEPS) $(efikeygen_DEPS)
 
