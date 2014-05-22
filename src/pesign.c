@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <nss.h>
@@ -88,16 +89,23 @@ open_input(pesign_context *ctx)
 
 	struct stat statbuf;
 	ctx->infd = open(ctx->infile, O_RDONLY|O_CLOEXEC);
-	stat(ctx->infile, &statbuf);
-	ctx->outmode = statbuf.st_mode;
-
 	if (ctx->infd < 0) {
 		fprintf(stderr, "pesign: Error opening input: %m\n");
 		exit(1);
 	}
 
-	Pe_Cmd cmd = ctx->infd == STDIN_FILENO ? PE_C_READ : PE_C_READ_MMAP;
-	ctx->inpe = pe_begin(ctx->infd, cmd, NULL);
+	fstat(ctx->infd, &statbuf);
+	ctx->outmode = statbuf.st_mode;
+
+	ctx->insize = statbuf.st_size;
+	ctx->inmap = mmap(NULL, ctx->insize, PROT_READ, MAP_SHARED,
+				ctx->infd, 0);
+	if (ctx->inmap == MAP_FAILED) {
+		fprintf(stderr, "pesign: could not map input: %m\n");
+		exit(1);
+	}
+
+	ctx->inpe = pe_memory(ctx->inmap, ctx->insize);
 	if (!ctx->inpe) {
 		fprintf(stderr, "pesign: could not load input file: %s\n",
 			pe_errmsg(pe_errno()));
@@ -118,6 +126,10 @@ close_input(pesign_context *ctx)
 {
 	pe_end(ctx->inpe);
 	ctx->inpe = NULL;
+
+	munmap(ctx->inmap, ctx->insize);
+	ctx->inmap = MAP_FAILED;
+	ctx->insize = -1;
 
 	close(ctx->infd);
 	ctx->infd = -1;

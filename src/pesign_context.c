@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <sys/mman.h>
 #include <unistd.h>
 
 #include "pesign.h"
@@ -58,6 +59,9 @@ pesign_context_init(pesign_context *ctx)
 	ctx->infd = -1;
 	ctx->outfd = -1;
 	ctx->outmode = 0644;
+
+	ctx->inmap = MAP_FAILED;
+	ctx->insize = -1;
 
 	ctx->rawsigfd = -1;
 	ctx->insattrsfd = -1;
@@ -156,6 +160,12 @@ pesign_context_fini(pesign_context *ctx)
 	if (ctx->outfd >= 0) {
 		close(ctx->outfd);
 		ctx->outfd = -1;
+	}
+
+	if (ctx->inmap != MAP_FAILED) {
+		munmap(ctx->inmap, ctx->insize);
+		ctx->inmap = MAP_FAILED;
+		ctx->insize = -1;
 	}
 
 	if (ctx->infd >= 0) {

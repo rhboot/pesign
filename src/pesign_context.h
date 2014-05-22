@@ -55,6 +55,8 @@ typedef struct {
 	char *outcert;
 	int outcertfd;
 
+	void *inmap;
+	size_t insize;
 	Pe *inpe;
 	Pe *outpe;
 
