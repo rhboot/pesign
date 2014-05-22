@@ -104,7 +104,7 @@ open_input(pesign_context *ctx)
 		exit(1);
 	}
 
-	int rc = parse_signatures(&ctx->cms_ctx->signatures,
+	int rc = parse_pe_signatures(&ctx->cms_ctx->signatures,
 				  &ctx->cms_ctx->num_signatures, ctx->inpe);
 	if (rc < 0) {
 		fprintf(stderr, "pesign: could not parse signature list in "
@@ -128,7 +128,7 @@ close_output(pesign_context *ctx)
 {
 	Pe_Cmd cmd = ctx->outfd == STDOUT_FILENO ? PE_C_RDWR : PE_C_RDWR_MMAP;
 
-	finalize_signatures(ctx->cms_ctx->signatures,
+	finalize_pe_signatures(ctx->cms_ctx->signatures,
 				ctx->cms_ctx->num_signatures, ctx->outpe);
 	pe_update(ctx->outpe, cmd);
 	pe_end(ctx->outpe);
@@ -662,9 +662,9 @@ main(int argc, char *argv[])
 			open_output(ctxp);
 			close_input(ctxp);
 			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
-			sigspace = calculate_signature_space(ctxp->cms_ctx,
+			sigspace = calculate_pe_signature_space(ctxp->cms_ctx,
 								ctxp->outpe);
-			allocate_signature_space(ctxp->outpe, sigspace);
+			allocate_pe_signature_space(ctxp->outpe, sigspace);
 			generate_signature(ctxp->cms_ctx);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
 			close_output(ctxp);
@@ -690,13 +690,13 @@ main(int argc, char *argv[])
 			open_sig_input(ctxp);
 			parse_signature(ctxp);
 			sigspace =
-				calculate_signature_overhead(
+				calculate_pe_signature_overhead(
 					ctxp->cms_ctx->newsig.len) +
 				ctxp->cms_ctx->newsig.len +
-				get_reserved_sig_space(ctxp->cms_ctx,
+				get_reserved_pe_sig_space(ctxp->cms_ctx,
 							ctxp->outpe);
-			allocate_signature_space(ctxp->outpe, sigspace);
-			check_signature_space(ctxp);
+			allocate_pe_signature_space(ctxp->outpe, sigspace);
+			check_pe_signature_space(ctxp);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
 			close_sig_input(ctxp);
 			close_output(ctxp);
@@ -766,7 +766,7 @@ main(int argc, char *argv[])
 		/* list signatures in the binary */
 		case LIST_SIGNATURES:
 			open_input(ctxp);
-			list_signatures(ctxp);
+			list_pe_signatures(ctxp);
 			break;
 		case GENERATE_DIGEST|PRINT_DIGEST:
 			open_input(ctxp);
@@ -806,9 +806,9 @@ main(int argc, char *argv[])
 			open_output(ctxp);
 			close_input(ctxp);
 			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
-			sigspace = calculate_signature_space(ctxp->cms_ctx,
+			sigspace = calculate_pe_signature_space(ctxp->cms_ctx,
 							     ctxp->outpe);
-			allocate_signature_space(ctxp->outpe, sigspace);
+			allocate_pe_signature_space(ctxp->outpe, sigspace);
 			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
 			generate_signature(ctxp->cms_ctx);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);

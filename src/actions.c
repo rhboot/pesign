@@ -77,11 +77,11 @@ insert_signature(cms_context *cms, int signum)
 }
 
 int
-list_signatures(pesign_context *ctx)
+list_pe_signatures(pesign_context *ctx)
 {
-	cert_iter iter;
+	pe_cert_iter iter;
 
-	int rc = cert_iter_init(&iter, ctx->inpe);
+	int rc = pe_cert_iter_init(&iter, ctx->inpe);
 
 	if (rc < 0) {
 		printf("No certificate list found.\n");
@@ -94,7 +94,7 @@ list_signatures(pesign_context *ctx)
 
 	rc = 0;
 	while (1) {
-		rc = next_cert(&iter, &data, &datalen);
+		rc = next_pe_cert(&iter, &data, &datalen);
 		if (rc <= 0)
 			break;
 
@@ -395,9 +395,9 @@ generate_sattr_blob(pesign_context *ctx)
 }
 
 void
-check_signature_space(pesign_context *ctx)
+check_pe_signature_space(pesign_context *ctx)
 {
-	ssize_t available = available_cert_space(ctx->outpe);
+	ssize_t available = available_pe_cert_space(ctx->outpe);
 
 	if (available < ctx->cms_ctx->newsig.len) {
 		fprintf(stderr, "Could not add new signature: insufficient space.\n");
@@ -406,7 +406,7 @@ check_signature_space(pesign_context *ctx)
 }
 
 void
-allocate_signature_space(Pe *pe, ssize_t sigspace)
+allocate_pe_signature_space(Pe *pe, ssize_t sigspace)
 {
 	int rc;
 

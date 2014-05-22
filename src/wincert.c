@@ -71,7 +71,7 @@ implant_cert_list(Pe *pe, void *cert_list, size_t cert_list_size)
 }
 
 int
-finalize_signatures(SECItem **sigs, int num_sigs, Pe *pe)
+finalize_pe_signatures(SECItem **sigs, int num_sigs, Pe *pe)
 {
 	void *clist = NULL;
 	size_t clist_size = 0;
@@ -89,7 +89,7 @@ finalize_signatures(SECItem **sigs, int num_sigs, Pe *pe)
 }
 
 int
-cert_iter_init(cert_iter *iter, Pe *pe)
+pe_cert_iter_init(pe_cert_iter *iter, Pe *pe)
 {
 	iter->pe = pe;
 	iter->n = 0;
@@ -118,7 +118,7 @@ cert_iter_init(cert_iter *iter, Pe *pe)
 }
 
 int
-next_cert(cert_iter *iter, void **cert, ssize_t *cert_size)
+next_pe_cert(pe_cert_iter *iter, void **cert, ssize_t *cert_size)
 {
 	if (!iter)
 		return -1;
@@ -184,10 +184,10 @@ done:
 }
 
 ssize_t
-available_cert_space(Pe *pe)
+available_pe_cert_space(Pe *pe)
 {
-	cert_iter iter;
-	int rc = cert_iter_init(&iter, pe);
+	pe_cert_iter iter;
+	int rc = pe_cert_iter_init(&iter, pe);
 	if (rc < 0)
 		return -1;
 
@@ -204,7 +204,7 @@ available_cert_space(Pe *pe)
 	ssize_t datalen;
 
 	while (1) {
-		rc = next_cert(&iter, &data, &datalen);
+		rc = next_pe_cert(&iter, &data, &datalen);
 		if (rc <= 0)
 			break;
 		foundsize += datalen;
@@ -214,7 +214,7 @@ available_cert_space(Pe *pe)
 }
 
 size_t
-get_reserved_sig_space(cms_context *cms, Pe *pe)
+get_reserved_pe_sig_space(cms_context *cms, Pe *pe)
 {
 	size_t ret = 0;
 	for (int i = 0; i < cms->num_signatures; i++) {
@@ -227,13 +227,13 @@ get_reserved_sig_space(cms_context *cms, Pe *pe)
 }
 
 ssize_t
-calculate_signature_overhead(ssize_t size)
+calculate_pe_signature_overhead(ssize_t size)
 {
 	return sizeof(win_certificate);
 }
 
 ssize_t
-calculate_signature_space(cms_context *cms, Pe *pe)
+calculate_pe_signature_space(cms_context *cms, Pe *pe)
 {
 	int rc;
 
@@ -249,10 +249,10 @@ err:
 	if (rc < 0)
 		goto err;
 
-	size_t res = get_reserved_sig_space(cms, pe);
+	size_t res = get_reserved_pe_sig_space(cms, pe);
 
 	ssize_t ret = res + sig.len + sizeof(win_certificate) -
-						available_cert_space(pe);
+						available_pe_cert_space(pe);
 
 	/* pe-coff 8.2 adds some text that says each cert list entry is
 	 * 8-byte aligned, so that means we need alignment space here. */
@@ -264,10 +264,10 @@ err:
 }
 
 int
-parse_signatures(SECItem ***sigs, int *num_sigs, Pe *pe)
+parse_pe_signatures(SECItem ***sigs, int *num_sigs, Pe *pe)
 {
-	cert_iter iter;
-	int rc = cert_iter_init(&iter, pe);
+	pe_cert_iter iter;
+	int rc = pe_cert_iter_init(&iter, pe);
 	if (rc < 0)
 		return -1;
 
@@ -277,7 +277,7 @@ parse_signatures(SECItem ***sigs, int *num_sigs, Pe *pe)
 
 	rc = 0;
 	while (1) {
-		rc = next_cert(&iter, &data, &datalen);
+		rc = next_pe_cert(&iter, &data, &datalen);
 		if (rc <= 0)
 			break;
 		nsigs++;
@@ -293,13 +293,13 @@ parse_signatures(SECItem ***sigs, int *num_sigs, Pe *pe)
 	if (!signatures)
 		return -1;
 
-	rc = cert_iter_init(&iter, pe);
+	rc = pe_cert_iter_init(&iter, pe);
 	if (rc < 0)
 		goto err;
 
 	int i = 0;
 	while (1) {
-		rc = next_cert(&iter, &data, &datalen);
+		rc = next_pe_cert(&iter, &data, &datalen);
 		if (rc <= 0)
 			break;
 

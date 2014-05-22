@@ -24,9 +24,9 @@
 
 #include "wincert.h"
 
-extern int list_signatures(pesign_context *ctx);
-extern void check_signature_space(pesign_context *ctx);
-extern void allocate_signature_space(Pe *pe, ssize_t sigspace);
+extern int list_pe_signatures(pesign_context *ctx);
+extern void check_pe_signature_space(pesign_context *ctx);
+extern void allocate_pe_signature_space(Pe *pe, ssize_t sigspace);
 extern off_t export_signature(cms_context *cms, int fd, int ascii_armor);
 extern void import_raw_signature(pesign_context *pctx);
 extern void remove_signature(pesign_context *ctx);

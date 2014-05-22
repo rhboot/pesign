@@ -58,7 +58,7 @@ open_input(pesigcheck_context *ctx)
 		exit(1);
 	}
 
-	int rc = parse_signatures(&ctx->cms_ctx->signatures,
+	int rc = parse_pe_signatures(&ctx->cms_ctx->signatures,
 					&ctx->cms_ctx->num_signatures,
 					ctx->inpe);
 	if (rc < 0) {
@@ -127,17 +127,17 @@ check_signature(pesigcheck_context *ctx)
 	int has_invalid_cert = 0;
 	int rc = 0;
 
-	cert_iter iter;
+	pe_cert_iter iter;
 
 	generate_digest(ctx->cms_ctx, ctx->inpe, 1);
-	
+
 	if (check_db_hash(DBX, ctx) == FOUND)
 		return -1;
 
 	if (check_db_hash(DB, ctx) == FOUND)
 		has_valid_cert = 1;
 
-	rc = cert_iter_init(&iter, ctx->inpe);
+	rc = pe_cert_iter_init(&iter, ctx->inpe);
 	if (rc < 0)
 		goto err;
 
@@ -145,7 +145,7 @@ check_signature(pesigcheck_context *ctx)
 	ssize_t datalen;
 
 	while (1) {
-		rc = next_cert(&iter, &data, &datalen);
+		rc = next_pe_cert(&iter, &data, &datalen);
 		if (rc <= 0)
 			break;
 

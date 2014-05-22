@@ -284,8 +284,8 @@ set_up_inpe(context *ctx, int fd, Pe **pe)
 		return -1;
 	}
 
-	int rc = parse_signatures(&ctx->cms->signatures,
-				  &ctx->cms->num_signatures, *pe);
+	int rc = parse_pe_signatures(&ctx->cms->signatures,
+				     &ctx->cms->num_signatures, *pe);
 	if (rc < 0) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
 			"could not parse signature list");
@@ -436,10 +436,10 @@ err_attached:
 			ftruncate(outfd, 0);
 			goto finish;
 		}
-		ssize_t sigspace = calculate_signature_space(ctx->cms, outpe);
+		ssize_t sigspace = calculate_pe_signature_space(ctx->cms, outpe);
 		if (sigspace < 0)
 			goto err_attached;
-		allocate_signature_space(outpe, sigspace);
+		allocate_pe_signature_space(outpe, sigspace);
 		rc = generate_digest(ctx->cms, outpe, 1);
 		if (rc < 0)
 			goto err_attached;
@@ -447,7 +447,7 @@ err_attached:
 		if (rc < 0)
 			goto err_attached;
 		insert_signature(ctx->cms, ctx->cms->num_signatures);
-		finalize_signatures(ctx->cms->signatures,
+		finalize_pe_signatures(ctx->cms->signatures,
 				ctx->cms->num_signatures, outpe);
 		pe_end(outpe);
 	} else {
