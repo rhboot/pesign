@@ -81,9 +81,9 @@ generate_spc_pe_image_data(cms_context *cms, SECItem *spidp)
 		return -1;
 	spid.flags.data[0] = 0;
 
-	char obsolete[28] = "\0<\0<\0<\0O\0b\0s\0o\0l\0e\0t\0e\0>\0>\0>";
+	char obsolete[28] = "";
 	int rc;
-	rc = generate_spc_link(cms, &spid.link, SpcLinkTypeFile, obsolete, 28);
+	rc = generate_spc_link(cms, &spid.link, SpcLinkTypeFile, obsolete, 0);
 	if (rc < 0)
 		return rc;
 
