@@ -74,5 +74,6 @@ extern void pesign_context_free_private(pesign_context **ctx_ptr);
 extern int pesign_context_init(pesign_context *ctx);
 extern void pesign_context_fini(pesign_context *ctx);
 #define pesign_context_free(ctx) pesign_context_free_private(&(ctx))
+extern int pesign_context_get_max_signatures(pesign_context *ctxp);
 
 #endif /* PESIGN_CONTEXT_H */

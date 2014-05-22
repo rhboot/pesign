@@ -183,3 +183,21 @@ pesign_context_free_private(pesign_context **ctx_ptr)
 	if (ctx->flags & PESIGN_C_ALLOCATED)
 		xfree(*ctx_ptr);
 }
+
+int
+pesign_context_get_max_signatures(pesign_context *ctxp)
+{
+#if 0
+	switch (ctxp->filetype) {
+		case PESIGN_FT_CAB:
+			return 1;
+		case PESIGN_FT_PE:
+			/* this is completely arbitrary, but it's
+			 * unreasonably high as well. */
+#endif
+			return 64;
+#if 0
+	}
+	return -1;
+#endif
+}
