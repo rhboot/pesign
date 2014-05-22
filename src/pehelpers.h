@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2014 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,26 +16,16 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_H
-#define PESIGN_H 1
+#ifndef PESIGN_PEHELPERS_H
+#define PESIGN_PEHELPERS_H 1
 
-#include <libdpe/libdpe.h>
-#include <libdpe/pe.h>
+#include <cert.h>
+#include <secpkcs7.h>
 
-#include "cms_common.h"
-#include "pesign_context.h"
-
-#include "daemon.h"
-#include "util.h"
-#include "efitypes.h"
-#include "actions.h"
-#include "endian.h"
-#include "oid.h"
-#include "pehelpers.h"
 #include "wincert.h"
-#include "content_info.h"
-#include "signer_info.h"
-#include "signed_data.h"
-#include "password.h"
 
-#endif /* PESIGN_H */
+extern int list_pe_signatures(pesign_context *ctx);
+extern void check_pe_signature_space(pesign_context *ctx);
+extern void allocate_pe_signature_space(Pe *pe, ssize_t sigspace);
+
+#endif /* PESIGN_PEHELPERS_H */

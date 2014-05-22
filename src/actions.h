@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2011-2014 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,17 +16,12 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_CRYPTO_H
-#define PESIGN_CRYPTO_H 1
+#ifndef PESIGN_ACTIONS_H
+#define PESIGN_ACTIONS_H 1
 
 #include <cert.h>
 #include <secpkcs7.h>
 
-#include "wincert.h"
-
-extern int list_pe_signatures(pesign_context *ctx);
-extern void check_pe_signature_space(pesign_context *ctx);
-extern void allocate_pe_signature_space(Pe *pe, ssize_t sigspace);
 extern off_t export_signature(cms_context *cms, int fd, int ascii_armor);
 extern void import_raw_signature(pesign_context *pctx);
 extern void remove_signature(pesign_context *ctx);
@@ -36,4 +31,4 @@ extern int generate_sattr_blob(pesign_context *pctx);
 extern void parse_signature(pesign_context *ctx);
 extern void insert_signature(cms_context *cms, int signum);
 
-#endif /* PESIGN_CRYPTO_H */
+#endif /* PESIGN_ACTIONS_H */
