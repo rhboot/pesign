@@ -141,7 +141,7 @@ pe_shorten_file(Pe *pe, size_t size)
 	int rc = ftruncate(pe->fildes, pe->maximum_size - size);
 	if (rc < 0)
 		return -1;
-	
+
 	pe->maximum_size -= size;
 	return 0;
 }

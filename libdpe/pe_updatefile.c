@@ -41,7 +41,7 @@ __get_last_section(Pe *pe)
 	}
 	if (ret)
 		return ret->shdr;
-	
+
 	return NULL;
 }
 

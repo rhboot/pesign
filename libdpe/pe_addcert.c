@@ -53,7 +53,7 @@ pe_alloccert(Pe *pe, size_t size)
 	rc = pe_getdatadir(pe, &dd);
 	if (rc < 0)
 		return rc;
-	
+
 	void *addr = compute_mem_addr(pe, new_space);
 	/* We leave the whole list empty until finalize...*/
 	memset(addr, '\0', size);
