@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,46 +81,58 @@ print_flag_name(FILE *f, int flag)
 }
 
 static void
+open_input_helper(char *name, int *fd, char *errtext)
+{
+	if (!name)
+		errx(1, "No input %s specified.", errtext);
+
+	*fd = open(name, O_RDONLY|O_CLOEXEC);
+	if (*fd < 0)
+		err(1, "Could not open %s for input", errtext);
+}
+
+static void
+open_output_helper(char *name, int *fd, mode_t mode, char *errtext, int force)
+{
+	if (!name)
+		errx(1, "No output %s specified.", errtext);
+
+	if (access(name, F_OK) == 0 && force == 0)
+		errx(1, "\"%s\" exists and --force was not given.",
+			name);
+
+	*fd = open(name, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC, mode);
+	if (*fd < 0)
+		err(1, "Could not open %s for output", errtext);
+}
+
+static void
 open_input(pesign_context *ctx)
 {
-	if (!ctx->infile) {
-		fprintf(stderr, "pesign: No input file specified.\n");
-		exit(1);
-	}
+	open_input_helper(ctx->infile, &ctx->infd, "PE file");
 
 	struct stat statbuf;
-	ctx->infd = open(ctx->infile, O_RDONLY|O_CLOEXEC);
-	if (ctx->infd < 0) {
-		fprintf(stderr, "pesign: Error opening input: %m\n");
-		exit(1);
-	}
-
 	fstat(ctx->infd, &statbuf);
 	ctx->outmode = statbuf.st_mode;
 
 	ctx->insize = statbuf.st_size;
 	ctx->inmap = mmap(NULL, ctx->insize, PROT_READ, MAP_SHARED,
 				ctx->infd, 0);
-	if (ctx->inmap == MAP_FAILED) {
-		fprintf(stderr, "pesign: could not map input: %m\n");
-		exit(1);
-	}
+	if (ctx->inmap == MAP_FAILED)
+		err(1, "Could not mmap input");
 
 	ctx->inpe = pe_memory(ctx->inmap, ctx->insize);
-	if (!ctx->inpe) {
-		fprintf(stderr, "pesign: could not load input file: %s\n",
+	if (!ctx->inpe)
+		errx(1, "Could not load input file: %s",
 			pe_errmsg(pe_errno()));
-		exit(1);
-	}
 
 	int rc = parse_pe_signatures(&ctx->cms_ctx->signatures,
 				  &ctx->cms_ctx->num_signatures, ctx->inpe);
-	if (rc < 0) {
-		fprintf(stderr, "pesign: could not parse signature list in "
-			"EFI binary\n");
-		exit(1);
-	}
+	if (rc < 0)
+		errx(1, "could not parse signature list in EFI binary");
 }
+
+#define close_helper(fd) ({close(fd); fd = -1;})
 
 static void
 close_input(pesign_context *ctx)
@@ -131,8 +144,7 @@ close_input(pesign_context *ctx)
 	ctx->inmap = MAP_FAILED;
 	ctx->insize = -1;
 
-	close(ctx->infd);
-	ctx->infd = -1;
+	close_helper(ctx->infd);
 }
 
 static void
@@ -146,30 +158,14 @@ close_output(pesign_context *ctx)
 	pe_end(ctx->outpe);
 	ctx->outpe = NULL;
 
-	close(ctx->outfd);
-	ctx->outfd = -1;
+	close_helper(ctx->outfd);
 }
 
 static void
 open_output(pesign_context *ctx)
 {
-	if (!ctx->outfile) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
-
-	if (access(ctx->outfile, F_OK) == 0 && ctx->force == 0) {
-		fprintf(stderr, "pesign: \"%s\" exists and --force was "
-				"not given.\n", ctx->outfile);
-		exit(1);
-	}
-
-	ctx->outfd = open(ctx->outfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
-			ctx->outmode);
-	if (ctx->outfd < 0) {
-		fprintf(stderr, "pesign: Error opening output: %m\n");
-		exit(1);
-	}
+	open_output_helper(ctx->outfile, &ctx->outfd, ctx->outmode,
+				"PE file", ctx->force);
 
 	size_t size;
 	char *addr;
@@ -182,189 +178,11 @@ open_output(pesign_context *ctx)
 
 	Pe_Cmd cmd = ctx->outfd == STDOUT_FILENO ? PE_C_RDWR : PE_C_RDWR_MMAP;
 	ctx->outpe = pe_begin(ctx->outfd, cmd, NULL);
-	if (!ctx->outpe) {
-		fprintf(stderr, "pesign: could not load output file: %s\n",
+	if (!ctx->outpe)
+		errx(1, "could not load output file: %s",
 			pe_errmsg(pe_errno()));
-		exit(1);
-	}
 
 	pe_clearcert(ctx->outpe);
-}
-
-static void
-open_rawsig_input(pesign_context *ctx)
-{
-	if (!ctx->rawsig) {
-		fprintf(stderr, "pesign: No input file specified.\n");
-		exit(1);
-	}
-
-	ctx->rawsigfd = open(ctx->rawsig, O_RDONLY|O_CLOEXEC);
-	if (ctx->rawsigfd < 0) {
-		fprintf(stderr, "pesign: Error opening raw signature for input:"
-				" %m\n");
-		exit(1);
-	}
-}
-
-static void
-close_rawsig_input(pesign_context *ctx)
-{
-	close(ctx->rawsigfd);
-	ctx->rawsigfd = -1;
-}
-
-static void
-open_sattr_input(pesign_context *ctx)
-{
-	if (!ctx->insattrs) {
-		fprintf(stderr, "pesign: No input file specified.\n");
-		exit(1);
-	}
-
-	ctx->insattrsfd = open(ctx->insattrs, O_RDONLY|O_CLOEXEC);
-	if (ctx->insattrsfd < 0) {
-		fprintf(stderr, "pesign: Error opening signed attributes "
-				"for input: %m\n");
-		exit(1);
-	}
-}
-
-static void
-close_sattr_input(pesign_context *ctx)
-{
-	close(ctx->insattrsfd);
-	ctx->insattrsfd = -1;
-}
-
-static void
-open_sattr_output(pesign_context *ctx)
-{
-	if (!ctx->outsattrs) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
-
-	if (access(ctx->outsattrs, F_OK) == 0 && ctx->force == 0) {
-		fprintf(stderr, "pesign: \"%s\" exists and --force "
-				"was not given.\n", ctx->outsattrs);
-		exit(1);
-	}
-
-	ctx->outsattrsfd = open(ctx->outsattrs,
-			O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
-			ctx->outmode);
-	if (ctx->outsattrsfd < 0) {
-		fprintf(stderr, "pesign: Error opening signed attributes "
-				"for output: %m\n");
-		exit(1);
-	}
-}
-
-static void
-close_sattr_output(pesign_context *ctx)
-{
-	close(ctx->outsattrsfd);
-	ctx->outsattrsfd = -1;
-}
-
-static void
-open_sig_input(pesign_context *ctx)
-{
-	if (!ctx->insig) {
-		fprintf(stderr, "pesign: No input file specified.\n");
-		exit(1);
-	}
-
-	ctx->insigfd = open(ctx->insig, O_RDONLY|O_CLOEXEC);
-	if (ctx->insigfd < 0) {
-		fprintf(stderr, "pesign: Error opening signature for input: "
-				"%m\n");
-		exit(1);
-	}
-}
-
-static void
-close_sig_input(pesign_context *ctx)
-{
-	close(ctx->insigfd);
-	ctx->insigfd = -1;
-}
-
-static void
-open_sig_output(pesign_context *ctx)
-{
-	if (!ctx->outsig) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
-
-	if (access(ctx->outsig, F_OK) == 0 && ctx->force == 0) {
-		fprintf(stderr, "pesign: \"%s\" exists and --force "
-				"was not given.\n", ctx->outsig);
-		exit(1);
-	}
-
-	ctx->outsigfd = open(ctx->outsig, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
-				ctx->outmode);
-	if (ctx->outsigfd < 0) {
-		fprintf(stderr, "pesign: Error opening signature for output: "
-				"%m\n");
-		exit(1);
-	}
-}
-
-static void
-close_sig_output(pesign_context *ctx)
-{
-	close(ctx->outsigfd);
-	ctx->outsigfd = -1;
-}
-
-static void
-open_pubkey_output(pesign_context *ctx)
-{
-	if (!ctx->outkey) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
-
-	if (access(ctx->outkey, F_OK) == 0 && ctx->force == 0) {
-		fprintf(stderr, "pesign: \"%s\" exists and --force "
-				"was not given.\n", ctx->outkey);
-		exit(1);
-	}
-
-	ctx->outkeyfd = open(ctx->outkey, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
-				ctx->outmode);
-	if (ctx->outkeyfd < 0) {
-		fprintf(stderr, "pesign: Error opening pubkey for output: "
-				"%m\n");
-		exit(1);
-	}
-}
-
-static void
-open_cert_output(pesign_context *ctx)
-{
-	if (!ctx->outcert) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
-
-	if (access(ctx->outcert, F_OK) == 0 && ctx->force == 0) {
-		fprintf(stderr, "pesign: \"%s\" exists and --force "
-				"was not given.\n", ctx->outcert);
-		exit(1);
-	}
-
-	ctx->outcertfd = open(ctx->outcert, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
-				ctx->outmode);
-	if (ctx->outcertfd < 0) {
-		fprintf(stderr, "pesign: Error opening certificate for output: "
-				"%m\n");
-		exit(1);
-	}
 }
 
 static void
@@ -664,12 +482,13 @@ main(int argc, char *argv[])
 					ctxp->cms_ctx->certname);
 				exit(1);
 			}
-			open_rawsig_input(ctxp);
-			open_sattr_input(ctxp);
+			open_input_helper(ctxp->rawsig, &ctxp->rawsigfd,
+					"raw signature");
+			open_input_helper(ctxp->insattrs, &ctxp->insattrsfd,
+					"signed attributes");
 			import_raw_signature(ctxp);
-			close_sattr_input(ctxp);
-			close_rawsig_input(ctxp);
-
+			close_helper(ctxp->insattrsfd);
+			close_helper(ctxp->rawsigfd);
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
@@ -684,11 +503,13 @@ main(int argc, char *argv[])
 			break;
 		case EXPORT_SATTRS:
 			open_input(ctxp);
-			open_sattr_output(ctxp);
+			open_output_helper(ctxp->outsattrs, &ctxp->outsattrsfd,
+					ctxp->outmode, "signed attributes",
+					ctxp->force);
 			generate_digest(ctxp->cms_ctx, ctxp->inpe, 1);
 			generate_sattr_blob(ctxp);
 			teardown_digests(ctxp->cms_ctx);
-			close_sattr_output(ctxp);
+			close_helper(ctxp->outsattrsfd);
 			close_input(ctxp);
 			break;
 		/* add a signature from a file */
@@ -701,7 +522,8 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			open_sig_input(ctxp);
+			open_input_helper(ctxp->insig, &ctxp->insigfd,
+					"signature");
 			parse_signature(ctxp);
 			sigspace =
 				calculate_pe_signature_overhead(
@@ -712,7 +534,7 @@ main(int argc, char *argv[])
 			allocate_pe_signature_space(ctxp->outpe, sigspace);
 			check_pe_signature_space(ctxp);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
-			close_sig_input(ctxp);
+			close_helper(ctxp->insigfd);
 			close_output(ctxp);
 			break;
 		case EXPORT_PUBKEY:
@@ -723,8 +545,11 @@ main(int argc, char *argv[])
 					ctxp->cms_ctx->certname);
 				exit(1);
 			}
-			open_pubkey_output(ctxp);
+			open_output_helper(ctxp->outkey, &ctxp->outkeyfd,
+					ctxp->outmode, "public key",
+					ctxp->force);
 			export_pubkey(ctxp);
+			close_helper(ctxp->outkeyfd);
 			break;
 		case EXPORT_CERT:
 			rc = find_certificate(ctxp->cms_ctx, 0);
@@ -734,13 +559,18 @@ main(int argc, char *argv[])
 					ctxp->cms_ctx->certname);
 				exit(1);
 			}
-			open_cert_output(ctxp);
+			open_output_helper(ctxp->outcert, &ctxp->outcertfd,
+					ctxp->outmode, "certificate",
+					ctxp->force);
 			export_cert(ctxp);
+			close_helper(ctxp->outcertfd);
 			break;
 		/* find a signature in the binary and save it to a file */
 		case EXPORT_SIGNATURE:
 			open_input(ctxp);
-			open_sig_output(ctxp);
+			open_output_helper(ctxp->outsig, &ctxp->outsigfd,
+					ctxp->outmode, "signature",
+					ctxp->force);
 			if (ctxp->signum > ctxp->cms_ctx->num_signatures) {
 				fprintf(stderr, "Invalid signature number.\n");
 				exit(1);
@@ -757,7 +587,7 @@ main(int argc, char *argv[])
 				sizeof (ctxp->cms_ctx->newsig));
 			export_signature(ctxp->cms_ctx, ctxp->outsigfd, ctxp->ascii);
 			close_input(ctxp);
-			close_sig_output(ctxp);
+			close_helper(ctxp->outsigfd);
 			break;
 		/* remove a signature from the binary */
 		case REMOVE_SIGNATURE:
@@ -798,7 +628,9 @@ main(int argc, char *argv[])
 				exit(1);
 			}
 			open_input(ctxp);
-			open_sig_output(ctxp);
+			open_output_helper(ctxp->outsig, &ctxp->outsigfd,
+					ctxp->outmode, "signature",
+					ctxp->force);
 			generate_digest(ctxp->cms_ctx, ctxp->inpe, 1);
 			generate_signature(ctxp->cms_ctx);
 			teardown_digests(ctxp->cms_ctx);
