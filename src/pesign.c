@@ -678,6 +678,7 @@ main(int argc, char *argv[])
 								ctxp->outpe);
 			allocate_pe_signature_space(ctxp->outpe, sigspace);
 			generate_signature(ctxp->cms_ctx);
+			teardown_digests(ctxp->cms_ctx);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
 			close_output(ctxp);
 			break;
@@ -686,6 +687,7 @@ main(int argc, char *argv[])
 			open_sattr_output(ctxp);
 			generate_digest(ctxp->cms_ctx, ctxp->inpe, 1);
 			generate_sattr_blob(ctxp);
+			teardown_digests(ctxp->cms_ctx);
 			close_sattr_output(ctxp);
 			close_input(ctxp);
 			break;
@@ -784,6 +786,7 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			generate_digest(ctxp->cms_ctx, ctxp->inpe, padding);
 			print_digest(ctxp);
+			teardown_digests(ctxp->cms_ctx);
 			break;
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:
@@ -798,6 +801,7 @@ main(int argc, char *argv[])
 			open_sig_output(ctxp);
 			generate_digest(ctxp->cms_ctx, ctxp->inpe, 1);
 			generate_signature(ctxp->cms_ctx);
+			teardown_digests(ctxp->cms_ctx);
 			export_signature(ctxp->cms_ctx, ctxp->outsigfd, ctxp->ascii);
 			break;
 		/* generate a signature and embed it in the binary */
@@ -823,6 +827,7 @@ main(int argc, char *argv[])
 			allocate_pe_signature_space(ctxp->outpe, sigspace);
 			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
 			generate_signature(ctxp->cms_ctx);
+			teardown_digests(ctxp->cms_ctx);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
 			close_output(ctxp);
 			break;

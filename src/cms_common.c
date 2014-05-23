@@ -119,7 +119,7 @@ teardown_digests(cms_context *ctx)
 			digests[i].pe_digest = NULL;
 		}
 	}
-	PORT_Free(digests);
+	PORT_ZFree(digests, n_digest_params * sizeof (*digests));
 	ctx->digests = NULL;
 }
 
@@ -980,7 +980,7 @@ err:
 			PK11_DestroyContext(digests[i].pk11ctx, PR_TRUE);
 	}
 
-	free(digests);
+	PORT_ZFree(digests, n_digest_params * sizeof (*digests));
 	return -1;
 }
 
