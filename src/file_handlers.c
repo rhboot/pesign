@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2014 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,27 +16,36 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_H
-#define PESIGN_H 1
+#include "pesign.h"
 
-#include <libdpe/libdpe.h>
-#include <libdpe/pe.h>
+int
+generic_list_signatures(pesign_context *ctx)
+{
+	return 0;
+}
 
-#include "cms_common.h"
-#include "pesign_context.h"
+int
+list_signatures(pesign_context *ctx)
+{
+	if (ctx->file_handlers->list_signatures)
+		return ctx->file_handlers->list_signatures(ctx);
+	else
+		return generic_list_signatures(ctx);
+}
 
-#include "daemon.h"
-#include "util.h"
-#include "efitypes.h"
-#include "actions.h"
-#include "endian.h"
-#include "oid.h"
-#include "file_handlers.h"
-#include "pe_handlers.h"
-#include "wincert.h"
-#include "content_info.h"
-#include "signer_info.h"
-#include "signed_data.h"
-#include "password.h"
+const file_handlers_t *file_handlers[] = {
+	&pe_handlers,
+	NULL
+};
 
-#endif /* PESIGN_H */
+int
+set_up_file_handlers(pesign_context *ctx, void *addr, size_t len)
+{
+	for (int x = 0; file_handlers[x] != NULL; x++) {
+		if (file_handlers[x]->is_valid(addr, len)) {
+			ctx->file_handlers = file_handlers[x];
+			return 0;
+		}
+	}
+	return -1;
+}

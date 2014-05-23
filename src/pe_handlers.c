@@ -18,10 +18,46 @@
  */
 
 #include <err.h>
+#include <sys/mman.h>
 
 #include <prerror.h>
 
 #include "pesign.h"
+
+static int
+pe_is_valid(void *addr, size_t len)
+{
+	if (len < 2)
+		return 0;
+	if (!memcmp(addr, "MZ", 2))
+		return 1;
+	return 0;
+}
+
+static void
+pe_setup(pesign_context *ctx, void *addr, size_t len)
+{
+	ctx->inpe = pe_memory(ctx->inmap, ctx->insize);
+	if (!ctx->inpe)
+		errx(1, "Could not load input file: %s",
+			pe_errmsg(pe_errno()));
+
+	int rc = parse_pe_signatures(&ctx->cms_ctx->signatures,
+				  &ctx->cms_ctx->num_signatures, ctx->inpe);
+	if (rc < 0)
+		errx(1, "could not parse signature list in EFI binary");
+}
+
+static void
+pe_teardown(pesign_context *ctx)
+{
+	pe_end(ctx->inpe);
+	ctx->inpe = NULL;
+
+	munmap(ctx->inmap, ctx->insize);
+	ctx->inmap = MAP_FAILED;
+	ctx->insize = -1;
+}
 
 static int saw_content;
 
@@ -163,3 +199,10 @@ allocate_pe_signature_space(Pe *pe, ssize_t sigspace)
 	if (rc < 0)
 		err(1, "Could not allocate space for signature");
 }
+
+const file_handlers_t pe_handlers = {
+	.is_valid = pe_is_valid,
+	.setup = pe_setup,
+	.teardown = pe_teardown,
+	.list_signatures = list_pe_signatures,
+};

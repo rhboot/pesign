@@ -16,16 +16,17 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_PEHELPERS_H
-#define PESIGN_PEHELPERS_H 1
+#ifndef PESIGN_PE_HANDLERS_H
+#define PESIGN_PE_HANDLERS_H 1
 
 #include <cert.h>
 #include <secpkcs7.h>
 
 #include "wincert.h"
 
-extern int list_pe_signatures(pesign_context *ctx);
+extern const file_handlers_t pe_handlers;
+
 extern void check_pe_signature_space(pesign_context *ctx);
 extern void allocate_pe_signature_space(Pe *pe, ssize_t sigspace);
 
-#endif /* PESIGN_PEHELPERS_H */
+#endif /* PESIGN_PE_HANDLERS_H */

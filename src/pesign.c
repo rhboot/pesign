@@ -121,15 +121,10 @@ open_input(pesign_context *ctx)
 	if (ctx->inmap == MAP_FAILED)
 		err(1, "Could not mmap input");
 
-	ctx->inpe = pe_memory(ctx->inmap, ctx->insize);
-	if (!ctx->inpe)
-		errx(1, "Could not load input file: %s",
-			pe_errmsg(pe_errno()));
+	set_up_file_handlers(ctx, ctx->inmap, ctx->insize);
 
-	int rc = parse_pe_signatures(&ctx->cms_ctx->signatures,
-				  &ctx->cms_ctx->num_signatures, ctx->inpe);
-	if (rc < 0)
-		errx(1, "could not parse signature list in EFI binary");
+	if (ctx->file_handlers->setup)
+		ctx->file_handlers->setup(ctx, ctx->inmap, ctx->insize);
 }
 
 #define close_helper(fd) ({close(fd); fd = -1;})
@@ -137,12 +132,8 @@ open_input(pesign_context *ctx)
 static void
 close_input(pesign_context *ctx)
 {
-	pe_end(ctx->inpe);
-	ctx->inpe = NULL;
-
-	munmap(ctx->inmap, ctx->insize);
-	ctx->inmap = MAP_FAILED;
-	ctx->insize = -1;
+	if (ctx->file_handlers->teardown)
+		ctx->file_handlers->teardown(ctx);
 
 	close_helper(ctx->infd);
 }
@@ -559,7 +550,7 @@ main(int argc, char *argv[])
 		/* list signatures in the binary */
 		case LIST_SIGNATURES:
 			open_input(ctxp);
-			list_pe_signatures(ctxp);
+			list_signatures(ctxp);
 			break;
 		case GENERATE_DIGEST|PRINT_DIGEST:
 			open_input(ctxp);

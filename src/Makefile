@@ -24,7 +24,8 @@ authvar_OBJECTS = $(foreach source,$(authvar_SOURCES),$(patsubst %.c,%,$(source)
 authvar_DEPS = $(foreach source,$(authvar_SOURCES),.$(patsubst %.c,%,$(source)).P)
 authvar : $(authvar_OBJECTS) $(STATIC_LIBS)
 
-pesign_SOURCES = pesign.c pesign_context.c actions.c daemon.c pehelpers.c
+pesign_SOURCES = pesign.c pesign_context.c actions.c daemon.c \
+		pe_handlers.c file_handlers.c
 pesign_OBJECTS = $(foreach source,$(pesign_SOURCES),$(patsubst %.c,%,$(source)).o) generic.a
 pesign_DEPS = $(foreach source,$(pesign_SOURCES),.$(patsubst %.c,%,$(source)).P)
 pesign : $(pesign_OBJECTS) $(STATIC_LIBS)

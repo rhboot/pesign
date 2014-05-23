@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2014 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,27 +16,19 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#ifndef PESIGN_H
-#define PESIGN_H 1
+#ifndef PESIGN_FILE_HANDLERS_H
+#define PESIGN_FILE_HANDLERS_H
 
-#include <libdpe/libdpe.h>
-#include <libdpe/pe.h>
+#include "pesign.h"
 
-#include "cms_common.h"
-#include "pesign_context.h"
+typedef struct {
+	int (*is_valid)(void *addr, size_t len);
+	void (*setup)(pesign_context *ctx, void *addr, size_t len);
+	void (*teardown)(pesign_context *ctx);
+	int (*list_signatures)(pesign_context *ctx);
+} file_handlers_t;
 
-#include "daemon.h"
-#include "util.h"
-#include "efitypes.h"
-#include "actions.h"
-#include "endian.h"
-#include "oid.h"
-#include "file_handlers.h"
-#include "pe_handlers.h"
-#include "wincert.h"
-#include "content_info.h"
-#include "signer_info.h"
-#include "signed_data.h"
-#include "password.h"
+extern int set_up_file_handlers(pesign_context *ctx, void *addr, size_t len);
+extern int list_signatures(pesign_context *ctx);
 
-#endif /* PESIGN_H */
+#endif /* PESIGN_FILE_HANDLERS_H */

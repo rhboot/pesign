@@ -22,16 +22,22 @@
 #include <cert.h>
 #include <secpkcs7.h>
 
+typedef struct pesign_context_s pesign_context;
+
+#include "file_handlers.h"
+
 enum {
 	PESIGN_C_ALLOCATED = 1,
 };
 
-typedef struct {
+struct pesign_context_s {
 	int infd;
 	int outfd;
 	char *infile;
 	char *outfile;
 	mode_t outmode;
+
+	const file_handlers_t *file_handlers;
 
 	int force;
 	int verbose;
@@ -69,7 +75,7 @@ typedef struct {
 	int ascii;
 	int sign;
 	int hash;
-} pesign_context;
+};
 
 extern int pesign_context_new(pesign_context **ctx);
 extern void pesign_context_free_private(pesign_context **ctx_ptr);
