@@ -1040,9 +1040,9 @@ err:
 }
 
 #if 1
-#define dprintf(fmt, ...)
+#define dbgprintf(fmt, ...)
 #else
-#define dprintf(fmt, args...) printf(fmt, ## args)
+#define dbgprintf(fmt, args...) printf(fmt, ## args)
 #endif
 
 int
@@ -1103,8 +1103,8 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 			__FILE__, __func__, __LINE__);
 		goto error;
 	}
-	dprintf("beginning of hash\n");
-	dprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
+	dbgprintf("beginning of hash\n");
+	dbgprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
 	generate_digest_step(cms, hash_base, hash_size);
 
 	/* 5. Skip over the image checksum
@@ -1129,7 +1129,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 		goto error;
 	}
 	generate_digest_step(cms, hash_base, hash_size);
-	dprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
+	dbgprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
 
 	/* 8. Skip over the crt dir
 	 * 9. Hash everything up to the end of the image header. */
@@ -1144,7 +1144,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 		goto error;
 	}
 	generate_digest_step(cms, hash_base, hash_size);
-	dprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
+	dbgprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
 
 	/* 10. Set SUM_OF_BYTES_HASHED to the size of the header. */
 	hashed_bytes = pe32opthdr ? pe32opthdr->header_size
@@ -1177,7 +1177,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 		}
 
 		generate_digest_step(cms, hash_base, hash_size);
-		dprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
+		dbgprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
 
 		hashed_bytes += hash_size;
 	}
@@ -1198,13 +1198,13 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 			memset(tmp_array, '\0', tmp_size);
 			memcpy(tmp_array, hash_base, hash_size);
 			generate_digest_step(cms, tmp_array, tmp_size);
-			dprintf("digesting %lx + %lx\n", (unsigned long)tmp_array, tmp_size);
+			dbgprintf("digesting %lx + %lx\n", (unsigned long)tmp_array, tmp_size);
 		} else {
 			generate_digest_step(cms, hash_base, hash_size);
-			dprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
+			dbgprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
 		}
 	}
-	dprintf("end of hash\n");
+	dbgprintf("end of hash\n");
 
 	rc = generate_digest_finish(cms);
 	if (rc < 0)
