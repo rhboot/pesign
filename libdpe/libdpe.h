@@ -23,6 +23,12 @@
 #include "endian.h"
 #include "lock.h"
 
+#ifdef DEBUG
+#define dbgprintf(fmt, args...) printf(fmt, ## args)
+#else
+#define dbgprintf(fmt, ...)
+#endif
+
 enum {
 	PE_F_DIRTY = 0x1,
 	PE_F_MMAPPED = 0x40,

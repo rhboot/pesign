@@ -82,6 +82,8 @@ pe_populatecert(Pe *pe, void *cert, size_t size)
 
 	memcpy(addr, cert, size);
 	msync(addr, size, MS_SYNC);
+	dbgprintf("%s: %p-%p synced\n", __func__, addr,
+		(void *)((intptr_t)addr + size));
 
 	return 0;
 }

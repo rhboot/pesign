@@ -95,6 +95,11 @@ pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 
 	new = mremap(pe->map_address, pe->maximum_size,
 		pe->maximum_size + extra, MREMAP_MAYMOVE);
+	dbgprintf("%s: %p-%p remapped to %p-%p\n", __func__,
+			pe->map_address,
+			(void *)((intptr_t)pe->map_address + pe->maximum_size),
+			new,
+			(void *)((intptr_t)new + pe->maximum_size + extra));
 	if (new == MAP_FAILED) {
 		__libpe_seterrno (PE_E_NOMEM);
 		return -1;
@@ -103,6 +108,8 @@ pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 		pe_fix_addresses(pe, (uint8_t *)new-(uint8_t *)pe->map_address);
 
 	char *addr = compute_mem_addr(pe, pe->maximum_size);
+	dbgprintf("%s: %p-%p zeroed\n", __func__,
+		addr, (void *)((intptr_t)addr + extra));
 	memset(addr, '\0', extra);
 
 	*new_space = compute_file_addr(pe, addr + align);
@@ -133,6 +140,11 @@ pe_shorten_file(Pe *pe, size_t size)
 
 	new = mremap(pe->map_address, pe->maximum_size,
 		pe->maximum_size - size, 0);
+	dbgprintf("%s: %p-%p remapped to %p-%p\n", __func__,
+			pe->map_address,
+			(void *)((intptr_t)pe->map_address + pe->maximum_size),
+			new,
+			(void *)((intptr_t)new + pe->maximum_size - size));
 	if (new == MAP_FAILED) {
 		__libpe_seterrno (PE_E_NOMEM);
 		return -1;

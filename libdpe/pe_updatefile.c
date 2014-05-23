@@ -131,6 +131,8 @@ __pe_updatemmap(Pe *pe, size_t shnum)
 
 	char *msync_end = (char *)dd + sizeof(*dd);
 	msync(msync_start, msync_end - msync_start, MS_SYNC);
+	dbgprintf("%s: %p(%zd) synced\n", __func__,
+		msync_start, msync_end - msync_start);
 
 	#warning this is not done yet.
 	//struct section_header *sh = __get_last_section(pe);
