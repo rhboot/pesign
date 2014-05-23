@@ -16,6 +16,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <popt.h>
@@ -57,11 +58,8 @@ static int
 connect_to_server(void)
 {
 	int rc = access(SOCKPATH, R_OK);
-	if (rc != 0) {
-		fprintf(stderr, "pesign-client: could not connect to server: "
-			"%m\n");
-		exit(1);
-	}
+	if (rc != 0)
+		err(1, "Could not connect to server");
 
 	struct sockaddr_un addr_un = {
 		.sun_family = AF_UNIX,
@@ -69,20 +67,15 @@ connect_to_server(void)
 	};
 
 	int sd = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (sd < 0) {
-		fprintf(stderr, "pesign-client: could not open socket: %m\n");
-		exit(1);
-	}
+	if (sd < 0)
+		err(1, "Could not open socket");
 
 	socklen_t len = strlen(addr_un.sun_path) +
 			sizeof(addr_un.sun_family);
-	
+
 	rc = connect(sd, (struct sockaddr *)&addr_un, len);
-	if (rc < 0) {
-		fprintf(stderr, "pesign-client: could not connect to daemon: "
-			"%m\n");
-		exit(1);
-	}
+	if (rc < 0)
+		err(1, "Could not connect to daemon");
 
 	return sd;
 }
@@ -108,10 +101,8 @@ send_kill_daemon(int sd)
 	ssize_t n;
 
 	n = sendmsg(sd, &msg, 0);
-	if (n < 0) {
-		fprintf(stderr, "pesign-client: kill daemon failed: %m\n");
-		exit(1);
-	}
+	if (n < 0)
+		err(1, "Kill daemon failed");
 }
 
 static int
@@ -136,25 +127,17 @@ check_response(int sd, char **srvmsg)
 	msg.msg_iovlen = 1;
 
 	n = recvmsg(sd, &msg, 0);
-	if (n < 0) {
-		fprintf(stderr, "pesign-client: could not get response from "
-			"server: %m\n");
-		exit(1);
-	}
+	if (n < 0)
+		err(1, "could not get response from server");
 
 	pm = (pesignd_msghdr *)buffer;
 
-	if (pm->version != PESIGND_VERSION) {
-		fprintf(stderr, "pesign-client: got version %d, "
-			"expected version %d\n", pm->version, PESIGND_VERSION);
-		exit(1);
-	}
+	if (pm->version != PESIGND_VERSION)
+		errx(1, "got version %d, expected version %d",
+			pm->version, PESIGND_VERSION);
 
-	if (pm->command != CMD_RESPONSE) {
-		fprintf(stderr, "pesign-client: got unexpected response: %d\n",
-			pm->command);
-		exit(1);
-	}
+	if (pm->command != CMD_RESPONSE)
+		errx(1, "got unexpected respond: %d", pm->command);
 
 	pesignd_cmd_response *resp = (pesignd_cmd_response *)((uint8_t *)pm +
 					offsetof(pesignd_msghdr, size) +
@@ -233,7 +216,7 @@ unlock_token(int sd, char *tokenname, char *pin)
 	uint32_t size0 = pesignd_string_size(tokenname);
 
 	uint32_t size1 = pesignd_string_size(pin);
-	
+
 	pm.version = PESIGND_VERSION;
 	pm.command = CMD_UNLOCK_TOKEN;
 	pm.size = size0 + size1;
@@ -246,19 +229,13 @@ unlock_token(int sd, char *tokenname, char *pin)
 
 	ssize_t n;
 	n = sendmsg(sd, &msg, 0);
-	if (n < 0) {
-		fprintf(stderr, "pesign-client: unlock token: sendmsg failed: "
-			"%m\n");
-		exit(1);
-	}
+	if (n < 0)
+		err(1, "Unlock token: sendmsg failed");
 
 	uint8_t *buffer = NULL;
 	buffer = calloc(1, size0 + size1);
-	if (!buffer) {
-		fprintf(stderr, "pesign-client: could not allocate memory: "
-			"%m\n");
-		exit(1);
-	}
+	if (!buffer)
+		err(1, "Could not allocate memory");
 
 	pesignd_string *tn = (pesignd_string *)buffer;
 	pesignd_string_set(tn, tokenname);
@@ -275,19 +252,13 @@ unlock_token(int sd, char *tokenname, char *pin)
 	msg.msg_iovlen = 2;
 
 	n = sendmsg(sd, &msg, 0);
-	if (n < 0) {
-		fprintf(stderr, "pesign-client: unlock token: sendmsg failed: "
-			"%m\n");
-		exit(1);
-	}
+	if (n < 0)
+		err(1, "Unlock token: sendmsg failed");
 
 	char *srvmsg = NULL;
 	int rc = check_response(sd, &srvmsg);
-	if (rc < 0) {
-		fprintf(stderr, "pesign-client: %s\n",
-			srvmsg);
-		exit(1);
-	}
+	if (rc < 0)
+		errx(1, "%s", srvmsg);
 
 	free(buffer);
 }
@@ -309,11 +280,8 @@ send_fd(int sd, int fd)
 
 	size_t controllen = CMSG_SPACE(sizeof(int));
 	struct cmsghdr *cm = malloc(controllen);
-	if (!cm) {
-		fprintf(stderr, "pesign-client: could not allocate memory: "
-			"%m\n");
-		exit(1);
-	}
+	if (!cm)
+		err(1, "Could not allocate memory");
 
 	msg.msg_control = cm;
 	msg.msg_controllen = controllen;
@@ -328,11 +296,8 @@ send_fd(int sd, int fd)
 
 	ssize_t n;
 	n = sendmsg(sd, &msg, 0);
-	if (n < 0) {
-		fprintf(stderr, "pesign-client: sign: sendmsg failed: "
-			"%m\n");
-		exit(1);
-	}
+	if (n < 0)
+		err(1, "Sign: sendmsg failed");
 }
 
 static void
@@ -340,18 +305,12 @@ sign(int sd, char *infile, char *outfile, char *tokenname, char *certname,
 	int attached)
 {
 	int infd = open(infile, O_RDONLY);
-	if (infd < 0) {
-		fprintf(stderr, "pesign-client: could not open input file "
-			"\"%s\": %m\n", infile);
-		exit(1);
-	}
+	if (infd < 0)
+		err(1, "Could not open input file \"%s\"", infile);
 
 	int outfd = open(outfile, O_RDWR|O_CREAT, 0600);
-	if (outfd < 0) {
-		fprintf(stderr, "pesign-client: could not open output file "
-			"\"%s\": %m\n", outfile);
-		exit(1);
-	}
+	if (outfd < 0)
+		err(1, "Could not open output file \"%s\"", outfile);
 
 	struct msghdr msg;
 	struct iovec iov[2];
@@ -363,9 +322,7 @@ sign(int sd, char *infile, char *outfile, char *tokenname, char *certname,
 	pm = calloc(1, sizeof(*pm));
 	if (!pm) {
 oom:
-		fprintf(stderr, "pesign-client: could not allocate memory: "
-			"%m\n");
-		exit(1);
+		err(1,  "Could not allocate memory");
 	}
 
 	pm->version = PESIGND_VERSION;
@@ -380,11 +337,8 @@ oom:
 
 	ssize_t n;
 	n = sendmsg(sd, &msg, 0);
-	if (n < 0) {
-		fprintf(stderr, "pesign-client: sign: sendmsg failed: "
-			"%m\n");
-		exit(1);
-	}
+	if (n < 0)
+		err(1, "Sign: sendmsg failed");
 
 	char *buffer;
 	buffer = malloc(size0 + size1);
@@ -405,11 +359,8 @@ oom:
 	msg.msg_iovlen = 2;
 
 	n = sendmsg(sd, &msg, 0);
-	if (n < 0) {
-		fprintf(stderr, "pesign-client: sign: sendmsg failed: "
-			"%m\n");
-		exit(1);
-	}
+	if (n < 0)
+		err(1, "Sign: sendmsg failed");
 	free(buffer);
 
 	send_fd(sd, infd);
@@ -417,11 +368,8 @@ oom:
 
 	char *srvmsg = NULL;
 	int rc = check_response(sd, &srvmsg);
-	if (rc < 0) {
-		fprintf(stderr, "pesign-client: signing failed: \"%s\"\n",
-			srvmsg);
-		exit(1);
-	}
+	if (rc < 0)
+		errx(1, "Signing failed: \"%s\"", srvmsg);
 
 	close(infd);
 	close(outfd);
@@ -479,27 +427,19 @@ main(int argc, char *argv[])
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
 	rc = poptReadDefaultConfig(optCon, 0);
-	if (rc < 0) {
-		fprintf(stderr,
-			"pesign-client: poptReadDefaultConfig failed: %s\n",
+	if (rc < 0)
+		errx(1, "poptReadDefaultConfig failed: %s",
 			poptStrerror(rc));
-		exit(1);
-	}
 
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
 
-	if (rc < -1) {
-		fprintf(stderr, "pesign-client: Invalid argument: %s: %s\n",
+	if (rc < -1)
+		errx(1, "Invalid argument: %s: %s",
 			poptBadOption(optCon, 0), poptStrerror(rc));
-		exit(1);
-	}
 
-	if (poptPeekArg(optCon)) {
-		fprintf(stderr, "pesign-client: Invalid Argument: \"%s\"\n",
-			poptPeekArg(optCon));
-		exit(1);
-	}
+	if (poptPeekArg(optCon))
+		errx(1, "Invalid Argument: \"%s\"", poptPeekArg(optCon));
 
 	if (action == NO_FLAGS) {
 		poptPrintUsage(optCon, stdout, 0);
@@ -507,17 +447,12 @@ main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (action & SIGN_BINARY && (!outfile && !exportfile)) {
-		fprintf(stderr, "pesign-client: neither --outfile nor --export "
-			"specified\n");
-		exit(1);
-	}
+	if (action & SIGN_BINARY && (!outfile && !exportfile))
+		errx(1, "neither --outfile nor --export specified");
 
-	if (outfile && exportfile) {
-		fprintf(stderr, "pesign-client: both --outfile and --export "
-			"specified\n");
-		exit(1);
-	}
+	if (outfile && exportfile)
+		errx(1, "both --outfile and --export specified");
+
 	if (exportfile) {
 		outfile = exportfile;
 		attached = 0;
@@ -532,12 +467,9 @@ main(int argc, char *argv[])
 		tokenpin = get_token_pin(pinfd, pinfile, "PESIGN_TOKEN_PIN");
 		if (tokenpin == NULL) {
 			if (errno)
-				fprintf(stderr, "pesign-client: could not "
-					"get token pin: %m\n");
+				err(1, "Could not get token pin");
 			else
-				fprintf(stderr, "pesign-client: no token pin "
-					"specified");
-			exit(1);
+				errx(1, "No token pin specified");
 		}
 		sd = connect_to_server();
 		unlock_token(sd, tokenname, tokenpin);
@@ -548,21 +480,12 @@ main(int argc, char *argv[])
 		send_kill_daemon(sd);
 		break;
 	case SIGN_BINARY:
-		if (!infile) {
-			fprintf(stderr, "pesign-client: no input file "
-				"specified\n");
-			exit(1);
-		}
-		if (!outfile) {
-			fprintf(stderr, "pesign-client: no output file "
-				"specified\n");
-			exit(1);
-		}
-		if (!certname) {
-			fprintf(stderr, "pesign-client: no certificate name "
-				"spefified\n");
-			exit(1);
-		}
+		if (!infile)
+			errx(1, "No input file specified");
+		if (!outfile)
+			errx(1, "No output file specified");
+		if (!certname)
+			errx(1, "No certificate name specified");
 		sd = connect_to_server();
 		sign(sd, infile, outfile, tokenname, certname, attached);
 		break;

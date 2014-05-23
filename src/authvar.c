@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <err.h>
 #include <errno.h>
 #include <popt.h>
 
@@ -59,10 +60,8 @@ print_flag_name(FILE *f, int flag)
 static void
 check_name(authvar_context *ctx)
 {
-	if (!ctx->name || !*ctx->name) {
-		fprintf(stderr, "authvar: no name specified.\n");
-		exit(1);
-	}
+	if (!ctx->name || !*ctx->name)
+		errx(1, "No name specified");
 }
 
 static void
@@ -71,20 +70,16 @@ check_value(authvar_context *ctx, int needed)
 	if ((!ctx->value || !*ctx->value) &&
 			(!ctx->valuefile || !*ctx->valuefile)) {
 		if (needed)
-			fprintf(stderr, "authvar: no value specified.\n");
+			errx(1, "No value specified");
 		else
-			fprintf(stderr,
-				"authvar: command does not take a value.\n");
-		exit(1);
+			errx(1, "Command does not take a value");
 	}
 	if (ctx->value && *ctx->value && ctx->valuefile && *ctx->valuefile) {
 		if (needed)
-			fprintf(stderr, "authvar: --value and --valuefile "
+			errx(1, "--value and --valuefile "
 				"cannot be used together.\n");
 		else
-			fprintf(stderr,
-				"authvar: command does not take a value.\n");
-		exit(1);
+			errx(1, "Command does not take a value.\n");
 	}
 }
 
@@ -172,10 +167,8 @@ int main(int argc, char *argv[])
 	int action = 0;
 
 	rc = authvar_context_init(ctxp);
-	if (rc < 0) {
-		fprintf(stderr, "Could not initialize context: %m\n");
-		exit(1);
-	}
+	if (rc < 0)
+		err(1, "Could not initialize conext");
 
 	poptContext optCon;
 	struct poptOption options[] = {
@@ -218,37 +211,28 @@ int main(int argc, char *argv[])
 
 	if (ctx.cms_ctx.certname && *ctx.cms_ctx.certname) {
 		rc = find_certificate(&ctx.cms_ctx, 1);
-		if (rc < 0) {
-			fprintf(stderr, "authvar: Could not find certificate "
-				"for \"%s\"\n", ctx.cms_ctx.certname);
-			exit(1);
-		}
+		if (rc < 0)
+			errx(1, "Could not find certificate for \"%s\"",
+				ctx.cms_ctx.certname);
 		action |= SIGN;
 	}
 
 	rc = find_namespace_guid(ctxp);
-	if (rc < 0) {
-		fprintf(stderr, "authvar: unable to find guid for \"%s\"\n",
+	if (rc < 0)
+		errx(1, "Unable to find guid for \"%s\"",
 			ctx.namespace);
-		exit(1);
-	}
 
 	optCon = poptGetContext("authvar", argc, (const char **)argv,
 				options, 0);
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
 
-	if (rc < -1) {
-		fprintf(stderr, "authvar: Invalid argument: %s: %s\n",
+	if (rc < -1)
+		errx(1, "Invalid argument: %s: %s",
 			poptBadOption(optCon, 0), poptStrerror(rc));
-		exit(1);
-	}
 
-	if (poptPeekArg(optCon)) {
-		fprintf(stderr, "authvar: Invalid Argument: \"%s\"\n",
-			poptPeekArg(optCon));
-		exit(1);
-	}
+	if (poptPeekArg(optCon))
+		errx(1, "Invalid Argument: \"%s\"", poptPeekArg(optCon));
 
 	poptFreeContext(optCon);
 
@@ -256,8 +240,7 @@ int main(int argc, char *argv[])
 	printf("\n");
 	switch (action) {
 	case NO_FLAGS:
-		fprintf(stderr, "authvar: No action specified\n");
-		exit(1);
+		errx(1, "No action specified\n");
 		break;
 	case GENERATE_APPEND|EXPORT:
 	case GENERATE_APPEND|SET:

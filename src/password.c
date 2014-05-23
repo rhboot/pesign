@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <err.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <termios.h>
@@ -228,10 +229,8 @@ get_password_passthrough(PK11SlotInfo *slot, PRBool retry, void *arg)
 		return arg;
 
 	char *ret = strdup(arg);
-	if (!ret) {
-		fprintf(stderr, "Failed to allocate memory\n");
-		exit(1);
-	}
+	if (!ret)
+		err(1, "Could not allocate memory");
 	return ret;
 }
 
@@ -242,7 +241,7 @@ get_password_fail(PK11SlotInfo *slot, PRBool retry, void *arg)
 }
 
 char *
-SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg) 
+SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 {
     char prompt[255];
     secuPWData *pwdata = (secuPWData *)arg;

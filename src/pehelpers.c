@@ -17,6 +17,10 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <err.h>
+
+#include <prerror.h>
+
 #include "pesign.h"
 
 static int saw_content;
@@ -61,13 +65,10 @@ list_pe_signatures(pesign_context *ctx)
 		dc = SEC_PKCS7DecoderStart(handle_bytes, NULL, NULL, NULL,
 					NULL, NULL, decryption_allowed);
 
-		if (dc == NULL) {
-			fprintf(stderr, "SEC_PKCS7DecoderStart failed\n");
-			exit(1);
-		}
+		if (dc == NULL)
+			nsserr(1, "SEC_PKCS7DecoderStart failed");
 
 		SECStatus status = SEC_PKCS7DecoderUpdate(dc, data, datalen);
-
 		if (status != SECSuccess) {
 			fprintf(stderr, "Found invalid certificate\n");
 			continue;
@@ -149,10 +150,8 @@ check_pe_signature_space(pesign_context *ctx)
 {
 	ssize_t available = available_pe_cert_space(ctx->outpe);
 
-	if (available < ctx->cms_ctx->newsig.len) {
-		fprintf(stderr, "Could not add new signature: insufficient space.\n");
-		exit(1);
-	}
+	if (available < ctx->cms_ctx->newsig.len)
+		errx(1, "Could not add new signature: insufficient space");
 }
 
 void
@@ -161,8 +160,6 @@ allocate_pe_signature_space(Pe *pe, ssize_t sigspace)
 	int rc;
 
 	rc = pe_alloccert(pe, sigspace);
-	if (rc < 0) {
-		fprintf(stderr, "Could not allocate space for signature: %m\n");
-		exit(1);
-	}
+	if (rc < 0)
+		err(1, "Could not allocate space for signature");
 }

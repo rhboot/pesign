@@ -84,7 +84,7 @@ static void
 open_input_helper(char *name, int *fd, char *errtext)
 {
 	if (!name)
-		errx(1, "No input %s specified.", errtext);
+		errx(1, "No input %s specified", errtext);
 
 	*fd = open(name, O_RDONLY|O_CLOEXEC);
 	if (*fd < 0)
@@ -95,10 +95,10 @@ static void
 open_output_helper(char *name, int *fd, mode_t mode, char *errtext, int force)
 {
 	if (!name)
-		errx(1, "No output %s specified.", errtext);
+		errx(1, "No output %s specified", errtext);
 
 	if (access(name, F_OK) == 0 && force == 0)
-		errx(1, "\"%s\" exists and --force was not given.",
+		errx(1, "\"%s\" exists and --force was not given",
 			name);
 
 	*fd = open(name, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC, mode);
@@ -188,21 +188,14 @@ open_output(pesign_context *ctx)
 static void
 check_inputs(pesign_context *ctx)
 {
-	if (!ctx->infile) {
-		fprintf(stderr, "pesign: No input file specified.\n");
-		exit(1);
-	}
+	if (!ctx->infile)
+		errx(1, "No input PE file specified");
 
-	if (!ctx->outfile) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
+	if (!ctx->outfile)
+		errx(1, "No output PE file specified");
 
-	if (!strcmp(ctx->infile, ctx->outfile)) {
-		fprintf(stderr, "pesign: in-place file editing "
-				"is not yet supported\n");
-		exit(1);
-	}
+	if (!strcmp(ctx->infile, ctx->outfile))
+		errx(1, "In-place file editing is not yet supported");
 }
 
 static void
@@ -245,10 +238,8 @@ main(int argc, char *argv[])
 	char *signum = NULL;
 
 	rc = pesign_context_new(&ctxp);
-	if (rc < 0) {
-		fprintf(stderr, "Could not initialize context: %m\n");
-		exit(1);
-	}
+	if (rc < 0)
+		err(1, "Could not initialize context");
 
 	poptContext optCon;
 	struct poptOption options[] = {
@@ -325,36 +316,26 @@ main(int argc, char *argv[])
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
 	rc = poptReadDefaultConfig(optCon, 0);
-	if (rc < 0) {
-		fprintf(stderr, "pesign: poprReadDefaultConfig failed: %s\n",
-		poptStrerror(rc));
-		exit(1);
-	}
+	if (rc < 0)
+		errx(1, "poptReadDefaultConfig failed: %s", poptStrerror(rc));
 
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
 
-	if (rc < -1) {
-		fprintf(stderr, "pesign: Invalid argument: %s: %s\n",
+	if (rc < -1)
+		errx(1, "Invalid argument: %s: %s",
 			poptBadOption(optCon, 0), poptStrerror(rc));
-		exit(1);
-	}
 
-	if (poptPeekArg(optCon)) {
-		fprintf(stderr, "pesign: Invalid Argument: \"%s\"\n",
-				poptPeekArg(optCon));
-		exit(1);
-	}
+	if (poptPeekArg(optCon))
+		errx(1, "Invalid argument: \"%s", poptPeekArg(optCon));
 
 	poptFreeContext(optCon);
 
 	if (signum) {
 		errno = 0;
 		ctxp->signum = strtol(signum, NULL, 0);
-		if (errno != 0) {
-			fprintf(stderr, "invalid signature number: %m\n");
-			exit(1);
-		}
+		if (errno != 0)
+			err(1, "Invalid signature number");
 	}
 
 	int action = 0;
@@ -410,17 +391,12 @@ main(int argc, char *argv[])
 			status = NSS_Init(certdir);
 		else
 			status = NSS_NoDB_Init(NULL);
-		if (status != SECSuccess) {
-			fprintf(stderr, "Could not initialize nss: %s\n",
-				PORT_ErrorToString(PORT_GetError()));
-			exit(1);
-		}
+		if (status != SECSuccess)
+			nsserr(1, "Could not initializes nss");
 
 		status = register_oids(ctxp->cms_ctx);
-		if (status != SECSuccess) {
-			fprintf(stderr, "Could not register OIDs\n");
-			exit(1);
-		}
+		if (status != SECSuccess)
+			errx(1, "Could not register OIDs");
 	}
 
 	rc = set_digest_parameters(ctxp->cms_ctx, digest_name);
@@ -435,39 +411,29 @@ main(int argc, char *argv[])
 
 	ctxp->cms_ctx->tokenname = tokenname ?
 		PORT_ArenaStrdup(ctxp->cms_ctx->arena, tokenname) : NULL;
-	if (tokenname && !ctxp->cms_ctx->tokenname) {
-		fprintf(stderr, "could not allocate token name: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		exit(1);
-	}
+	if (tokenname && !ctxp->cms_ctx->tokenname)
+		nsserr(1, "could not allocate token name");
+
 	if (tokenname != origtoken)
 		free(tokenname);
 
 	ctxp->cms_ctx->certname = certname ?
 		PORT_ArenaStrdup(ctxp->cms_ctx->arena, certname) : NULL;
-	if (certname && !ctxp->cms_ctx->certname) {
-		fprintf(stderr, "could not allocate certificate name: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		exit(1);
-	}
+	if (certname && !ctxp->cms_ctx->certname)
+		nsserr(1, "could not allocate certificate name");
 	if (certname)
 		free(certname);
 
 
-	if (ctxp->sign) {
-		if (!ctxp->cms_ctx->certname) {
-			fprintf(stderr, "pesign: signing requested but no "
-				"certificate nickname provided\n");
-			exit(1);
-		}
-	}
+	if (ctxp->sign && !ctxp->cms_ctx->certname)
+		errx(1, "signing requested but no certificate "
+			"nickname provided");
 
 	ssize_t sigspace = 0;
 
 	switch (action) {
 		case NO_FLAGS:
-			fprintf(stderr, "pesign: Nothing to do.\n");
-			exit(0);
+			errx(0, "Nothing to do");
 			break;
 		/* in this case we have the actual binary signature and the
 		 * signing cert, but not the pkcs7ish certificate that goes
@@ -476,12 +442,9 @@ main(int argc, char *argv[])
 		case IMPORT_RAW_SIGNATURE|IMPORT_SATTRS:
 			check_inputs(ctxp);
 			rc = find_certificate(ctxp->cms_ctx, 0);
-			if (rc < 0) {
-				fprintf(stderr, "pesign: Could not find "
-					"certificate %s\n",
+			if (rc < 0)
+				errx(1, "pesign: Could not find certificate %s",
 					ctxp->cms_ctx->certname);
-				exit(1);
-			}
 			open_input_helper(ctxp->rawsig, &ctxp->rawsigfd,
 					"raw signature");
 			open_input_helper(ctxp->insattrs, &ctxp->insattrsfd,
@@ -515,10 +478,8 @@ main(int argc, char *argv[])
 		/* add a signature from a file */
 		case IMPORT_SIGNATURE:
 			check_inputs(ctxp);
-			if (ctxp->signum > ctxp->cms_ctx->num_signatures + 1) {
-				fprintf(stderr, "Invalid signature number.\n");
-				exit(1);
-			}
+			if (ctxp->signum > ctxp->cms_ctx->num_signatures + 1)
+				errx(1, "Invalid signature number");
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
@@ -539,12 +500,9 @@ main(int argc, char *argv[])
 			break;
 		case EXPORT_PUBKEY:
 			rc = find_certificate(ctxp->cms_ctx, 1);
-			if (rc < 0) {
-				fprintf(stderr, "pesign: Could not find "
-					"certificate %s\n",
+			if (rc < 0)
+				errx(1, "Could not find certificate %s",
 					ctxp->cms_ctx->certname);
-				exit(1);
-			}
 			open_output_helper(ctxp->outkey, &ctxp->outkeyfd,
 					ctxp->outmode, "public key",
 					ctxp->force);
@@ -553,12 +511,9 @@ main(int argc, char *argv[])
 			break;
 		case EXPORT_CERT:
 			rc = find_certificate(ctxp->cms_ctx, 0);
-			if (rc < 0) {
-				fprintf(stderr, "pesign: Could not find "
-					"certificate %s\n",
+			if (rc < 0)
+				errx(1, "Could not find certificate %s",
 					ctxp->cms_ctx->certname);
-				exit(1);
-			}
 			open_output_helper(ctxp->outcert, &ctxp->outcertfd,
 					ctxp->outmode, "certificate",
 					ctxp->force);
@@ -571,17 +526,13 @@ main(int argc, char *argv[])
 			open_output_helper(ctxp->outsig, &ctxp->outsigfd,
 					ctxp->outmode, "signature",
 					ctxp->force);
-			if (ctxp->signum > ctxp->cms_ctx->num_signatures) {
-				fprintf(stderr, "Invalid signature number.\n");
-				exit(1);
-			}
+			if (ctxp->signum > ctxp->cms_ctx->num_signatures)
+				errx(1, "Invalid signature number");
 			if (ctxp->signum < 0)
 				ctxp->signum = 0;
-			if (ctxp->signum >= ctxp->cms_ctx->num_signatures) {
-				fprintf(stderr, "No valid signature #%d.\n",
+			if (ctxp->signum >= ctxp->cms_ctx->num_signatures)
+				errx(1, "No valid signature #%d",
 					ctxp->signum);
-				exit(1);
-			}
 			memcpy(&ctxp->cms_ctx->newsig,
 				ctxp->cms_ctx->signatures[ctxp->signum],
 				sizeof (ctxp->cms_ctx->newsig));
@@ -597,13 +548,11 @@ main(int argc, char *argv[])
 			close_input(ctxp);
 			if (ctxp->signum < 0 ||
 					ctxp->signum >=
-					ctxp->cms_ctx->num_signatures) {
-				fprintf(stderr, "Invalid signature number %d.  "
-					"Must be between 0 and %d.\n",
+					ctxp->cms_ctx->num_signatures)
+				errx(1, "Invalid signature number %d.  "
+					"Must be between 0 and %d",
 					ctxp->signum,
 					ctxp->cms_ctx->num_signatures - 1);
-				exit(1);
-			}
 			remove_signature(ctxp);
 			close_output(ctxp);
 			break;
@@ -621,12 +570,9 @@ main(int argc, char *argv[])
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:
 			rc = find_certificate(ctxp->cms_ctx, 1);
-			if (rc < 0) {
-				fprintf(stderr, "pesign: Could not find "
-					"certificate %s\n",
+			if (rc < 0)
+				errx(1, "Could not find certificate %s",
 					ctxp->cms_ctx->certname);
-				exit(1);
-			}
 			open_input(ctxp);
 			open_output_helper(ctxp->outsig, &ctxp->outsigfd,
 					ctxp->outmode, "signature",
@@ -640,16 +586,11 @@ main(int argc, char *argv[])
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
 			check_inputs(ctxp);
 			rc = find_certificate(ctxp->cms_ctx, 1);
-			if (rc < 0) {
-				fprintf(stderr, "pesign: Could not find "
-					"certificate %s\n",
+			if (rc < 0)
+				errx(1, "Could not find certificate %s",
 					ctxp->cms_ctx->certname);
-				exit(1);
-			}
-			if (ctxp->signum > ctxp->cms_ctx->num_signatures + 1) {
-				fprintf(stderr, "Invalid signature number.\n");
-				exit(1);
-			}
+			if (ctxp->signum > ctxp->cms_ctx->num_signatures + 1)
+				errx(1, "Invalid signature number");
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
@@ -679,11 +620,8 @@ main(int argc, char *argv[])
 
 	if (!daemon) {
 		SECStatus status = NSS_Shutdown();
-		if (status != SECSuccess) {
-			fprintf(stderr, "could not shut down NSS: %s",
-				PORT_ErrorToString(PORT_GetError()));
-			exit(1);
-		}
+		if (status != SECSuccess)
+			nsserr(1, "Could not shut down NSS");
 	}
 
 	return (rc < 0);

@@ -18,6 +18,7 @@
  */
 
 #include <assert.h>
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -153,10 +154,9 @@ parse_signature(pesign_context *ctx)
 	size_t siglen;
 
 	rc = read_file(ctx->insigfd, &sig, &siglen);
-	if (rc < 0) {
-		fprintf(stderr, "pesign: could not read signature.\n");
-		exit(1);
-	}
+	if (rc < 0)
+		errx(1, "Could not read signature");
+
 	close(ctx->insigfd);
 	ctx->insigfd = -1;
 
@@ -168,10 +168,8 @@ parse_signature(pesign_context *ctx)
 	if (base64) {
 		base64 += strlen(sig_begin_marker);
 		char *end = strstr(base64, sig_end_marker);
-		if (!end) {
-			fprintf(stderr, "pesign: Invalid signature.\n");
-			exit(1);
-		}
+		if (!end)
+			errx(1, "Invalid signature");
 
 		derlen = end - base64;
 		base64[derlen] = '\0';
@@ -215,11 +213,9 @@ decoder_error:
 void
 import_raw_signature(pesign_context *pctx)
 {
-	if (pctx->rawsigfd < 0 || pctx->insattrsfd < 0) {
-		fprintf(stderr, "pesign: raw signature and signed attributes "
-			"must both be imported.\n");
-		exit(1);
-	}
+	if (pctx->rawsigfd < 0 || pctx->insattrsfd < 0)
+		errx(1, "Raw signature and signed attributes "
+			"must both be imported.");
 
 	cms_context *ctx = pctx->cms_ctx;
 
@@ -228,21 +224,16 @@ import_raw_signature(pesign_context *pctx)
 	int rc = read_file(pctx->rawsigfd,
 				(char **)&ctx->raw_signature->data,
 				(size_t *)&ctx->raw_signature->len);
-	if (rc < 0) {
-		fprintf(stderr, "pesign: could not read raw signature: %m\n");
-		exit(1);
-	}
+	if (rc < 0)
+		err(1, "Could not read raw signature: %m");
 
 	ctx->raw_signed_attrs = SECITEM_AllocItem(ctx->arena, NULL, 0);
 	ctx->raw_signed_attrs->type = siBuffer;
 	rc = read_file(pctx->insattrsfd,
 				(char **)&ctx->raw_signed_attrs->data,
 				(size_t *)&ctx->raw_signed_attrs->len);
-	if (rc < 0) {
-		fprintf(stderr, "pesign: could not read raw signed attributes"
-				": %m\n");
-		exit(1);
-	}
+	if (rc < 0)
+		err(1, "Could not read raw signed attributes");
 }
 
 int
@@ -254,18 +245,12 @@ generate_sattr_blob(pesign_context *ctx)
 
 	memset(&ci, '\0', sizeof (ci));
 	rc = generate_spc_content_info(ctx->cms_ctx, &ci);
-	if (rc < 0) {
-		fprintf(stderr, "Could not generate content info: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		exit(1);
-	}
+	if (rc < 0)
+		nsserr(1, "Could not generate content info");
 
 	rc = generate_signed_attributes(ctx->cms_ctx, &sa);
-	if (rc < 0) {
-		fprintf(stderr, "Could not generate signed attributes: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		exit(1);
-	}
+	if (rc < 0)
+		nsserr(1, "Could not generate signed attributes");
 
 	return write(ctx->outsattrsfd, sa.data, sa.len);
 }

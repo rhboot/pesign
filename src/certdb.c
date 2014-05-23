@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <err.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -37,7 +38,7 @@ add_db_file(pesigcheck_context *ctx, db_specifier which, const char *dbfile,
 	    db_f_type type)
 {
 	dblist *db = calloc(1, sizeof (dblist));
-	
+
 	if (!db)
 		return -1;
 
@@ -138,30 +139,19 @@ init_cert_db(pesigcheck_context *ctx, int use_system_dbs)
 		return;
 
 	rc = add_db_file(ctx, DB, DB_PATH, DB_EFIVAR);
-	if (rc < 0 && errno != ENOENT) {
-		fprintf(stderr, "pesigcheck: Could not add key database "
-			"\"%s\": %m\n", DB_PATH);
-		exit(1);
-	}
+	if (rc < 0 && errno != ENOENT)
+		err(1, "Could not add key database \"%s\"", DB_PATH);
 
 	rc = add_db_file(ctx, DB, MOK_PATH, DB_EFIVAR);
-	if (rc < 0 && errno != ENOENT) {
-		fprintf(stderr, "pesigcheck: Could not add key database "
-			"\"%s\": %m\n", MOK_PATH);
-		exit(1);
-	}
+	if (rc < 0 && errno != ENOENT)
+		err(1, "Could not add key database \"%s\"", MOK_PATH);
 
-	if (ctx->db == NULL) {
-		fprintf(stderr, "pesigcheck: warning: "
-			"No key database available\n");
-	}
+	if (ctx->db == NULL)
+		warnx("No key database available");
 
 	rc = add_db_file(ctx, DBX, DBX_PATH, DB_EFIVAR);
-	if (rc < 0 && errno != ENOENT) {
-		fprintf(stderr, "pesigcheck: Could not add revocation "
-			"database \"%s\": %m\n", DBX_PATH);
-		exit(1);
-	}
+	if (rc < 0 && errno != ENOENT)
+		err(1, "Could not add revocation database \"%s\"", DBX_PATH);
 }
 
 typedef db_status (*checkfn)(pesigcheck_context *ctx, SECItem *sig,
@@ -195,7 +185,7 @@ check_db(db_specifier which, pesigcheck_context *ctx, checkfn check,
 			cert = (EFI_SIGNATURE_DATA *)((uint8_t *)certlist +
 				sizeof(EFI_SIGNATURE_LIST) +
 				certlist->SignatureHeaderSize);
-			
+
 			for (int i = 0; i < certcount; i++) {
 				sig.data = cert->SignatureData;
 				sig.len = certlist->SignatureSize - sizeof(efi_guid_t);
@@ -291,25 +281,16 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	/* Import the trusted certificate */
 	cert = CERT_NewTempCertificate(CERT_GetDefaultCertDB(), sig, "Temp CA",
 				       PR_FALSE, PR_TRUE);
-	if (!cert) {
-		fprintf(stderr, "Unable to create cert: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		goto out;
-	}
+	if (!cert)
+		nsserr(1, "Unable to create certificate");
 
 	rv = CERT_DecodeTrustString(&trust, ",,P");
-	if (rv != SECSuccess) {
-		fprintf(stderr, "Unable to decode trust string: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		goto out;
-	}
+	if (rv != SECSuccess)
+		nsserr(1, "Unable to decode trust string");
 
 	rv = CERT_ChangeCertTrust(CERT_GetDefaultCertDB(), cert, &trust);
-	if (rv != SECSuccess) {
-		fprintf(stderr, "Failed to change cert trust: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		goto out;
-	}
+	if (rv != SECSuccess)
+		nsserr(1, "Failed to change cert trust");
 
 	/* Verify the signature */
 	result = SEC_PKCS7VerifyDetachedSignature(cinfo, certUsageObjectSigner,

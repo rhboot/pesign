@@ -16,19 +16,21 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <popt.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include "efitypes.h"
 #include "siglist.h"
+#include "util.h"
 
 struct hash_param {
 	char *name;
@@ -143,46 +145,32 @@ main(int argc, char *argv[])
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
 	rc = poptReadDefaultConfig(optCon, 0);
-	if (rc < 0) {
-		fprintf(stderr,
-			"efisiglist: poptReadDefaultConfig failed: %s\n",
+	if (rc < 0)
+		errx(1, "poptReadDefaultConfig failed: %s",
 			poptStrerror(rc));
-		exit(1);
-	}
 
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
 
-	if (rc < -1) {
-		fprintf(stderr, "efisiglist: Invalid argument: %s: %s\n",
+	if (rc < -1)
+		errx(1, "Invalid argument: %s: %s",
 			poptBadOption(optCon, 0), poptStrerror(rc));
-		exit(1);
-	}
 
-	if (poptPeekArg(optCon)) {
-		fprintf(stderr, "efisiglist: Invalid Argument: \"%s\"\n",
-			poptPeekArg(optCon));
-		exit(1);
-	}
+	if (poptPeekArg(optCon))
+		errx(1, "Invalid Argument: \"%s\"", poptPeekArg(optCon));
 
-	if (hash && certfile) {
-		fprintf(stderr, "efisiglist: hash and certfile cannot be "
-			"specified at the same time\n");
-		exit(1);
-	}
+	if (hash && certfile)
+		errx(1, "Hash and certfile cannot be "
+			"specified at the same time.");
 
 	int outfd = -1;
 
-	if (!outfile) {
-		fprintf(stderr, "efisiglist: no output file specified\n");
-		exit(1);
-	}
+	if (!outfile)
+		errx(1, "No output file specified");
+
 	outfd = open(outfile, O_RDWR|O_APPEND|O_CREAT, 0644);
-	if (outfd < 0) {
-		fprintf(stderr, "efisiglist: could not open \"%s\": %m\n",
-			outfile);
-		exit(1);
-	}
+	if (outfd < 0)
+		err(1, "Could not open \"%s\"", outfile);
 
 	int hash_index = -1;
 	if (hash) {
@@ -197,36 +185,26 @@ main(int argc, char *argv[])
 		}
 
 		int x = strlen(hash);
-		if (x != hash_params[hash_index].size * 2) {
-			fprintf(stderr, "efisiglist: hash \"%s\" requires "
-				"a %d-bit value, but supplied value is "
-				"%d bits\n", hash_params[hash_index].name,
+		if (x != hash_params[hash_index].size * 2)
+			errx(1, "Hash \"%s\" requires a %d-bit value, "
+				"but supplied value is %d bits",
+				hash_params[hash_index].name,
 				hash_params[hash_index].size * 8, x * 4);
-			exit(1);
-		}
 	} else if (certfile) {
 		certfd = open(certfile, O_RDONLY, 0644);
-		if (certfd < 0) {
-			fprintf(stderr, "efisiglist: could not open \"%s\": "
-				"%m\n", certfile);
-			exit(1);
-		}
+		if (certfd < 0)
+			err(1, "Could not open \"%s\"", certfile);
 
 		struct stat sb;
-		if (fstat(certfd, &sb) < 0) {
-			fprintf(stderr, "efisiglist: could not get the size "
-				"of \"%s\": %m\n", certfile);
-			exit(1);
-		}
+		if (fstat(certfd, &sb) < 0)
+			err(1, "Could not get the size of \"%s\"", certfile);
+
 		cert_size = sb.st_size;
 
 		cert_data = mmap(NULL, cert_size, PROT_READ, MAP_PRIVATE,
 				 certfd, 0);
-		if (cert_data == MAP_FAILED) {
-			fprintf(stderr, "efisiglist: could not map \"%s\": "
-				"%m\n", certfile);
-			exit(1);
-		}
+		if (cert_data == MAP_FAILED)
+			err(1, "Could not map \"%s\"", certfile);
 	}
 
 	if (add) {
@@ -234,43 +212,33 @@ main(int argc, char *argv[])
 			signature_list *sl = signature_list_new(
 					hash_params[hash_index].guid);
 			if (!sl) {
-				fprintf(stderr, "efisiglist: could not "
-					"allocate signature list: %m\n");
-				unlink(outfile);
-				exit(1);
+				save_errno(unlink(outfile));
+				err(1, "Could not allocate signature list");
 			}
 			uint8_t *binary_hash = hex_to_bin(hash,
 				hash_params[hash_index].size);
 			if (!binary_hash) {
-				fprintf(stderr, "efisiglist: could not "
-					"parse hash \"%s\": %m\n", hash);
-				unlink(outfile);
-				exit(1);
+				save_errno(unlink(outfile));
+				err(1, "Could not parse hash \"%s\"", hash);
 			}
 			rc = signature_list_add_sig(sl, owner, binary_hash,
 				hash_params[hash_index].size);
 			if (rc < 0) {
-				fprintf(stderr,"efisiglist: could not add "
-					"hash to list: %m\n");
-				unlink(outfile);
-				exit(1);
+				save_errno(unlink(outfile));
+				err(1, "Could not add hash to list");
 			}
 
 			void *blah;
 			size_t size = 0;
 			rc = signature_list_realize(sl, &blah, &size);
 			if (rc < 0) {
-				fprintf(stderr, "efisiglist: Could not realize "
-					"signature list: %m\n");
-				unlink(outfile);
-				exit(1);
+				save_errno(unlink(outfile));
+				err(1, "Could not realize signature list");
 			}
 			rc = write(outfd, blah, size);
 			if (rc < 0) {
-				fprintf(stderr, "efisiglist: Could not write "
-					"signature list: %m\n");
-				unlink(outfile);
-				exit(1);
+				save_errno(unlink(outfile));
+				err(1, "Could not write signature list");
 			}
 			close(outfd);
 			exit(0);
@@ -278,35 +246,27 @@ main(int argc, char *argv[])
 			efi_guid_t sig_type = EFI_CERT_X509_GUID;
 			signature_list *sl = signature_list_new(sig_type);
 			if (!sl) {
-				fprintf(stderr, "efisiglist: could not "
-					"allocate signature list: %m\n");
-				unlink(outfile);
-				exit(1);
+				save_errno(unlink(outfile));
+				err(1, "Could not allocate signature list");
 			}
 			rc = signature_list_add_sig(sl, owner, cert_data,
 				cert_size);
 			if (rc < 0) {
-				fprintf(stderr,"efisiglist: could not add "
-					"cert to list: %m\n");
-				unlink(outfile);
-				exit(1);
+				save_errno(unlink(outfile));
+				err(1, "Could not add cert to list");
 			}
 
 			void *blah;
 			size_t size = 0;
 			rc = signature_list_realize(sl, &blah, &size);
 			if (rc < 0) {
-				fprintf(stderr, "efisiglist: Could not realize "
-					"signature list: %m\n");
-				unlink(outfile);
-				exit(1);
+				save_errno(unlink(outfile));
+				err(1, "Could not realize signature list");
 			}
 			rc = write(outfd, blah, size);
 			if (rc < 0) {
-				fprintf(stderr, "efisiglist: Could not write "
-					"signature list: %m\n");
-				unlink(outfile);
-				exit(1);
+				save_errno(unlink(outfile));
+				err(1, "Could not write signature list");
 			}
 
 			munmap(cert_data, cert_size);

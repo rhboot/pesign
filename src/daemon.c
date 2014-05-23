@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -788,10 +789,8 @@ check_socket(context *ctx)
 		};
 
 		int sd = socket(AF_UNIX, SOCK_SEQPACKET, 0);
-		if (sd < 0) {
-			fprintf(stderr, "unable to create socket: %m");
-			exit(1);
-		}
+		if (sd < 0)
+			err(1, "Unable to create socket: %m");
 
 		socklen_t len = strlen(addr_un.sun_path) +
 				sizeof(addr_un.sun_family);
@@ -810,8 +809,7 @@ check_socket(context *ctx)
 			close(sd);
 			return;
 		} else {
-			fprintf(stderr, "already running");
-			exit(1);
+			errx(1, "Daemon is already running");
 		}
 	} else {
 		/* It could be something other than EEXIST, but it really
@@ -852,8 +850,7 @@ write_pid_file(int pid)
 	int fd = open(PIDFILE, O_WRONLY|O_CREAT|O_TRUNC, 0644);
 	if (fd < 0) {
 err:
-		fprintf(stderr, "couldn't open pidfile: %m\n");
-		exit(1);
+		err(1, "Could not open pid file");
 	}
 	char *pidstr = NULL;
 	int rc = asprintf(&pidstr, "%d\n", pid);
@@ -882,10 +879,8 @@ daemonize(cms_context *cms_ctx, char *certdir, int do_fork)
 	ctx.backup_cms->log_priv = &ctx;
 	ctx.sd = -1;
 
-	if (getuid() != 0) {
-		fprintf(stderr, "pesignd must be started as root");
-		exit(1);
-	}
+	if (getuid() != 0)
+		errx(1, "pesignd must be started as root");
 
 	check_socket(&ctx);
 

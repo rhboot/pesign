@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,34 +39,25 @@
 static void
 open_input(pesigcheck_context *ctx)
 {
-	if (!ctx->infile) {
-		fprintf(stderr, "pesigcheck: No input file specified.\n");
-		exit(1);
-	}
+	if (!ctx->infile)
+		errx(1, "No input file specified");
 
 	ctx->infd = open(ctx->infile, O_RDONLY|O_CLOEXEC);
 
-	if (ctx->infd < 0) {
-		fprintf(stderr, "pesigcheck: Error opening input: %m\n");
-		exit(1);
-	}
+	if (ctx->infd < 0)
+		err(1, "Error opening input");
 
 	Pe_Cmd cmd = ctx->infd == STDIN_FILENO ? PE_C_READ : PE_C_READ_MMAP;
 	ctx->inpe = pe_begin(ctx->infd, cmd, NULL);
-	if (!ctx->inpe) {
-		fprintf(stderr, "pesigcheck: could not load input file: %s\n",
+	if (!ctx->inpe)
+		errx(1, "Could not load input file: %s",
 			pe_errmsg(pe_errno()));
-		exit(1);
-	}
 
 	int rc = parse_pe_signatures(&ctx->cms_ctx->signatures,
 					&ctx->cms_ctx->num_signatures,
 					ctx->inpe);
-	if (rc < 0) {
-		fprintf(stderr, "pesigcheck: could not parse signature list in "
-			"EFI binary\n");
-		exit(1);
-	}
+	if (rc < 0)
+		errx(1, "Could not parse signature list in EFI binary");
 }
 
 static void
@@ -81,10 +73,8 @@ close_input(pesigcheck_context *ctx)
 static void
 check_inputs(pesigcheck_context *ctx)
 {
-	if (!ctx->infile) {
-		fprintf(stderr, "pesign: No input file specified.\n");
-		exit(1);
-	}
+	if (!ctx->infile)
+		errx(1, "No input file specified");
 }
 
 static int
@@ -189,11 +179,9 @@ callback(poptContext con, enum poptCallbackReason reason,
 	} else if (opt->shortName == 'c') {
 		rc = add_cert_file(ctx, arg);
 	}
-	if (rc != 0) {
-		fprintf(stderr, "Could not add %s from file \"%s\": %m\n",
+	if (rc != 0)
+		err(1, "Could not add %s from file \"%s\"",
 			opt->shortName == 'D' ? "DB" : "DBX", arg);
-		exit(1);
-	}
 }
 
 int
@@ -233,10 +221,8 @@ main(int argc, char *argv[])
 	};
 
 	rc = pesigcheck_context_init(ctxp);
-	if (rc < 0) {
-		fprintf(stderr, "pesigcheck: Could not initialize context: %m\n");
-		exit(1);
-	}
+	if (rc < 0)
+		err(1, "Could not initialize context: %m");
 
 	optCon = poptGetContext("pesigcheck", argc, (const char **)argv,
 				options,0);
@@ -244,17 +230,12 @@ main(int argc, char *argv[])
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
 
-	if (rc < -1) {
-		fprintf(stderr, "pesigcheck: Invalid argument: %s: %s\n",
+	if (rc < -1)
+		errx(1, "Invalid argument: %s: %s",
 			poptBadOption(optCon, 0), poptStrerror(rc));
-		exit(1);
-	}
 
-	if (poptPeekArg(optCon)) {
-		fprintf(stderr, "pesigcheck: Invalid Argument: \"%s\"\n",
-				poptPeekArg(optCon));
-		exit(1);
-	}
+	if (poptPeekArg(optCon))
+		errx(1, "Invalid Argument: \"%s\"", poptPeekArg(optCon));
 
 	poptFreeContext(optCon);
 
@@ -264,11 +245,8 @@ main(int argc, char *argv[])
 	init_cert_db(ctxp, use_system_dbs);
 
 	status = NSS_NoDB_Init(NULL);
-	if (status != SECSuccess) {
-		fprintf(stderr, "Could not initialize nss: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		exit(1);
-	}
+	if (status != SECSuccess)
+		nsserr(1, "Could not initialize nss");
 
 	rc = check_signature(ctxp);
 
