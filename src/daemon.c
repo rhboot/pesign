@@ -744,20 +744,12 @@ set_up_socket(context *ctx)
 		exit(1);
 	}
 
-	int one = 1;
-	int rc = setsockopt(sd, SOL_SOCKET, SO_PASSCRED, &one, sizeof(one));
-	if (rc < 0) {
-		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
-			"unable to set socket options: %m");
-		exit(1);
-	}
-
 	struct sockaddr_un addr_un = {
 		.sun_family = AF_UNIX,
 		.sun_path = SOCKPATH,
 	};
 
-	rc = bind(sd, &addr_un, sizeof(addr_un));
+	int rc = bind(sd, &addr_un, sizeof(addr_un));
 	if (rc < 0) {
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
 			"unable to bind to \"%s\": %m",
