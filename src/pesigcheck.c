@@ -50,8 +50,7 @@ open_input(pesigcheck_context *ctx)
 	Pe_Cmd cmd = ctx->infd == STDIN_FILENO ? PE_C_READ : PE_C_READ_MMAP;
 	ctx->inpe = pe_begin(ctx->infd, cmd, NULL);
 	if (!ctx->inpe)
-		errx(1, "Could not load input file: %s",
-			pe_errmsg(pe_errno()));
+		peerr(1, "Could not load input file");
 
 	int rc = parse_pe_signatures(&ctx->cms_ctx->signatures,
 					&ctx->cms_ctx->num_signatures,

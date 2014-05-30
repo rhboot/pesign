@@ -39,8 +39,7 @@ pe_setup(pesign_context *ctx, void *addr, size_t len)
 {
 	ctx->inpe = pe_memory(ctx->inmap, ctx->insize);
 	if (!ctx->inpe)
-		errx(1, "Could not load input file: %s",
-			pe_errmsg(pe_errno()));
+		peerr(1, "Could not load input file");
 
 	int rc = parse_pe_signatures(&ctx->cms_ctx->signatures,
 				  &ctx->cms_ctx->num_signatures, ctx->inpe);

@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <err.h>
 
 #include <libdpe/pe.h>
 

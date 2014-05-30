@@ -170,8 +170,7 @@ open_output(pesign_context *ctx)
 	Pe_Cmd cmd = ctx->outfd == STDOUT_FILENO ? PE_C_RDWR : PE_C_RDWR_MMAP;
 	ctx->outpe = pe_begin(ctx->outfd, cmd, NULL);
 	if (!ctx->outpe)
-		errx(1, "could not load output file: %s",
-			pe_errmsg(pe_errno()));
+		peerr(1, "Could not load output file");
 
 	pe_clearcert(ctx->outpe);
 }
