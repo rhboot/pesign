@@ -50,10 +50,10 @@ typedef struct {
 } efi_time_t;
 
 struct efi_variable {
-	efi_char16_t VariableName[1024/sizeof(efi_char16_t)];
+	efi_char16_t *VariableName;
 	efi_guid_t VendorGuid;
 	unsigned long DataSize;
-	uint8_t Data[1024];
+	uint8_t *Data;
 	efi_status_t Status;
 	uint32_t Attributes;
 };
