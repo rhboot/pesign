@@ -484,7 +484,7 @@ main(int argc, char *argv[])
 				get_reserved_pe_sig_space(ctxp->cms_ctx,
 							ctxp->outpe);
 			allocate_pe_signature_space(ctxp->outpe, sigspace);
-			check_pe_signature_space(ctxp);
+			assert_signature_space(ctxp);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
 			close_helper(ctxp->insigfd);
 			close_output(ctxp);

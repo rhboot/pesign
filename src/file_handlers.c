@@ -16,21 +16,27 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-#include "pesign.h"
+#include <errno.h>
 
-int
-generic_list_signatures(pesign_context *ctx)
-{
-	return 0;
-}
+#include "pesign.h"
+#include "util.h"
 
 int
 list_signatures(pesign_context *ctx)
 {
 	if (ctx->file_handlers->list_signatures)
 		return ctx->file_handlers->list_signatures(ctx);
-	else
-		return generic_list_signatures(ctx);
+	errno = ENOSYS;
+	return -1;
+}
+
+void
+assert_signature_space(pesign_context *ctx)
+{
+	if (ctx->file_handlers->assert_signature_space)
+		ctx->file_handlers->assert_signature_space(ctx);
+	errno = ENOSYS;
+	liberr(1, "");
 }
 
 const file_handlers_t *file_handlers[] = {

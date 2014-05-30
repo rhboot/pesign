@@ -26,7 +26,6 @@
 
 extern const file_handlers_t pe_handlers;
 
-extern void check_pe_signature_space(pesign_context *ctx);
 extern void allocate_pe_signature_space(Pe *pe, ssize_t sigspace);
 
 #endif /* PESIGN_PE_HANDLERS_H */

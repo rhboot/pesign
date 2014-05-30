@@ -182,7 +182,7 @@ list_pe_signatures(pesign_context *ctx)
 }
 
 void
-check_pe_signature_space(pesign_context *ctx)
+assert_pe_signature_space(pesign_context *ctx)
 {
 	ssize_t available = available_pe_cert_space(ctx->outpe);
 
@@ -205,4 +205,5 @@ const file_handlers_t pe_handlers = {
 	.setup = pe_setup,
 	.teardown = pe_teardown,
 	.list_signatures = list_pe_signatures,
+	.assert_signature_space = assert_pe_signature_space,
 };

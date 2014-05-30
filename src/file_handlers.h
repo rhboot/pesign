@@ -26,9 +26,11 @@ typedef struct {
 	void (*setup)(pesign_context *ctx, void *addr, size_t len);
 	void (*teardown)(pesign_context *ctx);
 	int (*list_signatures)(pesign_context *ctx);
+	void (*assert_signature_space)(pesign_context *ctx);
 } file_handlers_t;
 
 extern int set_up_file_handlers(pesign_context *ctx, void *addr, size_t len);
 extern int list_signatures(pesign_context *ctx);
+extern void assert_signature_space(pesign_context *ctx);
 
 #endif /* PESIGN_FILE_HANDLERS_H */
