@@ -19,6 +19,17 @@
 
 #include <errno.h>
 #include <popt.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <string.h>
+#include <time.h>
+#include <stdlib.h>
+
+#include <prerror.h>
+#include <nss.h>
 
 #include "authvar.h"
 
@@ -84,6 +95,75 @@ check_value(authvar_context *ctx, int needed)
 		else
 			fprintf(stderr,
 				"authvar: command does not take a value.\n");
+		exit(1);
+	}
+
+	if (ctx->value) {
+		ctx->value_size = strlen(ctx->value);
+	}
+}
+
+static void
+open_input(authvar_context *ctx)
+{
+	struct stat sb;
+
+	if (!ctx->valuefile)
+		return;
+
+	ctx->valuefd = open(ctx->valuefile, O_RDONLY|O_CLOEXEC);
+	if (ctx->valuefd < 0) {
+		fprintf(stderr, "authvar: Error opening valuefile: %m\n");
+		exit(1);
+	}
+
+	if (fstat(ctx->valuefd, &sb) < 0) {
+		fprintf(stderr, "authvar: Error mapping valuefile: %m\n");
+		exit(1);
+	}
+	ctx->value_size = sb.st_size;
+
+	ctx->value = (char *)mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE,
+			     ctx->valuefd, 0);
+	if (ctx->value == MAP_FAILED) {
+		fprintf(stderr, "authvar: Error mapping valuefile: %m\n");
+		exit(1);
+	}
+}
+
+#define EFIVAR_DIR "/sys/firmware/efi/efivars/"
+
+static void
+generate_efivars_filename(authvar_context *ctx)
+{
+	efi_guid_t guid = ctx->guid;
+	size_t length;
+
+	length = strlen(EFIVAR_DIR) + strlen(ctx->name) + 38;
+	ctx->exportfile = (char *)malloc(length);
+
+	sprintf(ctx->exportfile, "%s%s-%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+		EFIVAR_DIR, ctx->name, guid.data1, guid.data2, guid.data3,
+		guid.data4[0], guid.data4[1], guid.data4[2],
+		guid.data4[3], guid.data4[4], guid.data4[5],
+		guid.data4[6], guid.data4[7]);
+}
+
+static void
+open_output(authvar_context *ctx)
+{
+	int flags;
+	mode_t mode;
+
+	if (!ctx->exportfile) {
+		generate_efivars_filename(ctx);
+	}
+
+	flags = O_CREAT|O_RDWR|O_CLOEXEC;
+	mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+	ctx->exportfd = open(ctx->exportfile, flags, mode);
+	if (ctx->exportfd < 0) {
+		fprintf(stderr, "authvar: Error opening exportfile: %m\n");
 		exit(1);
 	}
 }
@@ -163,11 +243,41 @@ find_namespace_guid(authvar_context *ctx)
 	return parse_guid(ctx->namespace, &ctx->guid);
 }
 
+static void
+set_timestamp(authvar_context *ctx, const char *time_str)
+{
+	time_t t;
+	struct tm *tm;
+
+	if (time_str) {
+		/* TODO parse the string */
+	} else {
+		time(&t);
+		tm = gmtime(&t);
+	}
+
+	ctx->timestamp.year = tm->tm_year + 1900;
+	ctx->timestamp.month = tm->tm_mon + 1;
+	ctx->timestamp.day = tm->tm_mday;
+	ctx->timestamp.hour = tm->tm_hour;
+	ctx->timestamp.minute = tm->tm_min;
+	ctx->timestamp.second = tm->tm_sec;
+
+	ctx->timestamp.pad1 = 0;
+	ctx->timestamp.nanosecond = 0;
+	ctx->timestamp.timezone = 0;
+	ctx->timestamp.daylight = 0;
+	ctx->timestamp.pad2 = 0;
+}
+
 int main(int argc, char *argv[])
 {
 	int rc;
 	authvar_context ctx = { 0, };
 	authvar_context *ctxp = &ctx;
+	char *time_str = NULL;
+	char *certdir = "/etc/pki/pesign";
+	SECStatus status;
 
 	int action = 0;
 
@@ -182,6 +292,10 @@ int main(int argc, char *argv[])
 		{ NULL, '\0', POPT_ARG_INTL_DOMAIN, "pesign" },
 		{ "append", 'a', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
 			GENERATE_APPEND, "append to variable" },
+		{"certdir", 'd', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
+			&certdir, 0,
+			"specify nss certificate database directory",
+			"<certificate directory path>" },
 		{ "clear", 'c', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
 			GENERATE_CLEAR, "clear variable" },
 		{ "set", 's', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
@@ -192,6 +306,8 @@ int main(int argc, char *argv[])
 			"{<namespace>|<guid>}" },
 		{ "name", 'n', POPT_ARG_STRING, &ctx.name, 0, "variable name",
 			"<name>" },
+		{ "timestamp", 't', POPT_ARG_STRING, &time_str, 0,
+			"timestamp for the variable", "<time>" },
 		{ "value", 'v', POPT_ARG_STRING, &ctx.value, 0,
 			"value to set or append", "<value>" },
 		{ "valuefile", 'f', POPT_ARG_STRING, &ctx.valuefile, 0,
@@ -201,37 +317,13 @@ int main(int argc, char *argv[])
 		{ "export", 'e', POPT_ARG_STRING, &ctx.exportfile, 0,
 			"export variable to <file> instead of firmware",
 			"<file>" },
-		{ "sign", 'S', POPT_ARG_STRING, &ctx.cms_ctx.certname, 0,
+		{ "sign", 'S', POPT_ARG_STRING, &ctx.cms_ctx->certname, 0,
 			"sign variable with certificate <nickname>",
 			"<nickname>" },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
 	};
-
-	if (ctx.importfile)
-		action |= IMPORT;
-	if (ctx.exportfile)
-		action |= EXPORT;
-	if (!(action & (IMPORT|EXPORT)))
-		action |= SET;
-
-	if (ctx.cms_ctx.certname && *ctx.cms_ctx.certname) {
-		rc = find_certificate(&ctx.cms_ctx, 1);
-		if (rc < 0) {
-			fprintf(stderr, "authvar: Could not find certificate "
-				"for \"%s\"\n", ctx.cms_ctx.certname);
-			exit(1);
-		}
-		action |= SIGN;
-	}
-
-	rc = find_namespace_guid(ctxp);
-	if (rc < 0) {
-		fprintf(stderr, "authvar: unable to find guid for \"%s\"\n",
-			ctx.namespace);
-		exit(1);
-	}
 
 	optCon = poptGetContext("authvar", argc, (const char **)argv,
 				options, 0);
@@ -252,6 +344,52 @@ int main(int argc, char *argv[])
 
 	poptFreeContext(optCon);
 
+	if (ctx.importfile)
+		action |= IMPORT;
+	if (ctx.exportfile)
+		action |= EXPORT;
+	if (!(action & (IMPORT|EXPORT)))
+		action |= SET;
+
+	if ((action & GENERATE_APPEND) || (action & GENERATE_CLEAR) ||
+	    (action & GENERATE_SET)) {
+		if (!ctx.cms_ctx->certname || !*ctx.cms_ctx->certname) {
+			fprintf(stderr, "authvar: Require a certificate to sign\n");
+			exit(1);
+		}
+	}
+
+	rc = find_namespace_guid(ctxp);
+	if (rc < 0) {
+		fprintf(stderr, "authvar: unable to find guid for \"%s\"\n",
+			ctx.namespace);
+		exit(1);
+	}
+
+	set_timestamp(ctxp, time_str);
+
+	/* Initialize the NSS db */
+	if ((action & GENERATE_APPEND) || (action & GENERATE_CLEAR) ||
+	    (action & GENERATE_SET)    || (action & SIGN))
+		status = NSS_Init(certdir);
+	else
+		status = NSS_NoDB_Init(NULL);
+	if (status != SECSuccess) {
+		fprintf(stderr, "Could not initialize nss: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		exit(1);
+	}
+
+	if (ctx.cms_ctx->certname && *ctx.cms_ctx->certname) {
+		rc = find_certificate(ctx.cms_ctx, 1);
+		if (rc < 0) {
+			fprintf(stderr, "authvar: Could not find certificate "
+				"for \"%s\"\n", ctx.cms_ctx->certname);
+			exit(1);
+		}
+		action |= SIGN;
+	}
+
 	print_flag_name(stdout, action);
 	printf("\n");
 	switch (action) {
@@ -259,20 +397,48 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "authvar: No action specified\n");
 		exit(1);
 		break;
-	case GENERATE_APPEND|EXPORT:
-	case GENERATE_APPEND|SET:
+	case GENERATE_APPEND|EXPORT|SIGN:
+	case GENERATE_APPEND|SET|SIGN:
 		check_name(ctxp);
 		check_value(ctxp, 1);
+		open_input(ctxp);
+		ctxp->attr |= EFI_VARIABLE_APPEND_WRITE;
+		/* TODO Set Day and Month to 0 */
+
+		rc = generate_descriptor(ctxp);
+		if (rc < 0) {
+			fprintf(stderr, "authvar: unable to generate descriptor\n");
+			exit(1);
+		}
+		open_output(ctxp);
+		write_authvar(ctxp);
 		break;
-	case GENERATE_CLEAR|EXPORT:
-	case GENERATE_CLEAR|SET:
+	case GENERATE_CLEAR|EXPORT|SIGN:
+	case GENERATE_CLEAR|SET|SIGN:
 		check_name(ctxp);
 		check_value(ctxp, 0);
+
+		rc = generate_descriptor(ctxp);
+		if (rc < 0) {
+			fprintf(stderr, "authvar: unable to generate descriptor\n");
+			exit(1);
+		}
+		open_output(ctxp);
+		write_authvar(ctxp);
 		break;
-	case GENERATE_SET|EXPORT:
-	case GENERATE_SET|SET:
+	case GENERATE_SET|EXPORT|SIGN:
+	case GENERATE_SET|SET|SIGN:
 		check_name(ctxp);
 		check_value(ctxp, 1);
+		open_input(ctxp);
+
+		rc = generate_descriptor(ctxp);
+		if (rc < 0) {
+			fprintf(stderr, "authvar: unable to generate descriptor\n");
+			exit(1);
+		}
+		open_output(ctxp);
+		write_authvar(ctxp);
 		break;
 	case IMPORT|SET:
 	case IMPORT|SIGN|SET:
@@ -286,5 +452,10 @@ int main(int argc, char *argv[])
 	}
 
 	authvar_context_fini(ctxp);
+	if (time_str)
+		xfree(time_str);
+
+	NSS_Shutdown();
+
 	return 0;
 }

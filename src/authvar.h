@@ -24,6 +24,7 @@
 
 #include "efitypes.h"
 #include "cms_common.h"
+#include "wincert.h"
 #include "authvar_context.h"
 #include "util.h"
 #include "siglist.h"
