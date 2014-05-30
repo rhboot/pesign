@@ -19,6 +19,8 @@
 #ifndef PESIGN_WINCERT_H
 #define PESIGN_WINCERT_H 1
 
+#include "efitypes.h"
+
 #define WIN_CERT_TYPE_PKCS_SIGNED_DATA	0x0002
 #define WIN_CERT_TYPE_EFI_OKCS115	0x0EF0
 #define WIN_CERT_TYPE_EFI_GUID		0x0EF1
@@ -38,6 +40,17 @@ typedef struct cert_iter {
 	void *certs;
 	size_t size;
 } cert_iter;
+
+typedef struct {
+	win_certificate	hdr;
+	efi_guid_t	type;
+	uint8_t		data[1];
+} win_cert_uefi_guid_t;
+
+typedef struct {
+	efi_time_t		timestamp;
+	win_cert_uefi_guid_t	authinfo;
+} efi_var_auth_2_t;
 
 extern int cert_iter_init(cert_iter *iter, Pe *pe);
 extern int next_cert(cert_iter *iter, void **cert, ssize_t *cert_size);

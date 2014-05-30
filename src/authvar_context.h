@@ -23,15 +23,29 @@ typedef struct {
 	char *namespace;
 	efi_guid_t guid;
 	char *name;
-	char *value;
-	char *valuefile;
-	char *importfile;
-	char *exportfile;
+	uint32_t attr;
 
-	cms_context cms_ctx;
+	char  *value;
+	char  *valuefile;
+	int    valuefd;
+	size_t value_size;
+
+	efi_time_t timestamp;
+
+	char *importfile;
+	int   inmportfd;
+
+	char *exportfile;
+	int   exportfd;
+
+	efi_var_auth_2_t des;
+
+	cms_context *cms_ctx;
 } authvar_context;
 
 extern int authvar_context_init(authvar_context *ctx);
 extern void authvar_context_fini(authvar_context *ctx);
+extern int generate_descriptor(authvar_context *ctx);
+extern int write_authvar(authvar_context *ctx);
 
 #endif /* AUTHVAR_CONTEXT_H */
