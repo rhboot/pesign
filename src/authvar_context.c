@@ -216,29 +216,46 @@ int
 write_authvar(authvar_context *ctx)
 {
 	efi_var_auth_2_t *descriptor;
-	size_t des_len;
+	void *buffer, *ptr;
+	size_t buf_len, des_len, remain;
+	ssize_t wlen;
+	off_t offset;
 
 	if (!ctx->authinfo)
 		cmsreterr(-1, ctx->cms_ctx, "Not a valid authvar");
 
-	/* The attributes of the variable */
-	write(ctx->exportfd, &ctx->attr, sizeof(ctx->attr));
-
-	/* The EFI_VARIABLE_AUTHENTICATION_2 */
 	des_len = sizeof(efi_var_auth_2_t) + ctx->authinfo->hdr.length -
 		  sizeof(win_cert_uefi_guid_t) + 1;
-	descriptor = calloc(des_len, 1);
-	if (!descriptor)
-		cmsreterr(-1, ctx->cms_ctx, "could not allocate descriptor");
+	buf_len = 4 + des_len + ctx->value_size;
 
+	buffer = calloc(buf_len, 1);
+	if (!buffer)
+		cmsreterr(-1, ctx->cms_ctx, "could not allocate buffer");
+	ptr = buffer;
+
+	/* The attribute of the variable */
+	memcpy(ptr, &ctx->attr, sizeof(ctx->attr));
+	ptr += sizeof(ctx->attr);
+
+	/* EFI_VARIABLE_AUTHENTICATION_2 */
+	descriptor = (efi_var_auth_2_t *)ptr;
 	memcpy(&descriptor->timestamp, &ctx->timestamp, sizeof(efi_time_t));
 	memcpy(&descriptor->authinfo, ctx->authinfo, ctx->authinfo->hdr.length);
+	ptr += des_len;
 
-	write(ctx->exportfd, descriptor, des_len);
-
-	/* The Data */
+	/* Data */
 	if (ctx->value_size > 0)
-		write(ctx->exportfd, ctx->value, ctx->value_size);
+		memcpy(ptr, ctx->value, ctx->value_size);
+
+	remain = buf_len;
+	offset = 0;
+	do {
+		wlen = write(ctx->exportfd, buffer + offset, remain);
+		if (wlen < 0)
+			cmsreterr(-1, ctx->cms_ctx, "failed to write authvar");
+		remain -= wlen;
+		offset += wlen;
+	} while (remain > 0);
 
 	return 0;
 }
