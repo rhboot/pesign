@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <unistd.h>
 #include <sys/mman.h>
 
 #include <prerror.h>
@@ -80,14 +81,22 @@ authvar_context_fini(authvar_context *ctx)
 	}
 }
 
-static SECItem*
+static int
 generate_buffer_digest(cms_context *cms, uint8_t *buf, size_t buf_len)
 {
-	PK11Context *pk11ctx = NULL;
+	struct digest *digests = NULL;
 	SECItem *digest = NULL;
 
-	pk11ctx = PK11_CreateDigestContext(SEC_OID_SHA256);
-	if (!pk11ctx) {
+	if (cms->digests) {
+		digests = cms->digests;
+	} else {
+		digests = PORT_ZAlloc(sizeof (struct digest));
+		if (digests == NULL)
+			cmsreterr(-1, cms, "could not allocate digest context");
+	}
+
+	digests[0].pk11ctx = PK11_CreateDigestContext(SEC_OID_SHA256);
+	if (!digests[0].pk11ctx) {
 		cms->log(cms, LOG_ERR, "%s:%s:%d could not create "
 			"digest context: %s",
 			__FILE__, __func__, __LINE__,
@@ -95,8 +104,8 @@ generate_buffer_digest(cms_context *cms, uint8_t *buf, size_t buf_len)
 		goto err;
 	}
 
-	PK11_DigestBegin(pk11ctx);
-	PK11_DigestOp(pk11ctx, buf, buf_len);
+	PK11_DigestBegin(digests[0].pk11ctx);
+	PK11_DigestOp(digests[0].pk11ctx, buf, buf_len);
 
 	digest = PORT_ArenaZAlloc(cms->arena, sizeof (SECItem));
 	if (!digest) {
@@ -116,22 +125,39 @@ generate_buffer_digest(cms_context *cms, uint8_t *buf, size_t buf_len)
 		goto err;
 	}
 
-	PK11_DigestFinal(pk11ctx, digest->data, &digest->len, 32);
-	PK11_Finalize(pk11ctx);
-	PK11_DestroyContext(pk11ctx, PR_TRUE);
+	PK11_DigestFinal(digests[0].pk11ctx, digest->data, &digest->len, 32);
+	PK11_Finalize(digests[0].pk11ctx);
+	PK11_DestroyContext(digests[0].pk11ctx, PR_TRUE);
 
+	cms->digests = digests;
+	cms->digests[0].pk11ctx = NULL;
+	/* XXX sure seems like we should be freeing it here,
+	 * but that's segfaulting, and we know it'll get
+	 * cleaned up with PORT_FreeArena a couple of lines
+	 * down.
+	 */
+	cms->digests[0].pe_digest = digest;
+	cms->selected_digest = 0;
+
+	return 0;
 err:
-	return digest;
+	if (digests[0].pk11ctx)
+		PK11_DestroyContext(digests[0].pk11ctx, PR_TRUE);
+
+	free(digests);
+
+	return -1;
 }
 
 int
 generate_descriptor(authvar_context *ctx)
 {
 	win_cert_uefi_guid_t *authinfo;
-	SECItem *digest;
+	SECItem sd_der;
 	char *name_ptr;
 	uint8_t *buf, *ptr;
 	size_t buf_len;
+	int rc;
 
 	/* prepare buffer for varname, vendor_guid, attr, timestamp, value */
 	buf_len = strlen(ctx->name)*2 + sizeof(efi_guid_t) + sizeof(uint32_t) +
@@ -160,22 +186,28 @@ generate_descriptor(authvar_context *ctx)
 
 	memcpy(ptr, ctx->value, ctx->value_size);
 
-	digest = generate_buffer_digest(ctx->cms_ctx, buf, buf_len);
-	if (!digest || !digest->data) {
+	if (generate_buffer_digest(ctx->cms_ctx, buf, buf_len) < 0) {
 		xfree(buf);
 		return -1;
 	}
 
-	/* TODO sign the digest */
+	/* sign the digest */
+	memset(&sd_der, '\0', sizeof(sd_der));
+	rc = generate_spc_signed_data(ctx->cms_ctx, &sd_der);
+	if (rc < 0)
+		cmsreterr(-1, ctx->cms_ctx, "could not create signed data");
 
-	// TODO complete authinfo
-	authinfo = &ctx->des.authinfo;
-	//authinfo->hdr.length
+	authinfo = calloc(sizeof(win_cert_uefi_guid_t) + sd_der.len, 1);
+	if (!authinfo)
+		cmsreterr(-1, ctx->cms_ctx, "could not allocate authinfo");
+
+	authinfo->hdr.length = sd_der.len + sizeof(win_cert_uefi_guid_t) - 1;
 	authinfo->hdr.revision = WIN_CERT_REVISION_2_0;
 	authinfo->hdr.cert_type = WIN_CERT_TYPE_EFI_GUID;
 	authinfo->type = (efi_guid_t)EFI_CERT_TYPE_PKCS7_GUID;
-	// TODO append the signed data to authinfo->data
+	memcpy(&authinfo->data, sd_der.data, sd_der.len);
 
+	ctx->authinfo = authinfo;
 
 	return 0;
 }
@@ -183,5 +215,30 @@ generate_descriptor(authvar_context *ctx)
 int
 write_authvar(authvar_context *ctx)
 {
+	efi_var_auth_2_t *descriptor;
+	size_t des_len;
+
+	if (!ctx->authinfo)
+		cmsreterr(-1, ctx->cms_ctx, "Not a valid authvar");
+
+	/* The attributes of the variable */
+	write(ctx->exportfd, &ctx->attr, sizeof(ctx->attr));
+
+	/* The EFI_VARIABLE_AUTHENTICATION_2 */
+	des_len = sizeof(efi_var_auth_2_t) + ctx->authinfo->hdr.length -
+		  sizeof(win_cert_uefi_guid_t) + 1;
+	descriptor = calloc(des_len, 1);
+	if (!descriptor)
+		cmsreterr(-1, ctx->cms_ctx, "could not allocate descriptor");
+
+	memcpy(&descriptor->timestamp, &ctx->timestamp, sizeof(efi_time_t));
+	memcpy(&descriptor->authinfo, ctx->authinfo, ctx->authinfo->hdr.length);
+
+	write(ctx->exportfd, descriptor, des_len);
+
+	/* The Data */
+	if (ctx->value_size > 0)
+		write(ctx->exportfd, ctx->value, ctx->value_size);
+
 	return 0;
 }

@@ -276,6 +276,8 @@ int main(int argc, char *argv[])
 	authvar_context ctx = { 0, };
 	authvar_context *ctxp = &ctx;
 	char *time_str = NULL;
+	char *tokenname = "NSS Certificate DB";
+	char *origtoken = tokenname;
 	char *certdir = "/etc/pki/pesign";
 	SECStatus status;
 
@@ -379,6 +381,22 @@ int main(int argc, char *argv[])
 			PORT_ErrorToString(PORT_GetError()));
 		exit(1);
 	}
+
+	status = register_oids(ctxp->cms_ctx);
+	if (status != SECSuccess) {
+		fprintf(stderr, "Could not register OIDs\n");
+		exit(1);
+	}
+
+	ctxp->cms_ctx->tokenname = tokenname ?
+		PORT_ArenaStrdup(ctxp->cms_ctx->arena, tokenname) : NULL;
+	if (tokenname && !ctxp->cms_ctx->tokenname) {
+		fprintf(stderr, "could not allocate token name: %s\n",
+			PORT_ErrorToString(PORT_GetError()));
+		exit(1);
+	}
+	if (tokenname != origtoken)
+		free(tokenname);
 
 	if (ctx.cms_ctx->certname && *ctx.cms_ctx->certname) {
 		rc = find_certificate(ctx.cms_ctx, 1);
