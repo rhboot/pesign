@@ -38,7 +38,7 @@ typedef struct {
 	char *exportfile;
 	int   exportfd;
 
-	efi_var_auth_2_t des;
+	win_cert_uefi_guid_t *authinfo;
 
 	cms_context *cms_ctx;
 } authvar_context;
