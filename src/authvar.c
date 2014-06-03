@@ -423,7 +423,8 @@ int main(int argc, char *argv[])
 		check_value(ctxp, 1);
 		open_input(ctxp);
 		ctxp->attr |= EFI_VARIABLE_APPEND_WRITE;
-		/* TODO Set Day and Month to 0 */
+		ctxp->timestamp.day = 0;
+		ctxp->timestamp.month = 0;
 
 		rc = generate_descriptor(ctxp);
 		if (rc < 0) {
