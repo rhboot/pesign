@@ -247,21 +247,23 @@ static void
 set_timestamp(authvar_context *ctx, const char *time_str)
 {
 	time_t t;
-	struct tm *tm;
+	struct tm tm;
 
+	memset(&tm, 0, sizeof(struct tm));
 	if (time_str) {
-		/* TODO parse the string */
+		/* Accept the string like "2001-11-12 18:31:01" */
+		strptime(time_str, "%Y-%m-%d %H:%M:%S", &tm);
 	} else {
 		time(&t);
-		tm = gmtime(&t);
+		gmtime_r(&t, &tm);
 	}
 
-	ctx->timestamp.year = tm->tm_year + 1900;
-	ctx->timestamp.month = tm->tm_mon + 1;
-	ctx->timestamp.day = tm->tm_mday;
-	ctx->timestamp.hour = tm->tm_hour;
-	ctx->timestamp.minute = tm->tm_min;
-	ctx->timestamp.second = tm->tm_sec;
+	ctx->timestamp.year = tm.tm_year + 1900;
+	ctx->timestamp.month = tm.tm_mon + 1;
+	ctx->timestamp.day = tm.tm_mday;
+	ctx->timestamp.hour = tm.tm_hour;
+	ctx->timestamp.minute = tm.tm_min;
+	ctx->timestamp.second = tm.tm_sec;
 
 	ctx->timestamp.pad1 = 0;
 	ctx->timestamp.nanosecond = 0;
