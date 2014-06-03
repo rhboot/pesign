@@ -31,5 +31,7 @@
 #include "endian.h"
 #include "ucs2.h"
 #include "varfile.h"
+#include "signed_data.h"
+#include "oid.h"
 
 #endif /* AUTHVAR_H */
