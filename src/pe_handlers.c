@@ -190,11 +190,11 @@ assert_pe_signature_space(pesign_context *ctx)
 }
 
 void
-allocate_pe_signature_space(Pe *pe, ssize_t sigspace)
+allocate_pe_signature_space(pesign_context *ctx, ssize_t sigspace)
 {
 	int rc;
 
-	rc = pe_alloccert(pe, sigspace);
+	rc = pe_alloccert(ctx->outpe, sigspace);
 	if (rc < 0)
 		err(1, "Could not allocate space for signature");
 }
@@ -204,5 +204,6 @@ const file_handlers_t pe_handlers = {
 	.setup = pe_setup,
 	.teardown = pe_teardown,
 	.list_signatures = list_pe_signatures,
+	.allocate_signature_space = allocate_pe_signature_space,
 	.assert_signature_space = assert_pe_signature_space,
 };

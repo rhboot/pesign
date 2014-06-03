@@ -448,7 +448,7 @@ main(int argc, char *argv[])
 			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
 			sigspace = calculate_pe_signature_space(ctxp->cms_ctx,
 								ctxp->outpe);
-			allocate_pe_signature_space(ctxp->outpe, sigspace);
+			allocate_signature_space(ctxp, sigspace);
 			generate_signature(ctxp->cms_ctx);
 			teardown_digests(ctxp->cms_ctx);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
@@ -482,7 +482,7 @@ main(int argc, char *argv[])
 				ctxp->cms_ctx->newsig.len +
 				get_reserved_pe_sig_space(ctxp->cms_ctx,
 							ctxp->outpe);
-			allocate_pe_signature_space(ctxp->outpe, sigspace);
+			allocate_signature_space(ctxp, sigspace);
 			assert_signature_space(ctxp);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
 			close_helper(ctxp->insigfd);
@@ -587,7 +587,7 @@ main(int argc, char *argv[])
 			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
 			sigspace = calculate_pe_signature_space(ctxp->cms_ctx,
 							     ctxp->outpe);
-			allocate_pe_signature_space(ctxp->outpe, sigspace);
+			allocate_signature_space(ctxp, sigspace);
 			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
 			generate_signature(ctxp->cms_ctx);
 			teardown_digests(ctxp->cms_ctx);

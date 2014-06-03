@@ -339,6 +339,49 @@ set_up_outpe(context *ctx, int fd, Pe *inpe, Pe **outpe)
 	return 0;
 }
 
+static int
+set_up_pesign_context(context *ctx, pesign_context **outctx,
+			int attached, int infd, int outfd)
+{
+	pesign_context *pe_ctx = NULL;
+
+	int rc = pesign_context_new(&pe_ctx);
+	if (rc < 0) {
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"Could not create context: %m");
+		return rc;
+	}
+
+	rc = set_up_inpe(ctx, infd, &pe_ctx->inpe);
+	if (rc < 0) {
+		pesign_context_free(pe_ctx);
+		return rc;
+	}
+
+	char *addr;
+	size_t size;
+
+	addr = pe_rawfile(pe_ctx->inpe, &size);
+	rc = set_up_file_handlers(pe_ctx, addr, size);
+	if (rc < 0) {
+		pesign_context_free(pe_ctx);
+		return rc;
+	}
+
+	if (attached) {
+		rc = set_up_outpe(ctx, outfd, pe_ctx->inpe, &pe_ctx->outpe);
+		if (rc < 0) {
+			pesign_context_free(pe_ctx);
+			return rc;
+		}
+	} else {
+		ftruncate(outfd, 0);
+	}
+
+	*outctx = pe_ctx;
+	return 0;
+}
+
 static void
 handle_signing(context *ctx, struct pollfd *pollfd, socklen_t size,
 	int attached)
@@ -347,7 +390,6 @@ handle_signing(context *ctx, struct pollfd *pollfd, socklen_t size,
 	struct iovec iov;
 	ssize_t n;
 	char *buffer = malloc(size);
-	Pe *inpe = NULL;
 
 	if (!buffer) {
 oom:
@@ -419,60 +461,55 @@ malformed:
 		goto finish;
 	}
 
-	rc = set_up_inpe(ctx, infd, &inpe);
+	pesign_context *pesign_ctx = NULL;
+	rc = set_up_pesign_context(ctx, &pesign_ctx, attached, infd, outfd);
 	if (rc < 0)
 		goto finish;
 
 	rc = 0;
 	if (attached) {
-		Pe *outpe = NULL;
-		rc = set_up_outpe(ctx, outfd, inpe, &outpe);
-		if (rc < 0)
-			goto finish;
-
-		rc = generate_digest(ctx->cms, outpe, 1);
+		rc = generate_digest(ctx->cms, pesign_ctx->outpe, 1);
 		if (rc < 0) {
-err_attached:
-			pe_end(outpe);
+err:
 			ftruncate(outfd, 0);
 			goto finish;
 		}
-		ssize_t sigspace = calculate_pe_signature_space(ctx->cms, outpe);
+		ssize_t sigspace = calculate_pe_signature_space(ctx->cms,
+							pesign_ctx->outpe);
 		if (sigspace < 0)
-			goto err_attached;
-		allocate_pe_signature_space(outpe, sigspace);
-		rc = generate_digest(ctx->cms, outpe, 1);
+			goto err;
+		allocate_signature_space(pesign_ctx, sigspace);
+		rc = generate_digest(ctx->cms, pesign_ctx->outpe, 1);
 		if (rc < 0)
-			goto err_attached;
+			goto err;
 		rc = generate_signature(ctx->cms);
 		if (rc < 0)
-			goto err_attached;
+			goto err;
 		insert_signature(ctx->cms, ctx->cms->num_signatures);
 		finalize_pe_signatures(ctx->cms->signatures,
-				ctx->cms->num_signatures, outpe);
-		pe_end(outpe);
+				ctx->cms->num_signatures,
+				pesign_ctx->outpe);
 	} else {
-		ftruncate(outfd, 0);
-		rc = generate_digest(ctx->cms, inpe, 1);
-		if (rc < 0) {
-err_detached:
-			ftruncate(outfd, 0);
-			goto finish;
-		}
+		rc = generate_digest(ctx->cms, pesign_ctx->inpe, 1);
+		if (rc < 0)
+			goto err;
 		rc = generate_signature(ctx->cms);
 		if (rc < 0)
-			goto err_detached;
+			goto err;
 		rc = export_signature(ctx->cms, outfd, 0);
 		if (rc >= 0)
 			ftruncate(outfd, rc);
 		else if (rc < 0)
-			goto err_detached;
+			goto err;
 	}
 
 finish:
-	if (inpe)
-		pe_end(inpe);
+	if (pesign_ctx->inpe)
+		pe_end(pesign_ctx->inpe);
+	if (pesign_ctx->outpe)
+		pe_end(pesign_ctx->outpe);
 
+	pesign_context_fini(pesign_ctx);
 	close(infd);
 	close(outfd);
 

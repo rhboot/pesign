@@ -31,6 +31,15 @@ list_signatures(pesign_context *ctx)
 }
 
 void
+allocate_signature_space(pesign_context *ctx, ssize_t space)
+{
+	if (ctx->file_handlers->allocate_signature_space)
+		ctx->file_handlers->allocate_signature_space(ctx, space);
+	errno = ENOSYS;
+	liberr(1, "");
+}
+
+void
 assert_signature_space(pesign_context *ctx)
 {
 	if (ctx->file_handlers->assert_signature_space)
