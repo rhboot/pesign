@@ -388,6 +388,34 @@ generate_spc_content_info(cms_context *cms, SpcContentInfo *cip)
 	return 0;
 }
 
+int
+generate_authvar_content_info(cms_context *cms, SpcContentInfo *cip)
+{
+	SECOidData *oid;
+
+	if (!cip)
+		return -1;
+
+	SpcContentInfo ci;
+	memset(&ci, '\0', sizeof (ci));
+
+	oid = SECOID_FindOIDByTag(SEC_OID_PKCS7_DATA);
+	if (oid == NULL) {
+		cms->log(cms, LOG_ERR, "could not get OID for "
+			"SEC_OID_PKCS7_DATA");
+		return -1;
+	}
+	if (SECITEM_CopyItem(cms->arena, &ci.contentType, &oid->oid))
+		return -1;
+
+	ci.content.len = 0;
+	ci.content.data = NULL;
+
+	memcpy(cip, &ci, sizeof *cip);
+
+	return 0;
+}
+
 void
 free_spc_content_info(cms_context *cms, SpcContentInfo *cip)
 {

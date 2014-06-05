@@ -35,5 +35,6 @@ extern const SEC_ASN1Template SpcContentInfoTemplate[];
 extern int generate_spc_content_info(cms_context *cms, SpcContentInfo *cip);
 extern void free_spc_content_info(cms_context *cms, SpcContentInfo *cip);
 extern int register_content_info(void);
+extern int generate_authvar_content_info(cms_context *cms, SpcContentInfo *cip);
 
 #endif /* CONTENT_INFO_H */
