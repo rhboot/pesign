@@ -131,11 +131,6 @@ generate_buffer_digest(cms_context *cms, uint8_t *buf, size_t buf_len)
 
 	cms->digests = digests;
 	cms->digests[0].pk11ctx = NULL;
-	/* XXX sure seems like we should be freeing it here,
-	 * but that's segfaulting, and we know it'll get
-	 * cleaned up with PORT_FreeArena a couple of lines
-	 * down.
-	 */
 	cms->digests[0].pe_digest = digest;
 	cms->selected_digest = 0;
 
@@ -193,7 +188,7 @@ generate_descriptor(authvar_context *ctx)
 
 	/* sign the digest */
 	memset(&sd_der, '\0', sizeof(sd_der));
-	rc = generate_spc_signed_data(ctx->cms_ctx, &sd_der);
+	rc = generate_authvar_signed_data(ctx->cms_ctx, &sd_der);
 	if (rc < 0)
 		cmsreterr(-1, ctx->cms_ctx, "could not create signed data");
 

@@ -121,11 +121,17 @@ generate_certificate_list(cms_context *cms, SECItem ***certificate_list_p)
 	return 0;
 }
 
+typedef enum {
+	PE_SIGNER_INFO,
+	AUTHVAR_SIGNER_INFO,
+	END_SIGNER_INFO_LIST
+} SignerInfoType;
+
 int
-generate_signerInfo_list(cms_context *cms, SpcSignerInfo ***signerInfo_list_p)
+generate_signerInfo_list(cms_context *cms, SpcSignerInfo ***signerInfo_list_p, SignerInfoType type)
 {
 	SpcSignerInfo **signerInfo_list;
-	int err;
+	int err, rc;
 
 	if (!signerInfo_list_p)
 		return -1;
@@ -142,7 +148,13 @@ generate_signerInfo_list(cms_context *cms, SpcSignerInfo ***signerInfo_list_p)
 		goto err_list;
 	}
 
-	if (generate_spc_signer_info(cms, signerInfo_list[0]) < 0) {
+	if (type == PE_SIGNER_INFO)
+		rc = generate_spc_signer_info(cms, signerInfo_list[0]);
+	else if (type == AUTHVAR_SIGNER_INFO)
+		rc = generate_authvar_signer_info(cms, signerInfo_list[0]);
+	else
+		goto err_item;
+	if (rc < 0) {
 		err = PORT_GetError();
 		goto err_item;
 	}
@@ -282,7 +294,72 @@ generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 
 	sd.crls = NULL;
 
-	if (generate_signerInfo_list(cms, &sd.signerInfos) < 0) {
+	if (generate_signerInfo_list(cms, &sd.signerInfos, PE_SIGNER_INFO) < 0) {
+		PORT_ArenaRelease(cms->arena, mark);
+		return -1;
+	}
+
+	SECItem encoded = { 0, };
+	if (SEC_ASN1EncodeItem(cms->arena, &encoded, &sd, SignedDataTemplate)
+			== NULL) {
+		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		cmsreterr(-1, cms, "could not encode SignedData");
+	}
+
+	ContentInfo sdw;
+	memset(&sdw, '\0', sizeof (sdw));
+
+	SECOidData *oid = SECOID_FindOIDByTag(SEC_OID_PKCS7_SIGNED_DATA);
+
+	memcpy(&sdw.contentType, &oid->oid, sizeof (sdw.contentType));
+	memcpy(&sdw.content, &encoded, sizeof (sdw.content));
+
+	SECItem wrapper = { 0, };
+	if (SEC_ASN1EncodeItem(cms->arena, &wrapper, &sdw,
+			ContentInfoTemplate) == NULL) {
+		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		cmsreterr(-1, cms, "could not encode SignedData");
+	}
+
+	memcpy(sdp, &wrapper, sizeof(*sdp));
+	PORT_ArenaUnmark(cms->arena, mark);
+	return 0;
+}
+
+int
+generate_authvar_signed_data(cms_context *cms, SECItem *sdp)
+{
+	SignedData sd;
+
+	if (!sdp)
+		return -1;
+
+	memset(&sd, '\0', sizeof (sd));
+	void *mark = PORT_ArenaMark(cms->arena);
+
+	if (SEC_ASN1EncodeInteger(cms->arena, &sd.version, 1) == NULL) {
+		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		cmsreterr(-1, cms, "could not encode integer");
+	}
+
+	if (generate_algorithm_id_list(cms, &sd.algorithms) < 0) {
+		PORT_ArenaRelease(cms->arena, mark);
+		return -1;
+	}
+
+	if (generate_authvar_content_info(cms, &sd.cinfo) < 0) {
+		PORT_ArenaRelease(cms->arena, mark);
+		return -1;
+	}
+
+	if (generate_certificate_list(cms, &sd.certificates) < 0) {
+		PORT_ArenaRelease(cms->arena, mark);
+		return -1;
+	}
+
+	sd.crls = NULL;
+
+	if (generate_signerInfo_list(cms, &sd.signerInfos, AUTHVAR_SIGNER_INFO) < 0) {
 		PORT_ArenaRelease(cms->arena, mark);
 		return -1;
 	}
