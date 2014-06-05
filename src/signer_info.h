@@ -63,5 +63,6 @@ extern SEC_ASN1Template SpcSignerInfoTemplate[];
 
 extern int generate_signed_attributes(cms_context *cms, SECItem *sattrs);
 extern int generate_spc_signer_info(cms_context *cms, SpcSignerInfo *sip);
+extern int generate_authvar_signer_info(cms_context *cms, SpcSignerInfo *sip);
 
 #endif /* SIGNER_INFO */
