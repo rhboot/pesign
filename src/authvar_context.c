@@ -152,6 +152,8 @@ generate_descriptor(authvar_context *ctx)
 	char *name_ptr;
 	uint8_t *buf, *ptr;
 	size_t buf_len;
+	uint64_t offset;
+	efi_char16_t *wptr;
 	int rc;
 
 	/* prepare buffer for varname, vendor_guid, attr, timestamp, value */
@@ -164,11 +166,11 @@ generate_descriptor(authvar_context *ctx)
 	ptr = buf;
 	name_ptr = ctx->name;
 	while (*name_ptr != '\0') {
-		ptr++;
-		*ptr = *name_ptr;
+		wptr = (efi_char16_t *)ptr;
+		*wptr = *name_ptr;
 		name_ptr++;
+		ptr += sizeof(efi_char16_t);
 	}
-	ptr++;
 
 	memcpy(ptr, &ctx->guid, sizeof(efi_guid_t));
 	ptr += sizeof(efi_guid_t);
@@ -192,11 +194,12 @@ generate_descriptor(authvar_context *ctx)
 	if (rc < 0)
 		cmsreterr(-1, ctx->cms_ctx, "could not create signed data");
 
-	authinfo = calloc(sizeof(win_cert_uefi_guid_t) + sd_der.len, 1);
+	offset = (uint64_t) &((win_cert_uefi_guid_t *)0)->data;
+	authinfo = calloc(offset + sd_der.len, 1);
 	if (!authinfo)
 		cmsreterr(-1, ctx->cms_ctx, "could not allocate authinfo");
 
-	authinfo->hdr.length = sd_der.len + sizeof(win_cert_uefi_guid_t) - 1;
+	authinfo->hdr.length = sd_der.len + (uint32_t)offset;
 	authinfo->hdr.revision = WIN_CERT_REVISION_2_0;
 	authinfo->hdr.cert_type = WIN_CERT_TYPE_EFI_GUID;
 	authinfo->type = (efi_guid_t)EFI_CERT_TYPE_PKCS7_GUID;
@@ -220,8 +223,8 @@ write_authvar(authvar_context *ctx)
 		cmsreterr(-1, ctx->cms_ctx, "Not a valid authvar");
 
 	des_len = sizeof(efi_var_auth_2_t) + ctx->authinfo->hdr.length -
-		  sizeof(win_cert_uefi_guid_t) + 1;
-	buf_len = 4 + des_len + ctx->value_size;
+		  sizeof(win_cert_uefi_guid_t);
+	buf_len = sizeof(ctx->attr) + des_len + ctx->value_size;
 
 	buffer = calloc(buf_len, 1);
 	if (!buffer)
@@ -241,6 +244,10 @@ write_authvar(authvar_context *ctx)
 	/* Data */
 	if (ctx->value_size > 0)
 		memcpy(ptr, ctx->value, ctx->value_size);
+
+	/* TODO skip ftruncate while writing a EFI variable in sysfs */
+	ftruncate(ctx->exportfd, buf_len);
+	lseek(ctx->exportfd, 0, SEEK_SET);
 
 	remain = buf_len;
 	offset = 0;
