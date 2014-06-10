@@ -184,9 +184,10 @@ write_authvar(authvar_context *ctx)
 	if (ctx->value_size > 0)
 		memcpy(ptr, ctx->value, ctx->value_size);
 
-	/* TODO skip ftruncate while writing a EFI variable in sysfs */
-	ftruncate(ctx->exportfd, buf_len);
-	lseek(ctx->exportfd, 0, SEEK_SET);
+	if (!ctx->to_firmware) {
+		ftruncate(ctx->exportfd, buf_len);
+		lseek(ctx->exportfd, 0, SEEK_SET);
+	}
 
 	remain = buf_len;
 	offset = 0;
