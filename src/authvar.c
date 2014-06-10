@@ -156,6 +156,10 @@ open_output(authvar_context *ctx)
 
 	if (!ctx->exportfile) {
 		generate_efivars_filename(ctx);
+		ctx->to_firmware = 1;
+	} else if (access(ctx->exportfile, F_OK) == 0) {
+		fprintf(stderr, "authvar: \"%s\" exists\n", ctx->exportfile);
+		exit(1);
 	}
 
 	flags = O_CREAT|O_RDWR|O_CLOEXEC;

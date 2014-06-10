@@ -37,6 +37,7 @@ typedef struct {
 
 	char *exportfile;
 	int   exportfd;
+	uint8_t to_firmware;
 
 	win_cert_uefi_guid_t *authinfo;
 
