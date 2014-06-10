@@ -409,8 +409,6 @@ int main(int argc, char *argv[])
 		action |= SIGN;
 	}
 
-	print_flag_name(stdout, action);
-	printf("\n");
 	switch (action) {
 	case NO_FLAGS:
 		fprintf(stderr, "authvar: No action specified\n");
@@ -462,7 +460,7 @@ int main(int argc, char *argv[])
 		break;
 	case IMPORT|SET:
 	case IMPORT|SIGN|SET:
-
+		fprintf(stderr, "authvar: not implemented\n");
 	case IMPORT|SIGN|EXPORT:
 	default:
 		fprintf(stderr, "authvar: invalid flags: ");
