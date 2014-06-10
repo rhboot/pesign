@@ -84,8 +84,7 @@ check_value(authvar_context *ctx, int needed)
 		if (needed)
 			fprintf(stderr, "authvar: no value specified.\n");
 		else
-			fprintf(stderr,
-				"authvar: command does not take a value.\n");
+			return;
 		exit(1);
 	}
 	if (ctx->value && *ctx->value && ctx->valuefile && *ctx->valuefile) {
