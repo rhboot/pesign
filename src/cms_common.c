@@ -218,6 +218,11 @@ cms_context_fini(cms_context *cms)
 	xfree(cms->signatures);
 	cms->num_signatures = 0;
 
+	if (cms->authbuf) {
+		xfree(cms->authbuf);
+		cms->authbuf_len = 0;
+	}
+
 	PORT_FreeArena(cms->arena, PR_TRUE);
 	memset(cms, '\0', sizeof(*cms));
 	xfree(cms);

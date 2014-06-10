@@ -81,69 +81,6 @@ authvar_context_fini(authvar_context *ctx)
 	}
 }
 
-static int
-generate_buffer_digest(cms_context *cms, uint8_t *buf, size_t buf_len)
-{
-	struct digest *digests = NULL;
-	SECItem *digest = NULL;
-
-	if (cms->digests) {
-		digests = cms->digests;
-	} else {
-		digests = PORT_ZAlloc(sizeof (struct digest));
-		if (digests == NULL)
-			cmsreterr(-1, cms, "could not allocate digest context");
-	}
-
-	digests[0].pk11ctx = PK11_CreateDigestContext(SEC_OID_SHA256);
-	if (!digests[0].pk11ctx) {
-		cms->log(cms, LOG_ERR, "%s:%s:%d could not create "
-			"digest context: %s",
-			__FILE__, __func__, __LINE__,
-			PORT_ErrorToString(PORT_GetError()));
-		goto err;
-	}
-
-	PK11_DigestBegin(digests[0].pk11ctx);
-	PK11_DigestOp(digests[0].pk11ctx, buf, buf_len);
-
-	digest = PORT_ArenaZAlloc(cms->arena, sizeof (SECItem));
-	if (!digest) {
-		cms->log(cms, LOG_ERR, "%s:%s:%d could not allocate "
-			"memory: %s", __FILE__, __func__, __LINE__,
-			PORT_ErrorToString(PORT_GetError()));
-		goto err;
-	}
-
-	digest->type = siBuffer;
-	digest->len = 32;
-	digest->data = PORT_ArenaZAlloc(cms->arena, 32);
-	if (!digest->data) {
-		cms->log(cms, LOG_ERR, "%s:%s:%d could not allocate "
-			"memory: %s", __FILE__, __func__, __LINE__,
-			PORT_ErrorToString(PORT_GetError()));
-		goto err;
-	}
-
-	PK11_DigestFinal(digests[0].pk11ctx, digest->data, &digest->len, 32);
-	PK11_Finalize(digests[0].pk11ctx);
-	PK11_DestroyContext(digests[0].pk11ctx, PR_TRUE);
-
-	cms->digests = digests;
-	cms->digests[0].pk11ctx = NULL;
-	cms->digests[0].pe_digest = digest;
-	cms->selected_digest = 0;
-
-	return 0;
-err:
-	if (digests[0].pk11ctx)
-		PK11_DestroyContext(digests[0].pk11ctx, PR_TRUE);
-
-	free(digests);
-
-	return -1;
-}
-
 int
 generate_descriptor(authvar_context *ctx)
 {
@@ -157,8 +94,8 @@ generate_descriptor(authvar_context *ctx)
 	int rc;
 
 	/* prepare buffer for varname, vendor_guid, attr, timestamp, value */
-	buf_len = strlen(ctx->name)*2 + sizeof(efi_guid_t) + sizeof(uint32_t) +
-		  sizeof(efi_time_t) + ctx->value_size;
+	buf_len = strlen(ctx->name)*sizeof(efi_char16_t) + sizeof(efi_guid_t) +
+		  sizeof(uint32_t) + sizeof(efi_time_t) + ctx->value_size;
 	buf = calloc(1, buf_len);
 	if (!buf)
 		return -1;
@@ -183,10 +120,12 @@ generate_descriptor(authvar_context *ctx)
 
 	memcpy(ptr, ctx->value, ctx->value_size);
 
-	if (generate_buffer_digest(ctx->cms_ctx, buf, buf_len) < 0) {
-		xfree(buf);
-		return -1;
-	}
+	ctx->cms_ctx->authbuf_len = buf_len;
+	ctx->cms_ctx->authbuf = buf;
+
+	/* XXX set the value to get SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION
+	   from digest_get_signature_oid(). */
+	ctx->cms_ctx->selected_digest = 0;
 
 	/* sign the digest */
 	memset(&sd_der, '\0', sizeof(sd_der));
