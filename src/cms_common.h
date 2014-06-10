@@ -83,6 +83,9 @@ typedef struct cms_context {
 	int num_signatures;
 	SECItem **signatures;
 
+	int authbuf_len;
+	void *authbuf;
+
 	cms_common_logger log;
 	void *log_priv;
 } cms_context;
