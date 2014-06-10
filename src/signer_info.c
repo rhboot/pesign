@@ -405,7 +405,7 @@ int
 generate_authvar_signer_info(cms_context *cms, SpcSignerInfo *sip)
 {
 	SpcSignerInfo si;
-	SECItem *authvar_digest;
+	SECItem buf;
 
 	if (!sip)
 		return -1;
@@ -429,8 +429,9 @@ generate_authvar_signer_info(cms_context *cms, SpcSignerInfo *sip)
 	si.signedAttrs.len = 0;
 	si.signedAttrs.data = NULL;
 
-	authvar_digest = cms->digests[0].pe_digest;
-	if (sign_blob(cms, &si.signature, authvar_digest) < 0)
+	buf.len = cms->authbuf_len;
+	buf.data = cms->authbuf;
+	if (sign_blob(cms, &si.signature, &buf) < 0)
 		goto err;
 
 	if (generate_algorithm_id(cms, &si.signatureAlgorithm,
