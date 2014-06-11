@@ -141,7 +141,7 @@ signature_list_add_sig(signature_list *sl, efi_guid_t owner,
 
 	if (memcmp(&sl->SignatureType, &x509_guid, sizeof (efi_guid_t)) == 0) {
 		if (sigsize > sl->SignatureSize)
-			resize_entries(sl, sigsize);
+			resize_entries(sl, sigsize + sizeof (efi_guid_t));
 	} else if (sigsize != get_sig_type_size(sl->SignatureType)) {
 		fprintf(stderr, "sigsize: %d sl->SignatureSize: %d\n",
 			sigsize, sl->SignatureSize);
