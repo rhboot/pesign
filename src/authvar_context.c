@@ -133,7 +133,11 @@ generate_descriptor(authvar_context *ctx)
 	if (rc < 0)
 		cmsreterr(-1, ctx->cms_ctx, "could not create signed data");
 
+#if __WORDSIZE == 64
 	offset = (uint64_t) &((win_cert_uefi_guid_t *)0)->data;
+#else
+	offset = (uint32_t) &((win_cert_uefi_guid_t *)0)->data;
+#endif
 	authinfo = calloc(offset + sd_der.len, 1);
 	if (!authinfo)
 		cmsreterr(-1, ctx->cms_ctx, "could not allocate authinfo");
