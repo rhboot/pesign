@@ -18,6 +18,7 @@
  */
 
 #include <unistd.h>
+#include <stddef.h>
 #include <sys/mman.h>
 
 #include <prerror.h>
@@ -133,7 +134,7 @@ generate_descriptor(authvar_context *ctx)
 	if (rc < 0)
 		cmsreterr(-1, ctx->cms_ctx, "could not create signed data");
 
-	offset = (uint64_t) &((win_cert_uefi_guid_t *)0)->data;
+	offset = offsetof(win_cert_uefi_guid_t, data);
 	authinfo = calloc(offset + sd_der.len, 1);
 	if (!authinfo)
 		cmsreterr(-1, ctx->cms_ctx, "could not allocate authinfo");
@@ -184,10 +185,8 @@ write_authvar(authvar_context *ctx)
 	if (ctx->value_size > 0)
 		memcpy(ptr, ctx->value, ctx->value_size);
 
-	if (!ctx->to_firmware) {
-		ftruncate(ctx->exportfd, buf_len);
+	if (!ctx->to_firmware)
 		lseek(ctx->exportfd, 0, SEEK_SET);
-	}
 
 	remain = buf_len;
 	offset = 0;
