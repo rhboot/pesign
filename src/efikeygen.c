@@ -610,7 +610,6 @@ int main(int argc, char *argv[])
 			exit(1);
 	}
 
-	uuid_clear(serial_uuid);
 	errno = 0;
 	if (serial_str) {
 		serial = strtoul(serial_str, NULL, 0);
