@@ -614,7 +614,7 @@ int main(int argc, char *argv[])
 	errno = 0;
 	if (serial_str) {
 		serial = strtoul(serial_str, NULL, 0);
-		if (errno == ERANGE && serial == ULLONG_MAX)
+		if (errno == ERANGE && serial == ULONG_MAX)
 			liberr(1, "invalid serial number");
 	} else {
 		serial = 0xabad1dea;
