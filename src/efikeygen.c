@@ -28,6 +28,7 @@
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
+#include <uuid/uuid.h>
 
 #include <prtypes.h>
 #include <prerror.h>
@@ -444,6 +445,7 @@ int main(int argc, char *argv[])
 	char *issuer = NULL;
 	char *dbdir = "/etc/pki/pesign";
 	unsigned long serial = ULONG_MAX;
+	uuid_t serial_uuid;
 
 	cms_context *cms = NULL;
 
@@ -474,7 +476,7 @@ int main(int argc, char *argv[])
 		{"url", 'u', POPT_ARG_STRING, &url, 0,
 			"Issuer URL", "<url>" },
 		{"serial", 's', POPT_ARG_STRING, &serial_str, 0,
-			"Serial number", "<serial>" },
+			"Serial number (default: random)", "<serial>" },
 
 		/* hidden things */
 		{"pubkey", 'p', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
@@ -608,11 +610,15 @@ int main(int argc, char *argv[])
 			exit(1);
 	}
 
+	uuid_clear(serial_uuid);
 	errno = 0;
-	serial = strtoul(serial_str, NULL, 0);
-	if (errno == ERANGE && serial == ULLONG_MAX)
-		liberr(1, "invalid serial number");
-
+	if (serial_str) {
+		serial = strtoul(serial_str, NULL, 0);
+		if (errno == ERANGE && serial == ULLONG_MAX)
+			liberr(1, "invalid serial number");
+	} else {
+		serial = 0xabad1dea;
+	}
 	CERTValidity *validity = NULL;
 	PRTime not_before = time(NULL) * PR_USEC_PER_SEC;
 	PRTime not_after = not_before + (3650ULL * 86400ULL * PR_USEC_PER_SEC);
@@ -649,6 +655,20 @@ int main(int argc, char *argv[])
 
 	memcpy(&cert->issuer, issuer_name, sizeof (cert->issuer));
 	memcpy(&cert->subject, name, sizeof (cert->subject));
+
+	if (serial == 0xabad1dea && serial_str == NULL) {
+		uuid_clear(serial_uuid);
+		if (!uuid_is_null(serial_uuid))
+			liberr(1, "Null serial number wasn't null");
+		uuid_generate_random(serial_uuid);
+		if (uuid_is_null(serial_uuid))
+			liberr(1, "Random serial number was null");
+
+		cert->serialNumber.data = serial_uuid;
+		cert->serialNumber.len = sizeof (serial_uuid);
+	} else if (serial == 0xabad1dea) {
+		liberr(1, "Not accepting 0xabad1dea as a serial number");
+	}
 
 	rc = populate_extensions(cms, cert, crq);
 	if (rc < 0)

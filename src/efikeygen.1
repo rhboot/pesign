@@ -51,7 +51,8 @@ Informational url regarding objects signed with this key.
 \fB-\-serial\fR=\fIserial number\fR
 Serial number for use with this key.  A certificate is identified by its
 signer and its serial number,  so it's best not to ever re-use this value
-with the same signer.
+with the same signer.  By default, this value will be generated using
+/dev/urandom .  It is not recommended to use this option to override that.
 
 .SH "SEE ALSO"
 .BR pesign (1)
