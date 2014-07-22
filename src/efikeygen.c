@@ -431,6 +431,40 @@ get_signer_public_key(cms_context *cms, SECKEYPublicKey **pubkey)
 	return 0;
 }
 
+/* Of course this doesn't exist in 1990's crypto library. */
+SECItem *
+SEC_ASN1EncodeLongLong(PRArenaPool *poolp, SECItem *dest,
+				unsigned long long value)
+{
+	unsigned long copy;
+	unsigned char sign;
+	int len = 0;
+
+	copy = value;
+	do {
+		len++;
+		sign = (unsigned char)(copy & 0x80);
+		copy >>= 8;
+	} while (copy);
+
+	if (sign)
+		len++;
+
+	dest = SECITEM_AllocItem(poolp, dest, len);
+	if (dest == NULL)
+		return NULL;
+
+	memset(dest->data, '\0', len);
+
+	dest->len = len;
+	while (len) {
+		dest->data[--len] = value & 0xff;
+		value >>= 8;
+	}
+
+	return dest;
+}
+
 int main(int argc, char *argv[])
 {
 	int is_ca = 0;
@@ -444,7 +478,7 @@ int main(int argc, char *argv[])
 	char *serial_str = NULL;
 	char *issuer = NULL;
 	char *dbdir = "/etc/pki/pesign";
-	unsigned long serial = ULONG_MAX;
+	unsigned long long serial = ULLONG_MAX;
 	uuid_t serial_uuid;
 
 	cms_context *cms = NULL;
@@ -612,11 +646,9 @@ int main(int argc, char *argv[])
 
 	errno = 0;
 	if (serial_str) {
-		serial = strtoul(serial_str, NULL, 0);
-		if (errno == ERANGE && serial == ULONG_MAX)
+		serial = strtoull(serial_str, NULL, 0);
+		if (errno == ERANGE && serial == ULLONG_MAX)
 			liberr(1, "invalid serial number");
-	} else {
-		serial = 0xabad1dea;
 	}
 	CERTValidity *validity = NULL;
 	PRTime not_before = time(NULL) * PR_USEC_PER_SEC;
@@ -645,17 +677,20 @@ int main(int argc, char *argv[])
 		exit(1);
 
 	CERTCertificate *cert = NULL;
-	cert = CERT_CreateCertificate(serial, issuer_name, validity, crq);
+	cert = CERT_CreateCertificate(0, issuer_name, validity, crq);
 	*(cert->version.data) = 2;
 	cert->version.len = 1;
 
 	cert->subjectName = cn;
 	cert->issuerName = is_self_signed ? cn : issuer;
 
+	cert->serialNumber.data = NULL;
+	cert->serialNumber.len = 0;
+
 	memcpy(&cert->issuer, issuer_name, sizeof (cert->issuer));
 	memcpy(&cert->subject, name, sizeof (cert->subject));
 
-	if (serial == 0xabad1dea && serial_str == NULL) {
+	if (serial == ULLONG_MAX && serial_str == NULL) {
 		uuid_clear(serial_uuid);
 		if (!uuid_is_null(serial_uuid))
 			liberr(1, "Null serial number wasn't null");
@@ -663,10 +698,27 @@ int main(int argc, char *argv[])
 		if (uuid_is_null(serial_uuid))
 			liberr(1, "Random serial number was null");
 
-		cert->serialNumber.data = serial_uuid;
-		cert->serialNumber.len = sizeof (serial_uuid);
-	} else if (serial == 0xabad1dea) {
-		liberr(1, "Not accepting 0xabad1dea as a serial number");
+		if (serial_uuid[0] & 0x80) {
+			int type = cert->serialNumber.type;
+			SECItem *ret;
+			ret = SECITEM_AllocItem(cms->arena, &cert->serialNumber,
+				sizeof(serial_uuid) + 1);
+			if (!ret)
+				nsserr(1, "Could not allocate serial number");
+			cert->serialNumber.data[0] = '\0';
+			memcpy(cert->serialNumber.data + 1, serial_uuid,
+				sizeof (serial_uuid));
+			cert->serialNumber.type = type;
+		} else {
+			cert->serialNumber.data = serial_uuid;
+			cert->serialNumber.len = sizeof (serial_uuid);
+		}
+	} else {
+		SECItem *ret = SEC_ASN1EncodeLongLong(cms->arena,
+					&cert->serialNumber,
+					serial);
+		if (!ret)
+			nsserr(1, "Could not allocate serial number");
 	}
 
 	rc = populate_extensions(cms, cert, crq);
