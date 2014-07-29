@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Red Hat, Inc.
+ * Copyright 2012-2014 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,6 +23,8 @@
 #include <pwd.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/prctl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -48,6 +50,8 @@ typedef struct {
 	int sd;
 	int priority;
 	char *errstr;
+	uint8_t **tokennames;
+	int ntokennames;
 } context;
 
 static void
@@ -118,6 +122,33 @@ static void
 handle_kill_daemon(context *ctx, struct pollfd *pollfd, socklen_t size)
 {
 	should_exit = 1;
+}
+
+static int
+cmpstringp(const void *p1, const void *p2)
+{
+	return strcmp(*(char * const *)p1, *(char * const *)p2);
+}
+
+static int
+add_token_to_authenticated_list(context *ctx, uint8_t *tokenname)
+{
+	char *tmp;
+	uint8_t **newtokennames = realloc(ctx->tokennames,
+					sizeof (uint8_t *)
+					* (ctx->ntokennames+1));
+	if (!newtokennames)
+		return -1;
+	ctx->tokennames = newtokennames;
+
+	tmp = strdup((char *)tokenname);
+	if (!tmp)
+		return -1;
+
+	newtokennames[ctx->ntokennames++] = (uint8_t *)tmp;
+
+	qsort(newtokennames, ctx->ntokennames, sizeof (char *), cmpstringp);
+	return 0;
 }
 
 static void
@@ -208,12 +239,89 @@ malformed:
 	if (rc == -1)
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
 			"could not find token \"%s\"", tn->value);
-	else if (rc == 0)
+	else if (rc == 0) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_NOTICE,
 			"authentication succeeded for token \"%s\"",
 			tn->value);
+		rc = add_token_to_authenticated_list(ctx, tn->value);
+		if (rc < 0)
+			ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+				"couldn't add token to internal list: %m");
+	}
 
 	send_response(ctx, ctx->cms, pollfd, rc);
+	free(buffer);
+
+	hide_stolen_goods_from_cms(ctx->cms, ctx->backup_cms);
+	cms_context_fini(ctx->cms);
+}
+
+static void
+handle_is_token_unlocked(context *ctx, struct pollfd *pollfd, socklen_t size)
+{
+	struct msghdr msg;
+	struct iovec iov;
+	ssize_t n;
+
+	int rc = cms_context_alloc(&ctx->cms);
+	if (rc < 0) {
+		send_response(ctx, ctx->backup_cms, pollfd, rc);
+		return;
+	}
+
+	steal_from_cms(ctx->backup_cms, ctx->cms);
+
+	char *buffer = malloc(size);
+	if (!buffer) {
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"unable to allocate memory: %m");
+		exit(1);
+	}
+
+	memset(&msg, '\0', sizeof(msg));
+
+	iov.iov_base = buffer;
+	iov.iov_len = size;
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+
+	n = recvmsg(pollfd->fd, &msg, MSG_WAITALL);
+
+	pesignd_string *tn = (pesignd_string *)buffer;
+	if (n < sizeof(tn->size)) {
+malformed:
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"unlock-token: invalid data");
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"possible exploit attempt. closing.");
+		close(pollfd->fd);
+		return;
+	}
+	n -= sizeof(tn->size);
+	if (n < tn->size)
+		goto malformed;
+	n -= tn->size;
+
+	if (tn->value[tn->size - 1] != '\0')
+		goto malformed;
+
+	if (n != 0)
+		goto malformed;
+
+	ctx->cms->log(ctx->cms, ctx->priority|LOG_NOTICE,
+		"querying token \"%s\"", tn->value);
+
+	char *key = (char *)tn->value;
+	char *tokenname;
+
+	tokenname = bsearch(&key, ctx->tokennames, ctx->ntokennames,
+				sizeof (char *), cmpstringp);
+	send_response(ctx, ctx->cms, pollfd, tokenname == NULL ? 1 : 0);
+
+	ctx->cms->log(ctx->cms, ctx->priority|LOG_NOTICE,
+			"token \"%s\" is %sunlocked", tn->value,
+			tokenname == NULL ? "not " : "");
+
 	free(buffer);
 
 	hide_stolen_goods_from_cms(ctx->cms, ctx->backup_cms);
@@ -536,6 +644,7 @@ cmd_table_t cmd_table[] = {
 		{ CMD_SIGN_ATTACHED, handle_sign_attached },
 		{ CMD_SIGN_DETACHED, handle_sign_detached },
 		{ CMD_RESPONSE, NULL },
+		{ CMD_IS_TOKEN_UNLOCKED, handle_is_token_unlocked },
 		{ CMD_LIST_END, NULL }
 	};
 
@@ -613,6 +722,10 @@ do_shutdown(context *ctx, int nsockets, struct pollfd *pollfds)
 	unlink(SOCKPATH);
 	unlink(PIDFILE);
 
+	for (int i = 0; i < ctx->ntokennames; i++)
+		free(ctx->tokennames[i]);
+	if (ctx->tokennames)
+		free(ctx->tokennames);
 	ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_NOTICE,
 			"pesignd exiting (pid %d)", getpid());
 

@@ -1,4 +1,4 @@
-/* Copyright 2011-2012 Red Hat, Inc.
+/* Copyright 2011-2014 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -16,6 +16,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <popt.h>
@@ -28,11 +29,12 @@
 
 #include "pesign.h"
 
-#define NO_FLAGS		0x0
-#define UNLOCK_TOKEN		0x1
-#define KILL_DAEMON		0x2
-#define SIGN_BINARY		0x4
-#define FLAG_LIST_END		0x8
+#define NO_FLAGS		0x00
+#define UNLOCK_TOKEN		0x01
+#define KILL_DAEMON		0x02
+#define SIGN_BINARY		0x04
+#define IS_TOKEN_UNLOCKED	0x08
+#define FLAG_LIST_END		0x10
 
 static struct {
 	int flag;
@@ -41,6 +43,7 @@ static struct {
 	{UNLOCK_TOKEN, "unlock"},
 	{KILL_DAEMON, "kill"},
 	{SIGN_BINARY, "sign"},
+	{IS_TOKEN_UNLOCKED, "is-unlocked"},
 	{FLAG_LIST_END, NULL},
 };
 
@@ -293,6 +296,56 @@ unlock_token(int sd, char *tokenname, char *pin)
 }
 
 static void
+is_token_unlocked(int sd, char *tokenname)
+{
+	struct msghdr msg;
+	struct iovec iov[1];
+	pesignd_msghdr pm;
+
+	uint32_t size0 = pesignd_string_size(tokenname);
+
+	pm.version = PESIGND_VERSION;
+	pm.command = CMD_IS_TOKEN_UNLOCKED;
+	pm.size = size0;
+	iov[0].iov_base = &pm;
+	iov[0].iov_len = sizeof (pm);
+
+	memset(&msg, '\0', sizeof(msg));
+	msg.msg_iov = iov;
+	msg.msg_iovlen = 1;
+
+	ssize_t n;
+	n = sendmsg(sd, &msg, 0);
+	if (n < 0)
+		err(1, "is_token_unlocked: sendmsg failed");
+
+	uint8_t *buffer = NULL;
+	buffer = calloc(1, size0);
+	if (!buffer)
+		err(1, "is_token_unlocked: Could not allocate memory");
+
+	pesignd_string *tn = (pesignd_string *)buffer;
+	pesignd_string_set(tn, tokenname);
+	iov[0].iov_base = tn;
+	iov[0].iov_len = size0;
+
+	msg.msg_iov = iov;
+	msg.msg_iovlen = 1;
+
+	n = sendmsg(sd, &msg, 0);
+	if (n < 0)
+		err(1, "is_token_unlocked: sendmsg failed");
+
+	char *srvmsg = NULL;
+	int rc = check_response(sd, &srvmsg);
+	if (rc < 0)
+		errx(1, "%s", srvmsg);
+	printf("token \"%s\" is %slocked\n", tokenname, rc == 1 ? "" : "un");
+
+	free(buffer);
+}
+
+static void
 send_fd(int sd, int fd)
 {
 	struct msghdr msg;
@@ -454,6 +507,9 @@ main(int argc, char *argv[])
 			&certname, 0, "NSS certificate name", "<nickname>" },
 		{"unlock", 'u', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
 			UNLOCK_TOKEN, "unlock nss token", NULL },
+		{"is-unlocked", 'q', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
+			IS_TOKEN_UNLOCKED, "query if an nss token is unlocked",
+			NULL},
 		{"kill", 'k', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
 			KILL_DAEMON, "kill running daemon", NULL },
 		{"sign", 's', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
@@ -542,6 +598,10 @@ main(int argc, char *argv[])
 		sd = connect_to_server();
 		unlock_token(sd, tokenname, tokenpin);
 		free(tokenpin);
+		break;
+	case IS_TOKEN_UNLOCKED:
+		sd = connect_to_server();
+		is_token_unlocked(sd, tokenname);
 		break;
 	case KILL_DAEMON:
 		sd = connect_to_server();

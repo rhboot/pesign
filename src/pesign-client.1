@@ -8,7 +8,7 @@ pesign-client \- command line tool for signing UEFI applications
        [--export=\fIexportfile\fR | -e \fIexportfile\fR]
        [--token=\fItoken\fR | -t \fItoken\fR]
        [--certificate=\fInickname\fR | -c \fInickname\fR]
-       [--unlock | -u] [--kill | -k] [--sign | -s]
+       [--unlock | -u] [--kill | -k] [--sign | -s] [ --is-unlocked | -q ]
        [--pinfd=\fIpinfd\fR | -f \fIpinfd\fR]
        [--pinfile=\fIpinfile\fR | -F \fIpinfile\fR]
 
@@ -23,6 +23,9 @@ Unlock the specified token.  A PIN - specified by one of \fB-\-pinfd\fR,
 \fB-\-pinfile\fR, or the environmental variable \fBPESIGN_TOKEN_PIN\fR -
 is required for this operation to succeed.  The PIN may be empty, if that
 is what is required for the token specified with \fB-\-token\fR.
+
+\fB-\-is\-unlocked\fR
+Query a token specified with \fB-\-token\fR for lock status.
 
 .TP
 \fB-\-pinfd\fR=\fIpinfd\fR

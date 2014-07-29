@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Red Hat, Inc.
+ * Copyright 2012-2014 Red Hat, Inc.
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -43,6 +43,7 @@ typedef enum {
 	CMD_SIGN_ATTACHED,
 	CMD_SIGN_DETACHED,
 	CMD_RESPONSE,
+	CMD_IS_TOKEN_UNLOCKED,
 	CMD_LIST_END
 } pesignd_cmd;
 
