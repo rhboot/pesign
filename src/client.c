@@ -79,7 +79,7 @@ connect_to_server(void)
 
 	socklen_t len = strlen(addr_un.sun_path) +
 			sizeof(addr_un.sun_family);
-	
+
 	rc = connect(sd, (struct sockaddr *)&addr_un, len);
 	if (rc < 0) {
 		fprintf(stderr, "pesign-client: could not connect to daemon: "
@@ -90,12 +90,60 @@ connect_to_server(void)
 	return sd;
 }
 
+static int32_t
+check_response(int sd, char **srvmsg);
+
+static void
+check_cmd_version(int sd, uint32_t command, char *name, int32_t version)
+{
+	struct msghdr msg;
+	struct iovec iov[1];
+	pesignd_msghdr pm;
+
+	pm.version = PESIGND_VERSION;
+	pm.command = CMD_GET_CMD_VERSION;
+	pm.size = sizeof(command);
+	iov[0].iov_base = &pm;
+	iov[0].iov_len = sizeof(pm);
+
+	memset(&msg, '\0', sizeof(msg));
+	msg.msg_iov = iov;
+	msg.msg_iovlen = 1;
+
+	ssize_t n;
+	n = sendmsg(sd, &msg, 0);
+	if (n < 0) {
+		fprintf(stderr, "check-cmd-version: kill daemon failed: %m\n");
+		exit(1);
+	}
+
+	iov[0].iov_base = &command;
+	iov[0].iov_len = sizeof(command);
+
+	msg.msg_iov = iov;
+	msg.msg_iovlen = 1;
+
+	n = sendmsg(sd, &msg, 0);
+	if (n < 0)
+		err(1, "check-cmd-version: sendmsg failed");
+
+	char *srvmsg = NULL;
+	int32_t rc = check_response(sd, &srvmsg);
+	if (rc < 0)
+		errx(1, "command \"%s\" not known by server", name);
+	if (rc != version)
+		errx(1, "command \"%s\": client version %d, server version %d",
+			name, version, rc);
+}
+
 static void
 send_kill_daemon(int sd)
 {
 	struct msghdr msg;
 	struct iovec iov;
 	pesignd_msghdr pm;
+
+	check_cmd_version(sd, CMD_KILL_DAEMON, "kill-daemon", 0);
 
 	pm.version = PESIGND_VERSION;
 	pm.command = CMD_KILL_DAEMON;
@@ -117,7 +165,7 @@ send_kill_daemon(int sd)
 	}
 }
 
-static int
+static int32_t
 check_response(int sd, char **srvmsg)
 {
 	ssize_t n;
@@ -236,7 +284,9 @@ unlock_token(int sd, char *tokenname, char *pin)
 	uint32_t size0 = pesignd_string_size(tokenname);
 
 	uint32_t size1 = pesignd_string_size(pin);
-	
+
+	check_cmd_version(sd, CMD_UNLOCK_TOKEN, "unlock-token", 0);
+
 	pm.version = PESIGND_VERSION;
 	pm.command = CMD_UNLOCK_TOKEN;
 	pm.size = size0 + size1;
@@ -303,6 +353,8 @@ is_token_unlocked(int sd, char *tokenname)
 	pesignd_msghdr pm;
 
 	uint32_t size0 = pesignd_string_size(tokenname);
+
+	check_cmd_version(sd, CMD_IS_TOKEN_UNLOCKED, "is-token-unlocked", 0);
 
 	pm.version = PESIGND_VERSION;
 	pm.command = CMD_IS_TOKEN_UNLOCKED;
@@ -420,6 +472,9 @@ oom:
 			"%m\n");
 		exit(1);
 	}
+
+	check_cmd_version(sd, attached ? CMD_SIGN_ATTACHED : CMD_SIGN_DETACHED,
+			attached ? "sign-attached" : "sign-detached", 0);
 
 	pm->version = PESIGND_VERSION;
 	pm->command = attached ? CMD_SIGN_ATTACHED : CMD_SIGN_DETACHED;

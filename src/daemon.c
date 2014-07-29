@@ -74,7 +74,7 @@ hide_stolen_goods_from_cms(cms_context *new, cms_context *old)
 }
 
 static void
-send_response(context *ctx, cms_context *cms, struct pollfd *pollfd, int rc)
+send_response(context *ctx, cms_context *cms, struct pollfd *pollfd, int32_t rc)
 {
 	struct msghdr msg;
 	struct iovec iov;
@@ -327,6 +327,9 @@ malformed:
 	hide_stolen_goods_from_cms(ctx->cms, ctx->backup_cms);
 	cms_context_fini(ctx->cms);
 }
+
+static void
+handle_get_cmd_version(context *ctx, struct pollfd *pollfd, socklen_t size);
 
 static void
 socket_get_fd(context *ctx, int sd, int *fd)
@@ -636,17 +639,94 @@ typedef void (*cmd_handler)(context *ctx, struct pollfd *pollfd,
 typedef struct {
 	pesignd_cmd cmd;
 	cmd_handler func;
+	char *name;
+	int32_t version;
 } cmd_table_t;
 
 cmd_table_t cmd_table[] = {
-		{ CMD_KILL_DAEMON, handle_kill_daemon },
-		{ CMD_UNLOCK_TOKEN, handle_unlock_token },
-		{ CMD_SIGN_ATTACHED, handle_sign_attached },
-		{ CMD_SIGN_DETACHED, handle_sign_detached },
-		{ CMD_RESPONSE, NULL },
-		{ CMD_IS_TOKEN_UNLOCKED, handle_is_token_unlocked },
-		{ CMD_LIST_END, NULL }
+		{ CMD_KILL_DAEMON, handle_kill_daemon, "kill-daemon", 0 },
+		{ CMD_UNLOCK_TOKEN, handle_unlock_token, "unlock-token", 0 },
+		{ CMD_SIGN_ATTACHED, handle_sign_attached, "sign-attached", 0 },
+		{ CMD_SIGN_DETACHED, handle_sign_detached, "sign-detached", 0 },
+		{ CMD_RESPONSE, NULL, "response",  0 },
+		{ CMD_IS_TOKEN_UNLOCKED, handle_is_token_unlocked,
+			"is-token-unlocked", 0 },
+		{ CMD_GET_CMD_VERSION, handle_get_cmd_version,
+			"get-cmd-version", 0 },
+		{ CMD_LIST_END, NULL, "list-end", 0 }
 	};
+
+static void
+handle_get_cmd_version(context *ctx, struct pollfd *pollfd, socklen_t size)
+{
+	struct msghdr msg;
+	struct iovec iov;
+	ssize_t n;
+
+	int rc = cms_context_alloc(&ctx->cms);
+	if (rc < 0) {
+		send_response(ctx, ctx->backup_cms, pollfd, rc);
+		return;
+	}
+
+	steal_from_cms(ctx->backup_cms, ctx->cms);
+
+	char *buffer = malloc(size);
+	if (!buffer) {
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"unable to allocate memory: %m");
+		exit(1);
+	}
+
+	memset(&msg, '\0', sizeof(msg));
+
+	iov.iov_base = buffer;
+	iov.iov_len = size;
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+
+	n = recvmsg(pollfd->fd, &msg, MSG_WAITALL);
+
+	int32_t version = -1;
+	uint32_t command;
+
+	if (n < sizeof(command)) {
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"unlock-token: invalid data");
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"possible exploit attempt. closing.");
+		close(pollfd->fd);
+		return;
+	}
+
+	memcpy(&command, buffer, sizeof (command));
+	ctx->cms->log(ctx->cms, ctx->priority|LOG_NOTICE,
+			"searching for command %d", command);
+
+	for (int i = 0; cmd_table[i].cmd != CMD_LIST_END; i++) {
+		if (cmd_table[i].cmd == command) {
+			ctx->cms->log(ctx->cms, ctx->priority|LOG_NOTICE,
+					"cmd-version: found command \"%s\" "
+					"version %d",
+					cmd_table[i].name,
+					cmd_table[i].version);
+			version = cmd_table[i].version;
+			break;
+		}
+	}
+
+	if (version == -1) {
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_NOTICE,
+				"cmd-version: could not find command %d",
+				command);
+	}
+	send_response(ctx, ctx->cms, pollfd, version);
+
+	free(buffer);
+
+	hide_stolen_goods_from_cms(ctx->cms, ctx->backup_cms);
+	cms_context_fini(ctx->cms);
+}
 
 static int
 handle_event(context *ctx, struct pollfd *pollfd)

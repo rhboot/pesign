@@ -28,7 +28,7 @@ typedef struct {
 } pesignd_msghdr;
 
 typedef struct  {
-	uint32_t rc;
+	int32_t rc;
 	uint8_t errmsg[];
 } pesignd_cmd_response;
 
@@ -44,10 +44,11 @@ typedef enum {
 	CMD_SIGN_DETACHED,
 	CMD_RESPONSE,
 	CMD_IS_TOKEN_UNLOCKED,
+	CMD_GET_CMD_VERSION,
 	CMD_LIST_END
 } pesignd_cmd;
 
-#define PESIGND_VERSION 0xa3cf41cb
+#define PESIGND_VERSION 0x2a9edaf0
 #define SOCKPATH	"/var/run/pesign/socket"
 #define PIDFILE		"/var/run/pesign.pid"
 
