@@ -1558,3 +1558,20 @@
    fun:NSS_Init
    fun:daemonize
 }
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+   fun:secmod_ModuleInit
+   fun:secmod_LoadPKCS11Module
+   fun:SECMOD_LoadModule
+   fun:SECMOD_LoadModule
+   fun:nss_Init
+}
