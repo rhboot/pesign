@@ -143,7 +143,7 @@ main(int argc, char *argv[])
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
 	rc = poptReadDefaultConfig(optCon, 0);
-	if (rc < 0) {
+	if (rc < 0 && !(rc == POPT_ERROR_ERRNO && errno == ENOENT)) {
 		fprintf(stderr,
 			"efisiglist: poptReadDefaultConfig failed: %s\n",
 			poptStrerror(rc));
