@@ -51,7 +51,7 @@ struct efi_signature_list {
 };
 
 struct signature_list {
-	efi_guid_t			SignatureType;
+	efi_guid_t			*SignatureType;
 	uint32_t			SignatureListSize;
 	uint32_t			SignatureHeaderSize;
 	uint32_t			SignatureSize;
@@ -60,35 +60,35 @@ struct signature_list {
 };
 
 struct sig_type {
-	efi_guid_t type;
+	efi_guid_t *type;
 	uint32_t size;
 };
 
 static struct sig_type sig_types[] = {
-	{ EFI_CERT_SHA256_GUID,		32 },
-	{ EFI_CERT_RSA2048_GUID,	256 },
-	{ EFI_CERT_RSA2048_SHA256_GUID,	256 },
-	{ EFI_CERT_SHA1_GUID,		20 },
-	{ EFI_CERT_RSA2048_SHA1_GUID,	256 },
-	{ EFI_CERT_X509_GUID,		0 },
-	{ EFI_CERT_SHA224_GUID,		28 },
-	{ EFI_CERT_SHA384_GUID,		48 },
-	{ EFI_CERT_SHA512_GUID,		64 },
+	{ &efi_guid_sha256,		32 },
+	{ &efi_guid_rsa2048,		256 },
+	{ &efi_guid_rsa2048_sha256,	256 },
+	{ &efi_guid_sha1,		20 },
+	{ &efi_guid_rsa2048_sha1,	256 },
+	{ &efi_guid_x509_cert,		0 },
+	{ &efi_guid_sha224,		28 },
+	{ &efi_guid_sha384,		48 },
+	{ &efi_guid_sha512,		64 },
 };
 static int num_sig_types = sizeof (sig_types) / sizeof (struct sig_type);
 
 static int32_t
-get_sig_type_size(efi_guid_t sig_type)
+get_sig_type_size(efi_guid_t *sig_type)
 {
 	for (int i = 0; i < num_sig_types; i++) {
-		if (!memcmp(&sig_type, &sig_types[i].type, sizeof (sig_type)))
+		if (!memcmp(sig_type, sig_types[i].type, sizeof (*sig_type)))
 			return sig_types[i].size;
 	}
 	return -1;
 }
 
 signature_list *
-signature_list_new(efi_guid_t SignatureType)
+signature_list_new(efi_guid_t *SignatureType)
 {
 	int32_t size = get_sig_type_size(SignatureType);
 	if (size < 0)
@@ -137,7 +137,7 @@ signature_list_add_sig(signature_list *sl, efi_guid_t owner,
 		sl->realized = NULL;
 	}
 
-	efi_guid_t x509_guid = EFI_CERT_X509_GUID;
+	efi_guid_t x509_guid = efi_guid_x509_cert;
 
 	if (memcmp(&sl->SignatureType, &x509_guid, sizeof (efi_guid_t)) == 0) {
 		if (sigsize > sl->SignatureSize)

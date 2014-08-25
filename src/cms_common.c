@@ -45,7 +45,7 @@ struct digest_param {
 	SECOidTag digest_tag;
 	SECOidTag signature_tag;
 	SECOidTag digest_encryption_tag;
-	efi_guid_t efi_guid;
+	efi_guid_t *efi_guid;
 	int size;
 };
 
@@ -54,7 +54,7 @@ static struct digest_param digest_params[] = {
 	 .digest_tag = SEC_OID_SHA256,
 	 .signature_tag = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
 	 .digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
-	 .efi_guid = EFI_CERT_SHA256_GUID,
+	 .efi_guid = &efi_guid_sha256,
 	 .size = 32
 	},
 #if 1
@@ -62,7 +62,7 @@ static struct digest_param digest_params[] = {
 	 .digest_tag = SEC_OID_SHA1,
 	 .signature_tag = SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION,
 	 .digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
-	 .efi_guid = EFI_CERT_SHA1_GUID,
+	 .efi_guid = &efi_guid_sha1,
 	 .size = 20
 	},
 #endif

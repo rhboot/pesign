@@ -67,7 +67,7 @@ add_db_file(pesigcheck_context *ctx, db_specifier which, const char *dbfile,
 
 	EFI_SIGNATURE_LIST *certlist;
 	EFI_SIGNATURE_DATA *cert;
-	efi_guid_t efi_x509 = EFI_CERT_X509_GUID;
+	efi_guid_t efi_x509 = efi_guid_x509_cert;
 
 	switch (type) {
 	case DB_FILE:
@@ -220,8 +220,8 @@ static db_status
 check_hash(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	   SECItem *pkcs7sig)
 {
-	efi_guid_t efi_sha256 = EFI_CERT_SHA256_GUID;
-	efi_guid_t efi_sha1 = EFI_CERT_SHA1_GUID;
+	efi_guid_t efi_sha256 = efi_guid_sha256;
+	efi_guid_t efi_sha1 = efi_guid_sha1;
 	void *digest;
 
 	if (memcmp(sigtype, &efi_sha256, sizeof(efi_guid_t)) == 0) {
@@ -257,7 +257,7 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	SECStatus rv;
 	db_status status = NOT_FOUND;
 
-	efi_guid_t efi_x509 = EFI_CERT_X509_GUID;
+	efi_guid_t efi_x509 = efi_guid_x509_cert;
 
 	if (memcmp(sigtype, &efi_x509, sizeof(efi_guid_t)) != 0)
 		return NOT_FOUND;

@@ -145,7 +145,7 @@ generate_descriptor(authvar_context *ctx)
 	authinfo->hdr.length = sd_der.len + (uint32_t)offset;
 	authinfo->hdr.revision = WIN_CERT_REVISION_2_0;
 	authinfo->hdr.cert_type = WIN_CERT_TYPE_EFI_GUID;
-	authinfo->type = (efi_guid_t)EFI_CERT_TYPE_PKCS7_GUID;
+	authinfo->type = efi_guid_pkcs7_cert;
 	memcpy(&authinfo->data, sd_der.data, sd_der.len);
 
 	ctx->authinfo = authinfo;

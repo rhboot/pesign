@@ -32,17 +32,17 @@
 
 struct hash_param {
 	char *name;
-	efi_guid_t guid;
+	efi_guid_t *guid;
 	int size;
 };
 
 static struct hash_param hash_params[] = {
 	{.name = "sha256",
-	 .guid = EFI_CERT_SHA256_GUID,
+	 .guid = &efi_guid_sha256,
 	 .size = 32,
 	},
 	{.name = "sha1",
-	 .guid = EFI_CERT_SHA1_GUID,
+	 .guid = &efi_guid_sha1,
 	 .size = 20,
 	},
 };
@@ -109,7 +109,7 @@ int
 main(int argc, char *argv[])
 {
 	poptContext optCon;
-	efi_guid_t owner = RH_GUID;
+	efi_guid_t owner = efi_guid_redhat_2;
 	int rc;
 	char *outfile = NULL;
 	char *hash = NULL;
@@ -275,8 +275,8 @@ main(int argc, char *argv[])
 			close(outfd);
 			exit(0);
 		} else if (certfile) {
-			efi_guid_t sig_type = EFI_CERT_X509_GUID;
-			signature_list *sl = signature_list_new(sig_type);
+			efi_guid_t sig_type = efi_guid_x509_cert;
+			signature_list *sl = signature_list_new(&sig_type);
 			if (!sl) {
 				fprintf(stderr, "efisiglist: could not "
 					"allocate signature list: %m\n");

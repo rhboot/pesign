@@ -28,6 +28,7 @@
 #include <time.h>
 #include <stdlib.h>
 
+#include <efivar.h>
 #include <prerror.h>
 #include <nss.h>
 
@@ -135,17 +136,11 @@ open_input(authvar_context *ctx)
 static void
 generate_efivars_filename(authvar_context *ctx)
 {
-	efi_guid_t guid = ctx->guid;
-	size_t length;
-
-	length = strlen(EFIVAR_DIR) + strlen(ctx->name) + 38;
-	ctx->exportfile = (char *)malloc(length);
-
-	sprintf(ctx->exportfile, "%s%s-%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-		EFIVAR_DIR, ctx->name, guid.data1, guid.data2, guid.data3,
-		guid.data4[0], guid.data4[1], guid.data4[2],
-		guid.data4[3], guid.data4[4], guid.data4[5],
-		guid.data4[6], guid.data4[7]);
+	int rc = efi_guid_to_str(&ctx->guid, &ctx->exportfile);
+	if (rc < 0) {
+		fprintf(stderr, "authvar: Couldn't convert guid to string: %m\n");
+		exit(1);
+	}
 }
 
 static void
@@ -172,78 +167,16 @@ open_output(authvar_context *ctx)
 }
 
 static int
-parse_guid(char *text, efi_guid_t *guid)
-{
-	char buf8[9] = "\0\0\0\0\0\0\0\0\0";
-	char buf4[5] = "\0\0\0\0\0";
-	char buf2[3] = "\0\0\0";
-
-	efi_guid_t retguid;
-
-	switch (strlen(text)) {
-	case 24:
-	case 28:
-		errno = 0;
-		strncpy(buf8, text, 8);
-		text += 8;
-		retguid.data1 = strtol(buf8, NULL, 16);
-		if (errno)
-			return -1;
-		if (text[0] == '-' || text[0] == ':')
-			text++;
-
-		strncpy(buf4, text, 4);
-		text += 4;
-		retguid.data2 = strtol(buf4, NULL, 16);
-		if (errno)
-			return -1;
-		if (text[0] == '-' || text[0] == ':')
-			text++;
-
-		strncpy(buf4, text, 4);
-		text += 4;
-		retguid.data3 = strtol(buf4, NULL, 16);
-		if (errno)
-			return -1;
-		if (text[0] == '-' || text[0] == ':')
-			text++;
-
-		for (int i = 0; i < 8; i++) {
-			strncpy(buf2, text, 2);
-			text += 2;
-			retguid.data4[i] = strtol(buf2, NULL, 16);
-			if (errno)
-				return -1;
-			if (text[0] == '-' || text[0] == ':')
-				text++;
-		}
-		memcpy(guid, &retguid, sizeof (*guid));
-		return 0;
-	default:
-		return -1;
-	}
-	return 0;
-}
-
-static int
 find_namespace_guid(authvar_context *ctx)
 {
-	efi_guid_t global = EFI_GLOBAL_VARIABLE;
-	efi_guid_t security = EFI_IMAGE_SECURITY_DATABASE_GUID;
-	efi_guid_t rh = RH_GUID;
+	int rc;
+	efi_guid_t guid;
 
-	if (strcmp(ctx->namespace, "global") == 0) {
-		memcpy(&ctx->guid, &global, sizeof (ctx->guid));
-		return 0;
-	} else if (strcmp(ctx->namespace, "security") == 0) {
-		memcpy(&ctx->guid, &security, sizeof (ctx->guid));
-		return 0;
-	} else if (strcmp(ctx->namespace, "rh") == 0) {
-		memcpy(&ctx->guid, &rh, sizeof (ctx->guid));
-		return 0;
-	}
-
-	return parse_guid(ctx->namespace, &ctx->guid);
+	rc = efi_name_to_guid(ctx->namespace, &guid);
+	if (rc < 0)
+		return rc;
+	memcpy(&ctx->guid, &guid, sizeof (guid));
+	return 0;
 }
 
 static void
