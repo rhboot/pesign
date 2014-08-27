@@ -21,7 +21,9 @@
 # -a <input ca cert filename>		# rhel only
 # -s 					# perform signing
 %pesign(i:o:C:e:c:n:a:s)						\
-  if [ -x %{_pesign} -a "%{_target_cpu}" == "x86_64" ]; then		\
+  if [ -x %{_pesign} ] &&  						\\\
+       [ "%{_target_cpu}" == "x86_64" -o 				\\\
+         "%{_target_cpu}" == "aarch64" ]; then				\
     if [ "0%{?rhel}" -ge "7" -a -f /usr/bin/rpm-sign ]; then		\
       nss=$(mktemp -p $PWD -d)						\
       echo > ${nss}/pwfile						\
