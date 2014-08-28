@@ -281,8 +281,6 @@ parse_signature(pesign_context *ctx)
 		fprintf(stderr, "pesign: could not read signature.\n");
 		exit(1);
 	}
-	close(ctx->insigfd);
-	ctx->insigfd = -1;
 
 	unsigned char *der;
 	unsigned int derlen;
