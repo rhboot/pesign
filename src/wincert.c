@@ -35,7 +35,7 @@ generate_cert_list(SECItem **signatures, int num_signatures,
 		cl_size += ALIGNMENT_PADDING(cl_size, 8);
 	}
 
-	uint8_t *data = malloc(cl_size);
+	uint8_t *data = calloc(cl_size, sizeof(uint8_t));
 	if (!data)
 		return -1;
 
