@@ -243,6 +243,14 @@ check_db_hash(db_specifier which, pesigcheck_context *ctx)
 	return check_db(which, ctx, check_hash, NULL, 0);
 }
 
+static PRTime
+determine_reasonable_time(CERTCertificate *cert)
+{
+	PRTime notBefore, notAfter;
+	CERT_GetCertTimes(cert, &notBefore, &notAfter);
+	return notBefore;
+}
+
 static db_status
 check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	   SECItem *pkcs7sig)
@@ -311,10 +319,13 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 		goto out;
 	}
 
+	PRTime atTime;
+	atTime = determine_reasonable_time(cert);
 	/* Verify the signature */
-	result = SEC_PKCS7VerifyDetachedSignature(cinfo, certUsageObjectSigner,
-						  digest, HASH_AlgSHA256,
-						  PR_FALSE);
+	result = SEC_PKCS7VerifyDetachedSignatureAtTime(cinfo,
+						certUsageObjectSigner,
+						digest, HASH_AlgSHA256,
+						PR_FALSE, atTime);
 	if (!result) {
 		fprintf(stderr, "%s\n",	PORT_ErrorToString(PORT_GetError()));
 		goto out;
