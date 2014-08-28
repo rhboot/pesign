@@ -48,7 +48,6 @@ generate_cert_list(SECItem **signatures, int num_signatures,
 		 * them here. */
 		struct cert_list_entry *cle = (struct cert_list_entry *)data;
 		cle->wc.length = signatures[i]->len +
-			ALIGNMENT_PADDING(signatures[i]->len, 8) +
 			sizeof (win_certificate);
 		cle->wc.revision = WIN_CERT_REVISION_2_0;
 		cle->wc.cert_type = WIN_CERT_TYPE_PKCS_SIGNED_DATA;
