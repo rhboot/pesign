@@ -62,6 +62,7 @@ insert_signature(cms_context *cms, int signum)
 	SECItem **signatures = realloc(cms->signatures,
 		sizeof (SECItem *) * (cms->num_signatures + 1));
 	if (!signatures) {
+err:
 		cms->log(cms, LOG_ERR, "insert signature: could not allocate "
 					"memory: %m");
 		exit(1);
@@ -72,8 +73,18 @@ insert_signature(cms_context *cms, int signum)
 			cms->signatures[signum],
 			sizeof(SECItem) * (cms->num_signatures - signum));
 	}
-	cms->signatures[signum] = sig;
+
+	SECItem *newsig = malloc(sizeof (*newsig));
+	memcpy(newsig, sig, sizeof (*newsig));
+	newsig->data = malloc(sig->len);
+	if (!newsig->data)
+		goto err;
+	memcpy(newsig->data, sig->data, newsig->len);
+	cms->signatures[signum] = newsig;
 	cms->num_signatures++;
+
+	free(cms->newsig.data);
+	memset(&cms->newsig, '\0', sizeof (cms->newsig));
 }
 
 int
@@ -298,9 +309,14 @@ parse_signature(pesign_context *ctx)
 		derlen = end - base64;
 		base64[derlen] = '\0';
 
-		der = ATOB_AsciiToData(base64, &derlen);
+		unsigned char *dertmp;
+		dertmp = ATOB_AsciiToData(base64, &derlen);
+
+		der = malloc(derlen);
+		memmove(der, dertmp, derlen);
+		PORT_Free(dertmp);
 	} else {
-		der = PORT_Alloc(siglen);
+		der = malloc(siglen);
 		memmove(der, sig, siglen);
 		derlen = siglen;
 	}

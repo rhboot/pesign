@@ -744,6 +744,8 @@ main(int argc, char *argv[])
 			export_signature(ctxp->cms_ctx, ctxp->outsigfd, ctxp->ascii);
 			close_input(ctxp);
 			close_sig_output(ctxp);
+			memset(&ctxp->cms_ctx->newsig, '\0',
+				sizeof (ctxp->cms_ctx->newsig));
 			break;
 		/* remove a signature from the binary */
 		case REMOVE_SIGNATURE:

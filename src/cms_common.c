@@ -175,6 +175,7 @@ cms_context_fini(cms_context *cms)
 
 	if (cms->newsig.data) {
 		free_poison(cms->newsig.data, cms->newsig.len);
+		free(cms->newsig.data);
 		memset(&cms->newsig, '\0', sizeof (cms->newsig));
 	}
 
@@ -212,9 +213,8 @@ cms_context_fini(cms_context *cms)
 	}
 
 	for (int i = 0; i < cms->num_signatures; i++) {
-		/* signature[i] and signature[i]->data() are freed when
-		 * the nss arena is cleaned up */
-		cms->signatures[i] = NULL;
+		free(cms->signatures[i]->data);
+		free(cms->signatures[i]);
 	}
 
 	xfree(cms->signatures);
@@ -1261,6 +1261,10 @@ generate_signature(cms_context *cms)
 		cmsreterr(-1, cms, "could not create signed data");
 
 	memcpy(&cms->newsig, &sd_der, sizeof (cms->newsig));
+	cms->newsig.data = malloc(sd_der.len);
+	if (!cms->newsig.data)
+		cmsreterr(-1, cms, "could not allocate signed data");
+	memcpy(cms->newsig.data, sd_der.data, sd_der.len);
 	return 0;
 }
 
