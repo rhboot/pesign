@@ -189,6 +189,8 @@ cms_context_fini(cms_context *cms)
 		cms->ci_digest = NULL;
 	}
 
+	teardown_digests(cms);
+
 	if (cms->raw_signed_attrs) {
 		free_poison(cms->raw_signed_attrs->data,
 				cms->raw_signed_attrs->len);
