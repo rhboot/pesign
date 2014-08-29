@@ -178,6 +178,7 @@ done:
 			*cert_size = length;
 
 		iter->n += sizeof (*tmpcert) + length;
+		iter->n += ALIGNMENT_PADDING(iter->n, 8);
 
 		return 1;
 	}
