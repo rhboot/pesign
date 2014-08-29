@@ -183,6 +183,84 @@ done:
 	}
 }
 
+static ssize_t
+get_current_sigspace_size(Pe *pe)
+{
+	data_directory *dd;
+
+	int rc = pe_getdatadir(pe, &dd);
+	if (rc < 0) {
+		fprintf(stderr, "Could not get data directory: %m\n");
+		exit(1);
+	}
+
+	return dd->certs.size;
+}
+
+static ssize_t
+get_current_sigspace_in_use(Pe *pe)
+{
+	cert_iter iter;
+	int rc = cert_iter_init(&iter, pe);
+	if (rc < 0)
+		return -1;
+
+	ssize_t foundsize = 0;
+
+	intptr_t prevdata = 0;
+	ssize_t prevdatalen = 0;
+
+	while (1) {
+		intptr_t data = 0;
+		ssize_t datalen = 0;
+		rc = next_cert(&iter, (void **)&data, &datalen);
+		if (rc <= 0) {
+			if (prevdata != 0)
+				foundsize = (prevdata + prevdatalen) -
+						(intptr_t)iter.certs;
+			break;
+		}
+		prevdata = data;
+		prevdatalen = datalen;
+	}
+
+	return foundsize;
+}
+
+static ssize_t
+get_total_sigspace_size(cms_context *cms, Pe *pe, SECItem *sig)
+{
+	ssize_t ret = 0;
+	/* first, see if we need some padding to make the original structure
+	 * in the data directory */
+	if (cms->num_signatures == 0) {
+		void *map = NULL;
+		size_t map_size = 0;
+		map = pe_rawfile(pe, &map_size);
+		if (!map || map_size < 1) {
+			fprintf(stderr, "Could not get raw PE map: %m\n");
+			exit(1);
+		}
+
+		ret += ALIGNMENT_PADDING(map_size, 8);
+	}
+
+	/* if there is a previous dd->certs, we need to find out if any is
+	 * spare room in it */
+	ssize_t in_use = get_current_sigspace_in_use(pe);
+	if (in_use > 0) {
+		in_use += ALIGNMENT_PADDING(in_use, 8);
+		ret += in_use;
+	}
+
+	/* at this point ret is any amount of padding we need plus any number
+	 * of previous entries.  Add the amount for this entry, which *doesn't*
+	 * yet include any padding. */
+	ret += sizeof(win_certificate);
+	ret += sig->len;
+	return ret;
+}
+
 ssize_t
 available_cert_space(Pe *pe)
 {
@@ -334,5 +412,3 @@ err:
 	}
 	return -1;
 }
-
-
