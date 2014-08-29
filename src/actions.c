@@ -178,7 +178,9 @@ list_signatures(pesign_context *ctx)
 
 			signing_time = SEC_PKCS7GetSigningTime(cinfo);
 			if (signing_time != NULL) {
-				printf("Signing time: %s\n", DER_TimeChoiceDayToAscii(signing_time));
+				char *signing_time_str = DER_TimeChoiceDayToAscii(signing_time);
+				printf("Signing time: %s\n", signing_time_str);
+				PORT_Free(signing_time_str);
 			} else {
 				printf("No signing time included.\n");
 			}
