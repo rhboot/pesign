@@ -268,25 +268,6 @@ available_cert_space(Pe *pe)
 		get_current_sigspace_in_use(pe);
 }
 
-size_t
-get_reserved_sig_space(cms_context *cms, Pe *pe)
-{
-	size_t ret = 0;
-	for (int i = 0; i < cms->num_signatures; i++) {
-		ret += cms->signatures[i]->len + sizeof (win_certificate);
-		/* each certificate list entry must be 8-byte aligned,
-		 * so we need to account for that in our space calculation */
-		ret += ALIGNMENT_PADDING(ret, 8);
-	}
-	return ret;
-}
-
-ssize_t
-calculate_signature_overhead(ssize_t size)
-{
-	return sizeof(win_certificate);
-}
-
 ssize_t
 calculate_signature_space(cms_context *cms, Pe *pe)
 {

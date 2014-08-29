@@ -689,12 +689,8 @@ main(int argc, char *argv[])
 			close_input(ctxp);
 			open_sig_input(ctxp);
 			parse_signature(ctxp);
-			sigspace =
-				calculate_signature_overhead(
-					ctxp->cms_ctx->newsig.len) +
-				ctxp->cms_ctx->newsig.len +
-				get_reserved_sig_space(ctxp->cms_ctx,
-							ctxp->outpe);
+			sigspace = get_sigspace_extend_amount(ctxp->cms_ctx,
+					ctxp->outpe, &ctxp->cms_ctx->newsig);
 			allocate_signature_space(ctxp->outpe, sigspace);
 			check_signature_space(ctxp);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
