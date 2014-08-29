@@ -264,31 +264,8 @@ get_total_sigspace_size(cms_context *cms, Pe *pe, SECItem *sig)
 ssize_t
 available_cert_space(Pe *pe)
 {
-	cert_iter iter;
-	int rc = cert_iter_init(&iter, pe);
-	if (rc < 0)
-		return -1;
-
-	data_directory *dd;
-
-	rc = pe_getdatadir(pe, &dd);
-	if (rc < 0)
-		return -1;
-
-	ssize_t totalsize = dd->certs.size;
-	ssize_t foundsize = 0;
-
-	void *data;
-	ssize_t datalen;
-
-	while (1) {
-		rc = next_cert(&iter, &data, &datalen);
-		if (rc <= 0)
-			break;
-		foundsize += datalen;
-	}
-
-	return totalsize - foundsize;
+	return get_current_sigspace_size(pe) -
+		get_current_sigspace_in_use(pe);
 }
 
 size_t
@@ -313,32 +290,24 @@ calculate_signature_overhead(ssize_t size)
 ssize_t
 calculate_signature_space(cms_context *cms, Pe *pe)
 {
-	int rc;
-
 	SECItem sig = { 0, };
 
-	rc = generate_spc_signed_data(cms, &sig);
-	if (rc < 0)
-err:
-		return rc;
+	int rc = generate_spc_signed_data(cms, &sig);
+	if (rc < 0) {
+		fprintf(stderr, "Could not generate signed data: %m\n");
+		exit(1);
+	}
 
-	data_directory *dd = NULL;
-	rc = pe_getdatadir(pe, &dd);
-	if (rc < 0)
-		goto err;
-
-	size_t res = get_reserved_sig_space(cms, pe);
-
-	ssize_t ret = res + sig.len + sizeof(win_certificate) -
-						available_cert_space(pe);
-
-	/* pe-coff 8.2 adds some text that says each cert list entry is
-	 * 8-byte aligned, so that means we need alignment space here. */
-	ret += ALIGNMENT_PADDING(ret, 8);
-
-	//free(sig.data);
-
+	ssize_t ret = get_total_sigspace_size(cms, pe, &sig);
+	free_poison(sig.data, sig.len);
 	return ret;
+}
+
+ssize_t
+get_sigspace_extend_amount(cms_context *cms, Pe *pe, SECItem *sig)
+{
+	ssize_t total = get_total_sigspace_size(cms, pe, sig);
+	return total - get_current_sigspace_size(pe);
 }
 
 int
