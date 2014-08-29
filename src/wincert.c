@@ -258,6 +258,18 @@ get_total_sigspace_size(cms_context *cms, Pe *pe, SECItem *sig)
 	 * yet include any padding. */
 	ret += sizeof(win_certificate);
 	ret += sig->len;
+
+	/* and finally, the spec actually says:
+	 * | Notice that certificates always start on an octaword boundary.
+	 * | If a certificate is not an even number of octawords long, it
+	 * | is zero padded to the next octaword boundary. However, the length
+	 * | of the certificate does not include this padding and so any
+	 * | certificate navigation software must be sure to round up to the
+	 * | next octaword to locate another certificate.
+	 * which sort of accidentally says we pad if we need to, whether or
+	 * not there's anythign coming next.  A+ writing here.
+	 */
+	ret += ALIGNMENT_PADDING(ret, 8);
 	return ret;
 }
 
