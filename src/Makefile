@@ -7,8 +7,8 @@ PKLIBS = nss
 LIBS = popt uuid efivar
 STATIC_LIBS = $(TOPDIR)/libdpe/libdpe.a
 LDFLAGS =
-CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --libs-only-L $(pklib)))
-BUILDFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib))) -Werror
+CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --libs-only-L $(pklib))) -pie -fPIE -Wl,-z,relro,-z,now
+BUILDFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib))) -Werror -fPIE
 
 TARGETS = pesign authvar client efisiglist efikeygen pesigcheck
 

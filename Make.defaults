@@ -6,7 +6,7 @@ ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
 INCDIR	   = -I$(TOPDIR)/include
 CPPFLAGS   = -DCONFIG_$(ARCH)
 CFLAGS     = -g -O0
-BUILDFLAGS := $(CFLAGS) $(ARCH3264) -fpic -Wall -fshort-wchar -fno-strict-aliasing -fno-merge-constants --std=gnu99 -D_GNU_SOURCE -Wno-unused-result -Wno-unused-function
+BUILDFLAGS := $(CFLAGS) $(ARCH3264) -Wall -fshort-wchar -fno-strict-aliasing -fno-merge-constants --std=gnu99 -D_GNU_SOURCE -Wno-unused-result -Wno-unused-function
 ASFLAGS    = $(ARCH3264)
 LDFLAGS	   = -nostdlib
 CCLDFLAGS  = -shared

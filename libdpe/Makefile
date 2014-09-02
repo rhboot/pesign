@@ -5,6 +5,9 @@ SONAME = libdpe.so.0
 
 include $(TOPDIR)/Make.defaults
 
+BUILDFLAGS += -fPIC
+CCLDFLAGS += -fPIC -Wl,-z,relro,-z,now
+
 TARGETS = libdpe.so libdpe.a
 all : $(TARGETS)
 
