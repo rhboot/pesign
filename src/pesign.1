@@ -5,7 +5,8 @@ pesign \- command line tool for signing UEFI applications
 .SH SYNOPSIS
 \fBpesign\fR [--in=\fIinfile\fR | -i \fIinfile\fR]
        [--out=\fIoutfile\fR | -o \fIoutfile\fR]
-       [--token=\fItoken\fR | -t \fItoken\fR]
+       [--certdir=\fIcertdir/fR | -n \fIcertdir\fR]
+       [--nss-token=\fItoken\fR | -t \fItoken\fR]
        [--certificate=\fInickname\fR | -c \fInickname\fR]
        [--force | -f] [--sign | -s] [--hash | -h]
        [--digest_type=\fIdigest\fR | -d \fIdigest\fR]
@@ -13,6 +14,7 @@ pesign \- command line tool for signing UEFI applications
        [--export-pubkey=\fIoutkey\fR | -K \fIoutkey\fR]
        [--export-cert=\fIoutcert\fR | -C \fIoutcert\fR]
        [--ascii-armor | -a] [--daemonize | -D] [--nofork | -N]
+       [--signature-number=\fIsignum\fR | -u \fIsignum\fR]
 
 .SH DESCRIPTION
 \fBpesign\fR is a command line tool for manipulating signatures and 
@@ -28,7 +30,11 @@ Specify input binary.
 Specify output binary.
 
 .TP
-\fB-\-token\fR=\fItoken\fR
+\fB-\-certdir\fR=\fIcertdir\fR
+Specify nss certificate database directory.
+
+.TP
+\fB-\-nss-token\fR=\fItoken\fR
 Use the specified NSS token's certificate database.
 
 .TP
@@ -51,7 +57,8 @@ Display the cryptographic digest of the input binary on standard output.
 .TP
 \fB-\-digest_type\fR=\fIdigest\fR
 Use the specified digest in hashing and signing operations. By default,
-this value is "sha256".  Use "--digest=help" to list the available digests.
+this value is "sha256".  Use "--digest_type=help" to list the available
+digests.
 
 .TP
 \fB-\-show-signature\fR
@@ -60,6 +67,10 @@ Show information about the signature of the input binary.
 .TP
 \fB-\-remove-signature\fR
 Remove the signature section from the binary.
+
+.TP
+\fB-\-signature-number\fR=\fIsignum\fR
+Specify which signature to operate on.  This field is zero-indexed.
 
 .TP
 \fB-\-export-pubkey\fR=\fIoutkey\fR
