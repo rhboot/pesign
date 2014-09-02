@@ -42,15 +42,15 @@ When using \fB-\-unlock\fR, read the token's PIN from the file \fIpinfile\fR.
 Sign the binary specified by \fIinfile\fR.
 
 .TP
-\fB-\-detached\fR
+\fB-\-export\fR
 When used with \fB-\-sign\fR, write the signature to \fIoutfile\fR.
 
 .TP
-\fB-\-in\fR=\fIinfile\fR
+\fB-\-infile\fR=\fIinfile\fR
 When used with \fB-\-sign\fR, specify the input binary.
 
 .TP
-\fB-\-out\fR=\fIoutfile\fR
+\fB-\-outfile\fR=\fIoutfile\fR
 When used with \fB-\-sign\fR, specify output file.  If \fB-\-detached\fR
 is specified, this will be a DER-formatted signature.  Otherwise, the
 output will be the signed PE binary.
