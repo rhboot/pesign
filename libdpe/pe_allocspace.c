@@ -141,8 +141,9 @@ pe_freespace(Pe *pe, uint32_t offset, size_t size)
 	if (offset + size == pe->maximum_size)
 		pe_shorten_file(pe, size);
 
-	/* XXX PJFIX TODO: this should actually de-allocate the space when
-	 * it isn't at the end of the file, too. */
+	/* XXX PJFIX TODO: this should actually de-allocate the space, *if*
+	 * it's the certificate list, when it isn't at the end of the file,
+	 * too. */
 
 	return 0;
 }
