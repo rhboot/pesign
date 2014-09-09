@@ -16,7 +16,7 @@
  *
  * Author(s): Peter Jones <pjones@redhat.com>
  */
-
+#include <unistd.h>
 #include "libdpe.h"
 
 int
@@ -76,12 +76,22 @@ pe_populatecert(Pe *pe, void *cert, size_t size)
 	if (size != dd->certs.size)
 		return -1;
 
-	void *addr = compute_mem_addr(pe, dd->certs.virtual_address);
-	if (!addr)
+	void *mem = compute_mem_addr(pe, dd->certs.virtual_address);
+	if (!mem)
 		return -1;
 
-	memcpy(addr, cert, size);
-	msync(addr, size, MS_SYNC);
+	memcpy(mem, cert, size);
+
+	uint64_t max_size = pe->maximum_size;
+	uint32_t new_space;
+	uint32_t page_size = sysconf(_SC_PAGESIZE);
+
+	pe_extend_file(pe, 0, &new_space, page_size);
+	uint64_t new_max_size = pe->maximum_size;
+	mem = compute_mem_addr(pe, 0);
+	msync(mem, new_max_size, MS_SYNC);
+	new_max_size -= max_size;
+	pe_shorten_file(pe, new_max_size);
 
 	return 0;
 }
