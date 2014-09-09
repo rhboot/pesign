@@ -91,7 +91,7 @@ extern uint32_t pe_get_file_alignment(Pe *pe);
 extern uint32_t pe_get_scn_alignment(Pe *pe);
 extern int pe_set_image_size(Pe *pe);
 
-extern int pe_allocspace(Pe *pe, size_t size, uint32_t *offset);
+extern int pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align);
 extern int pe_freespace(Pe *pe, uint32_t offset, size_t size);
 
 extern int pe_clearcert(Pe *pe);

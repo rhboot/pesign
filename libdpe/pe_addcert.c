@@ -46,7 +46,7 @@ pe_alloccert(Pe *pe, size_t size)
 	pe_clearcert(pe);
 
 	uint32_t new_space = 0;
-	rc = pe_allocspace(pe, size, &new_space);
+	rc = pe_extend_file(pe, size, &new_space, 8);
 	if (rc < 0)
 		return rc;
 

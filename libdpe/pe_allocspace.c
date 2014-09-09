@@ -80,7 +80,7 @@ pe_set_image_size(Pe *pe)
 	return 0;
 }
 
-static int
+int
 pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 {
 	void *new = NULL;
@@ -109,19 +109,6 @@ pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 
 	pe->maximum_size = pe->maximum_size + extra;
 
-	return 0;
-}
-
-int
-pe_allocspace(Pe *pe, size_t size, uint32_t *offset)
-{
-	int rc;
-
-	/* XXX PJFIX TODO: this should try to find space in the already
-	 * mapped regions. */
-	rc = pe_extend_file(pe, size, offset, 8);
-	if (rc < 0)
-		return -1;
 	return 0;
 }
 
