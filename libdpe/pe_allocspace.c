@@ -112,8 +112,7 @@ pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 	return 0;
 }
 
-static int
-__attribute__ (( unused ))
+int
 pe_shorten_file(Pe *pe, size_t size)
 {
 	void *new = NULL;

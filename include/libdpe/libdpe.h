@@ -93,6 +93,7 @@ extern int pe_set_image_size(Pe *pe);
 
 extern int pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align);
 extern int pe_freespace(Pe *pe, uint32_t offset, size_t size);
+extern int pe_shorten_file(Pe *pe, size_t size);
 
 extern int pe_clearcert(Pe *pe);
 extern int pe_alloccert(Pe *pe, size_t len);
