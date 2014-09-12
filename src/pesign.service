@@ -6,3 +6,5 @@ PrivateTmp=true
 Type=forking
 PIDFile=/var/run/pesign.pid
 ExecStart=/usr/bin/pesign --daemonize
+ExecStartPost=/usr/sbin/pesign-authorize-users
+ExecStartPost=/usr/sbin/pesign-authorize-groups
