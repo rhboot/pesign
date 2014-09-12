@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#
+# With /run/pesign/socket on tmpfs, a simple way of restoring the
+# acls for specific users is useful
+#
+#  Compare to: http://infrastructure.fedoraproject.org/cgit/ansible.git/tree/roles/bkernel/tasks/main.yml?id=17198dadebf59d8090b7ed621bc8ab22152d2eb6
+#
+
+# License: GPLv2
+
+if [[ -r /etc/pesign/authorize-users ]]; then
+    for username in $(cat /etc/pesign/authorize-users); do
+        setfacl -m u:${username}:rx /var/run/pesign
+        setfacl -m u:${username}:rw /var/run/pesign/socket
+    done
+fi

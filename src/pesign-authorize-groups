@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#
+# With /run/pesign/socket on tmpfs, a simple way of restoring the
+# acls for specific groups is useful
+#
+#  Compare to: http://infrastructure.fedoraproject.org/cgit/ansible.git/tree/roles/bkernel/tasks/main.yml?id=17198dadebf59d8090b7ed621bc8ab22152d2eb6
+#
+
+# License: GPLv2
+
+if [[ -r /etc/pesign/authorize-groups ]]; then
+    for group in $(cat /etc/pesign/authorize-groups); do
+        setfacl -m g:${group}:rx /var/run/pesign
+        setfacl -m g:${group}:rw /var/run/pesign/socket
+    done
+fi
