@@ -244,6 +244,10 @@ int main(int argc, char *argv[])
 			&ctx.namespace, 0,
 			"specified variable is in <namespace> or <guid>" ,
 			"{<namespace>|<guid>}" },
+		{ "guid", 'g', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+			&ctx.namespace, 0,
+			"specified variable is in <namespace> or <guid>" ,
+			"{<namespace>|<guid>}" },
 		{ "name", 'n', POPT_ARG_STRING, &ctx.name, 0, "variable name",
 			"<name>" },
 		{ "timestamp", 't', POPT_ARG_STRING, &time_str, 0,
@@ -308,6 +312,9 @@ int main(int argc, char *argv[])
 
 	set_timestamp(ctxp, time_str);
 
+	if (ctx.cms_ctx->certname && *ctx.cms_ctx->certname)
+		action |= SIGN;
+
 	/* Initialize the NSS db */
 	if ((action & GENERATE_APPEND) || (action & GENERATE_CLEAR) ||
 	    (action & GENERATE_SET)    || (action & SIGN))
@@ -336,14 +343,13 @@ int main(int argc, char *argv[])
 	if (tokenname != origtoken)
 		free(tokenname);
 
-	if (ctx.cms_ctx->certname && *ctx.cms_ctx->certname) {
+	if (action & SIGN) {
 		rc = find_certificate(ctx.cms_ctx, 1);
 		if (rc < 0) {
 			fprintf(stderr, "authvar: Could not find certificate "
 				"for \"%s\"\n", ctx.cms_ctx->certname);
 			exit(1);
 		}
-		action |= SIGN;
 	}
 
 	switch (action) {
