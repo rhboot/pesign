@@ -4,7 +4,7 @@ include $(TOPDIR)/Make.defaults
 
 SUBDIRS := include libdpe src
 DOCDIR := /share/doc/
-VERSION = 0.109
+VERSION = 0.110
 
 all : $(SUBDIRS)
 
@@ -41,8 +41,10 @@ test-archive:
 	@rm -rf /tmp/pesign-$(VERSION)
 	@echo "The archive is in pesign-$(VERSION).tar.bz2"
 
-archive:
-	git tag $(GITTAG) refs/heads/master
+tag:
+	git tag -s $(GITTAG) refs/heads/master
+
+archive: tag
 	@rm -rf /tmp/pesign-$(VERSION) /tmp/pesign-$(VERSION)-tmp
 	@mkdir -p /tmp/pesign-$(VERSION)-tmp
 	@git archive --format=tar $(GITTAG) | ( cd /tmp/pesign-$(VERSION)-tmp/ ; tar x )
