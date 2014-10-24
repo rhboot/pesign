@@ -16,6 +16,10 @@ clean :
 install :
 	@for x in $(SUBDIRS) ; do $(MAKE) -C $${x} TOPDIR=$(TOPDIR) SRCDIR=$(TOPDIR)/$@/ ARCH=$(ARCH) $@ ; done
 
+install_systemd:
+
+install_sysvinit:
+
 .PHONY: all $(SUBDIRS) clean install
 
 include $(TOPDIR)/Make.rules

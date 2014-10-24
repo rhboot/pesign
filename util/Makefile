@@ -20,6 +20,10 @@ install :
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/boot/efi/EFI/redhat/
 	$(INSTALL) -m 755 *.efi $(INSTALLROOT)/boot/efi/EFI/redhat/
 
+install_systemd:
+
+install_sysvinit:
+
 .PHONY: all clean install
 
 include $(TOPDIR)/Make.efirules

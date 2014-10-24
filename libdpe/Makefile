@@ -37,6 +37,10 @@ install :
 		$(INSTALL) -m 755  $$x $(INSTALLROOT)$(LIBDIR) ; \
 	done
 
+install_systemd:
+
+install_sysvinit:
+
 .PHONY: all clean install
 
 include $(TOPDIR)/Make.rules
