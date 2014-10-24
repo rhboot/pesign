@@ -76,17 +76,19 @@ install :
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pki/pesign/
 	$(INSTALL) -d -m 770 $(INSTALLROOT)/var/run/pesign/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(PREFIX)/bin/
+	$(INSTALL) -m 755 authvar $(INSTALLROOT)$(PREFIX)/bin/
 	$(INSTALL) -m 755 pesign $(INSTALLROOT)$(PREFIX)/bin/
 	$(INSTALL) -m 755 client $(INSTALLROOT)$(PREFIX)/bin/pesign-client
 	$(INSTALL) -m 755 efikeygen $(INSTALLROOT)$(PREFIX)/bin/
-	#$(INSTALL) -m 755 pesigcheck $(INSTALLROOT)$(PREFIX)/bin/
+	$(INSTALL) -m 755 efisiglist $(INSTALLROOT)$(PREFIX)/bin/
+	$(INSTALL) -m 755 pesigcheck $(INSTALLROOT)$(PREFIX)/bin/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -m 644 pesign.popt $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -m 644 pesign.1 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -m 644 pesign-client.1 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -m 644 efikeygen.1 $(INSTALLROOT)/usr/share/man/man1/
-	#$(INSTALL) -m 644 pesigcheck.1 $(INSTALLROOT)/usr/share/man/man1/
+	$(INSTALL) -m 644 pesigcheck.1 $(INSTALLROOT)/usr/share/man/man1/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
 
