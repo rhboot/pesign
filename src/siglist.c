@@ -137,14 +137,20 @@ signature_list_add_sig(signature_list *sl, efi_guid_t owner,
 		sl->realized = NULL;
 	}
 
-	efi_guid_t x509_guid = efi_guid_x509_cert;
-
-	if (memcmp(&sl->SignatureType, &x509_guid, sizeof (efi_guid_t)) == 0) {
+	if (!efi_guid_cmp(sl->SignatureType, &efi_guid_x509_cert)) {
 		if (sigsize > sl->SignatureSize)
 			resize_entries(sl, sigsize + sizeof (efi_guid_t));
 	} else if (sigsize != get_sig_type_size(sl->SignatureType)) {
-		fprintf(stderr, "sigsize: %d sl->SignatureSize: %d\n",
-			sigsize, sl->SignatureSize);
+		char *guidname = NULL;
+		int rc = efi_guid_to_id_guid(sl->SignatureType, &guidname);
+		if (rc < 0) {
+			fprintf(stderr, "Could not get ID guid, uhoh: %m\n");
+		} else {
+			fprintf(stderr, "sl->SignatureType: %s\n", guidname);
+			free(guidname);
+		}
+		fprintf(stderr, "sigsize: %d sl->SignatureSize: %d type size: %d\n",
+			sigsize, sl->SignatureSize, get_sig_type_size(sl->SignatureType));
 		errno = EINVAL;
 		return -1;
 	}
