@@ -136,11 +136,20 @@ open_input(authvar_context *ctx)
 static void
 generate_efivars_filename(authvar_context *ctx)
 {
-	int rc = efi_guid_to_str(&ctx->guid, &ctx->exportfile);
+	char *guid = NULL;
+	int rc = efi_guid_to_str(&ctx->guid, &guid);
 	if (rc < 0) {
 		fprintf(stderr, "authvar: Couldn't convert guid to string: %m\n");
 		exit(1);
 	}
+	char *filename = NULL;
+	rc = asprintf(&filename, "/sys/firmware/efi/efivars/%s-%s", ctx->name, guid);
+	if (rc < 0) {
+		fprintf(stderr, "authvar: can't make string: %m\n");
+		exit(1);
+	}
+	free(guid);
+	ctx->exportfile = filename;
 }
 
 static void
