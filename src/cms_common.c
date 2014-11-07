@@ -45,7 +45,7 @@ struct digest_param {
 	SECOidTag digest_tag;
 	SECOidTag signature_tag;
 	SECOidTag digest_encryption_tag;
-	efi_guid_t *efi_guid;
+	const efi_guid_t *efi_guid;
 	int size;
 };
 
