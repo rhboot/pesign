@@ -416,10 +416,9 @@ check_signature_space(pesign_context *ctx)
 	ssize_t available = available_cert_space(ctx->outpe);
 	ssize_t target = ctx->cms_ctx->newsig.len + sizeof (win_certificate);
 
-	if (available == target)
-		return;
+	target += ALIGNMENT_PADDING(target, 8);
 
-	if (target + 8 > available)
+	if (available >= target)
 		return;
 
 	fprintf(stderr, "Could not add new signature: insufficient space.\n");
