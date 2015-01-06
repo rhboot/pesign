@@ -4,11 +4,11 @@ TOPDIR = $(SRCDIR)/..
 include $(TOPDIR)/Make.defaults
 
 PKLIBS = nss
-LIBS = popt uuid efivar
+LIBS = popt uuid efivar plc4 nspr4
 STATIC_LIBS = $(TOPDIR)/libdpe/libdpe.a
 LDFLAGS =
 CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --libs-only-L $(pklib))) -pie -fPIE -Wl,-z,relro,-z,now
-BUILDFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib))) -Werror -fPIE
+BUILDFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib)))  -fPIE
 
 TARGETS = pesign authvar client efisiglist efikeygen pesigcheck
 
