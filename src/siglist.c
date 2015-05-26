@@ -51,7 +51,7 @@ struct efi_signature_list {
 };
 
 struct signature_list {
-	efi_guid_t			*SignatureType;
+	const efi_guid_t		*SignatureType;
 	uint32_t			SignatureListSize;
 	uint32_t			SignatureHeaderSize;
 	uint32_t			SignatureSize;
@@ -60,7 +60,7 @@ struct signature_list {
 };
 
 struct sig_type {
-	efi_guid_t *type;
+	const efi_guid_t *type;
 	uint32_t size;
 };
 
@@ -78,7 +78,7 @@ static struct sig_type sig_types[] = {
 static int num_sig_types = sizeof (sig_types) / sizeof (struct sig_type);
 
 static int32_t
-get_sig_type_size(efi_guid_t *sig_type)
+get_sig_type_size(const efi_guid_t *sig_type)
 {
 	for (int i = 0; i < num_sig_types; i++) {
 		if (!memcmp(sig_type, sig_types[i].type, sizeof (*sig_type)))
@@ -88,7 +88,7 @@ get_sig_type_size(efi_guid_t *sig_type)
 }
 
 signature_list *
-signature_list_new(efi_guid_t *SignatureType)
+signature_list_new(const efi_guid_t *SignatureType)
 {
 	int32_t size = get_sig_type_size(SignatureType);
 	if (size < 0)

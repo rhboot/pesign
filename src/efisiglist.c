@@ -32,7 +32,7 @@
 
 struct hash_param {
 	char *name;
-	efi_guid_t *guid;
+	const efi_guid_t *guid;
 	int size;
 };
 
