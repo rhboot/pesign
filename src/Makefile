@@ -3,8 +3,8 @@ TOPDIR = $(SRCDIR)/..
 
 include $(TOPDIR)/Make.defaults
 
-PKLIBS = nss
-LIBS = popt uuid efivar
+PKLIBS = nss efivar
+LIBS = popt uuid
 STATIC_LIBS = $(TOPDIR)/libdpe/libdpe.a
 LDFLAGS =
 CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --libs-only-L $(pklib))) -pie -fPIE -Wl,-z,relro,-z,now
