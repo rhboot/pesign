@@ -9,8 +9,8 @@
 
 # License: GPLv2
 
-if [[ -r /etc/pesign/authorize-users ]]; then
-    for username in $(cat /etc/pesign/authorize-users); do
+if [[ -r /etc/pesign/users ]]; then
+    for username in $(cat /etc/pesign/users); do
         setfacl -m u:${username}:rx /var/run/pesign
         setfacl -m u:${username}:rw /var/run/pesign/socket
     done
