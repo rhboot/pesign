@@ -67,6 +67,12 @@ install_systemd:
 	$(INSTALL) -m 644 tmpfiles.conf $(INSTALLROOT)/usr/lib/tmpfiles.d/pesign.conf
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/lib/systemd/system/
 	$(INSTALL) -m 644 pesign.service $(INSTALLROOT)/usr/lib/systemd/system/
+	$(INSTALL) -d -m 755 $(INSTALLROOT)$(PREFIX)/sbin/
+	$(INSTALL) -m 755 pesign-authorize-users $(INSTALLROOT)$(PREFIX)/sbin/pesign-authorize-users
+	$(INSTALL) -m 755 pesign-authorize-groups $(INSTALLROOT)$(PREFIX)/sbin/pesign-authorize-groups
+	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pesign
+	$(INSTALL) -m 600 /dev/null $(INSTALLROOT)/etc/pesign/users
+	$(INSTALL) -m 600 /dev/null $(INSTALLROOT)/etc/pesign/groups
 
 install_sysvinit:
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rc.d/init.d/
