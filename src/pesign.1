@@ -3,18 +3,18 @@
 pesign \- command line tool for signing UEFI applications
 
 .SH SYNOPSIS
-\fBpesign\fR [--in=\fIinfile\fR | -i \fIinfile\fR]
-       [--out=\fIoutfile\fR | -o \fIoutfile\fR]
-       [--certdir=\fIcertdir/fR | -n \fIcertdir\fR]
-       [--nss-token=\fItoken\fR | -t \fItoken\fR]
-       [--certificate=\fInickname\fR | -c \fInickname\fR]
-       [--force | -f] [--sign | -s] [--hash | -h]
-       [--digest_type=\fIdigest\fR | -d \fIdigest\fR]
-       [--show-signature | -S ] [--remove-signature | -r ]
-       [--export-pubkey=\fIoutkey\fR | -K \fIoutkey\fR]
-       [--export-cert=\fIoutcert\fR | -C \fIoutcert\fR]
-       [--ascii-armor | -a] [--daemonize | -D] [--nofork | -N]
-       [--signature-number=\fIsignum\fR | -u \fIsignum\fR]
+\fBpesign\fR [\-\-in=\fIinfile\fR | \-i \fIinfile\fR]
+       [\-\-out=\fIoutfile\fR | \-o \fIoutfile\fR]
+       [\-\-certdir=\fIcertdir/fR | \-n \fIcertdir\fR]
+       [\-\-nss\-token=\fItoken\fR | \-t \fItoken\fR]
+       [\-\-certificate=\fInickname\fR | \-c \fInickname\fR]
+       [\-\-force | \-f] [\-\-sign | \-s] [\-\-hash | \-h]
+       [\-\-digest_type=\fIdigest\fR | \-d \fIdigest\fR]
+       [\-\-show\-signature | \-S ] [\-\-remove\-signature | \-r ]
+       [\-\-export\-pubkey=\fIoutkey\fR | \-K \fIoutkey\fR]
+       [\-\-export\-cert=\fIoutcert\fR | \-C \fIoutcert\fR]
+       [\-\-ascii\-armor | \-a] [\-\-daemonize | \-D] [\-\-nofork | \-N]
+       [\-\-signature\-number=\fIsignum\fR | \-u \fIsignum\fR]
 
 .SH DESCRIPTION
 \fBpesign\fR is a command line tool for manipulating signatures and 
@@ -57,7 +57,7 @@ Display the cryptographic digest of the input binary on standard output.
 .TP
 \fB-\-digest_type\fR=\fIdigest\fR
 Use the specified digest in hashing and signing operations. By default,
-this value is "sha256".  Use "--digest_type=help" to list the available
+this value is "sha256".  Use "\-\-digest_type=help" to list the available
 digests.
 
 .TP
@@ -74,11 +74,11 @@ Specify which signature to operate on.  This field is zero-indexed.
 
 .TP
 \fB-\-export-pubkey\fR=\fIoutkey\fR
-Export the public key specified by --certificate to \fIoutkey\fR
+Export the public key specified by \-\-certificate to \fIoutkey\fR
 
 .TP
 \fB-\-export-cert\fR=\fIoutcert\fR
-Export the certificate specified by --certificate to \fIoutcert\fR
+Export the certificate specified by \-\-certificate to \fIoutcert\fR
 
 .TP
 \fB-\-ascii\fR
@@ -103,30 +103,30 @@ may be used to sign a PE image:
 # certificate file.
 .RE
 .RS 4
-host:~$ openssl pkcs12 -export -out foo_key.p12 \\
+host:~$ openssl pkcs12 \-export \-out foo_key.p12 \\
 .RE
 .RS 20
--inkey signing_key.pem \\
+\-inkey signing_key.pem \\
 .RE
 .RS 20
--in xyz_cert.x509.pem
+\-in xyz_cert.x509.pem
 .LP
 .RE
 .RS 4
 # Import pkcs12 file into pesign db
 .RE
 .RS 4
-host:~$ pk12util -i foo_key.p12 -d /etc/pki/pesign
+host:~$ pk12util \-i foo_key.p12 \-d /etc/pki/pesign
 .LP
 .RE
 .RS 4
 # Do the signing
 .RE
 .RS 4
-host:~$ pesign -i <input-file> -o <output-file> \\
+host:~$ pesign \-i <input\-file> \-o <output\-file> \\
 .RE
 .RS 19
--c <cert nickname>  -s
+\-c <cert nickname>  \-s
 .RE
 .LP
 Please note that this is just an example, and that recommended best practice
