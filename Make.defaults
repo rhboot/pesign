@@ -12,7 +12,8 @@ LDFLAGS	   = -nostdlib
 CCLDFLAGS  = -shared
 INSTALL	   = install
 # XXX this is broken
-bindir     = /usr/bin/
+bindir     = $(PREFIX)/bin/
+libexecdir = $(PREFIX)/libexec
 
 CC            = $(bindir)gcc
 AS            = $(bindir)as
