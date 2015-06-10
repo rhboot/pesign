@@ -10,7 +10,8 @@ LDFLAGS =
 CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --libs-only-L $(pklib))) -pie -fPIE -Wl,-z,relro,-z,now
 BUILDFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib))) -Werror -fPIE
 
-TARGETS = pesign authvar client efisiglist efikeygen peverify
+TARGETS = pesign authvar client efisiglist efikeygen peverify \
+	pesign.service pesign.sysvinit
 
 all : $(TARGETS)
 
@@ -57,6 +58,9 @@ fuzzsocket : $(fuzzsocket_OBJECTS) -lrt
 DEPS = $(generic_DEPS) $(authvar_DEPS) $(pesign_DEPS) $(client_DEPS) \
 	$(peverify_DEPS) $(efisiglist_DEPS) $(efikeygen_DEPS)
 
+pesign.sysvinit pesign.service : % : %.in
+	sed -e "s,@@LIBEXECDIR@@,$(libexecdir),g" $< > $@
+
 deps : $(DEPS)
 
 depclean :
@@ -67,19 +71,19 @@ depclean :
 clean : depclean
 	@rm -rfv *.o *.a *.so $(TARGETS)
 
-install_systemd:
+install_systemd: pesign.service
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/lib/tmpfiles.d/
 	$(INSTALL) -m 644 tmpfiles.conf $(INSTALLROOT)/usr/lib/tmpfiles.d/pesign.conf
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/lib/systemd/system/
 	$(INSTALL) -m 644 pesign.service $(INSTALLROOT)/usr/lib/systemd/system/
-	$(INSTALL) -d -m 755 $(INSTALLROOT)$(PREFIX)/sbin/
-	$(INSTALL) -m 755 pesign-authorize-users $(INSTALLROOT)$(PREFIX)/sbin/pesign-authorize-users
-	$(INSTALL) -m 755 pesign-authorize-groups $(INSTALLROOT)$(PREFIX)/sbin/pesign-authorize-groups
+	$(INSTALL) -d -m 755 $(INSTALLROOT)$(libexecdir)/pesign/
+	$(INSTALL) -m 755 pesign-authorize-users $(INSTALLROOT)$(libexecdir)/pesign/pesign-authorize-users
+	$(INSTALL) -m 755 pesign-authorize-groups $(INSTALLROOT)$(libexecdir)/pesign/pesign-authorize-groups
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pesign
 	$(INSTALL) -m 600 /dev/null $(INSTALLROOT)/etc/pesign/users
 	$(INSTALL) -m 600 /dev/null $(INSTALLROOT)/etc/pesign/groups
 
-install_sysvinit:
+install_sysvinit: pesign.sysvinit
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rc.d/init.d/
 	$(INSTALL) -m 755 pesign.sysvinit $(INSTALLROOT)/etc/rc.d/init.d/pesign
 

@@ -24,8 +24,8 @@ start(){
     RETVAL=$?
     echo
     touch /var/lock/subsys/pesign
-    /usr/sbin/pesign-authorize-users
-    /usr/sbin/pesign-authorize-groups
+    @@LIBEXECDIR@@/pesign/pesign-authorize-users
+    @@LIBEXECDIR@@/pesign/pesign-authorize-groups
 }
 
 stop(){
