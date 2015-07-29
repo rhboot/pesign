@@ -1,33 +1,35 @@
-TOPDIR = $(shell echo $$PWD)
+SRCDIR = $(realpath .)
+TOPDIR = $(realpath .)
 
+include $(TOPDIR)/Make.version
+include $(TOPDIR)/Make.rules
 include $(TOPDIR)/Make.defaults
 
 SUBDIRS := include libdpe src
-DOCDIR := /share/doc/
-VERSION = 0.110
-
-all : $(SUBDIRS)
-
-$(SUBDIRS) :
-	$(MAKE) -C $@ TOPDIR=$(TOPDIR) SRCDIR=$(TOPDIR)/$@/ ARCH=$(ARCH)
-
-clean :
-	@for x in $(SUBDIRS) ; do $(MAKE) -C $${x} TOPDIR=$(TOPDIR) SRCDIR=$(TOPDIR)/$@/ ARCH=$(ARCH) $@ ; done
 
 install :
-	@for x in $(SUBDIRS) ; do $(MAKE) -C $${x} TOPDIR=$(TOPDIR) SRCDIR=$(TOPDIR)/$@/ ARCH=$(ARCH) $@ ; done
-	$(INSTALL) -d -m 755 $(INSTALLROOT)$(PREFIX)$(DOCDIR)/pesign/
-	$(INSTALL) -pm 644 COPYING $(INSTALLROOT)$(PREFIX)$(DOCDIR)/pesign/
+	$(INSTALL) -d -m 755 $(INSTALLROOT)$(prefix)$(docdir)/pesign-$(VERSION)/
+	$(INSTALL) -pm 644 COPYING $(INSTALLROOT)$(prefix)$(docdir)/pesign-$(VERSION)/
+	@set -e ; for x in $(SUBDIRS) ; do \
+		$(MAKE) -C $$x $@ ; \
+	done
 
-install_systemd:
-	@for x in $(SUBDIRS) ; do $(MAKE) -C $${x} TOPDIR=$(TOPDIR) SRCDIR=$(TOPDIR)/$@/ ARCH=$(ARCH) $@ ; done
+install_systemd install_sysvinit : install
+	@set -e ; for x in $(SUBDIRS) ; do \
+		$(MAKE) -C $$x $@ ; \
+	done
 
-install_sysvinit:
-	@for x in $(SUBDIRS) ; do $(MAKE) -C $${x} TOPDIR=$(TOPDIR) SRCDIR=$(TOPDIR)/$@/ ARCH=$(ARCH) $@ ; done
+distclean : | clean
 
-.PHONY: $(SUBDIRS) clean install
+clean deps all : | Make.version
+	@set -e ; for x in $(SUBDIRS) ; do \
+		$(MAKE) -C $$x $@ ; \
+	done
 
-include $(TOPDIR)/Make.rules
+$(SUBDIRS) :
+	$(MAKE) -C $@ all
+
+.PHONY: $(SUBDIRS)
 
 GITTAG = $(VERSION)
 

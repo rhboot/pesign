@@ -1,82 +1,63 @@
-SRCDIR = .
-TOPDIR = $(SRCDIR)/..
+SRCDIR = $(realpath .)
+TOPDIR = $(realpath ..)
 
+include $(TOPDIR)/Make.version
+include $(TOPDIR)/Make.rules
 include $(TOPDIR)/Make.defaults
 
-PKLIBS = nss efivar
-LIBS = popt uuid
-STATIC_LIBS = $(TOPDIR)/libdpe/libdpe.a
-LDFLAGS =
-CCLDFLAGS = -L../libdpe $(foreach pklib,$(PKLIBS), $(shell pkg-config --libs-only-L $(pklib))) -pie -fPIE -Wl,-z,relro,-z,now
-BUILDFLAGS += -I../include/ $(foreach pklib,$(PKLIBS), $(shell pkg-config --cflags $(pklib))) -Werror -fPIE
+BINTARGETS=authvar client efikeygen efisiglist pesigcheck pesign
+SVCTARGETS=pesign.sysvinit pesign.service
+TARGETS=$(BINTARGETS) $(SVCTARGETS)
 
-TARGETS = pesign authvar client efisiglist efikeygen pesigcheck \
-	pesign.service pesign.sysvinit
+all : deps $(TARGETS)
 
-all : $(TARGETS)
+COMMON_SOURCES = cms_common.c content_info.c oid.c password.c \
+	signed_data.c signer_info.c wincert.c ucs2.c 
+AUTHVAR_SOURCES = authvar.c authvar_context.c
+CLIENT_SOURCES = pesign_context.c actions.c client.c
+EFIKEYGEN_SOURCES = efikeygen.c
+EFISIGLIST_SOURCES = efisiglist.c siglist.c
+PESIGCHECK_SOURCES = pesigcheck.c pesigcheck_context.c certdb.c
+PESIGN_SOURCES = pesign.c pesign_context.c actions.c daemon.c
 
-generic_SOURCES = cms_common.c wincert.c password.c ucs2.c oid.c signed_data.c signer_info.c content_info.c
-generic_OBJECTS = $(foreach source,$(generic_SOURCES),$(patsubst %.c,%,$(source)).o)
-generic_DEPS = $(foreach source,$(generic_SOURCES),.$(patsubst %.c,%,$(source)).P)
-generic.a : $(generic_OBJECTS)
+ALL_SOURCES=$(COMMON_SOURCES) $(AUTHVAR_SORUCES) $(CLIENT_SOURCES) \
+	$(EFIKEYGEN_SOURCES) $(EFISIGLIST_SOURCES) $(PESIGCHECK_SOURCES) \
+	$(PESIGN_SOURCES)
+-include $(call deps-of,$(ALL_SOURCES))
 
-authvar_SOURCES = authvar.c authvar_context.c
-authvar_OBJECTS = $(foreach source,$(authvar_SOURCES),$(patsubst %.c,%,$(source)).o) generic.a
-authvar_DEPS = $(foreach source,$(authvar_SOURCES),.$(patsubst %.c,%,$(source)).P)
-authvar : $(authvar_OBJECTS) $(STATIC_LIBS)
+authvar : $(call objects-of,$(AUTHVAR_SOURCES) $(COMMON_SOURCES)) \
+	  $(TOPDIR)/libdpe/libdpe.a
+authvar : PKGS=efivar nss nspr popt
 
-pesign_SOURCES = pesign.c pesign_context.c actions.c daemon.c
-pesign_OBJECTS = $(foreach source,$(pesign_SOURCES),$(patsubst %.c,%,$(source)).o) generic.a
-pesign_DEPS = $(foreach source,$(pesign_SOURCES),.$(patsubst %.c,%,$(source)).P)
-pesign : $(pesign_OBJECTS) $(STATIC_LIBS)
+client : $(call objects-of,$(CLIENT_SOURCES) $(COMMON_SOURCES))
+client : PKGS=efivar nss nspr popt
 
-pesigcheck_SOURCES = pesigcheck.c pesigcheck_context.c certdb.c
-pesigcheck_OBJECTS = $(foreach source,$(pesigcheck_SOURCES),$(patsubst %.c,%,$(source)).o) generic.a
-pesigcheck_DEPS = $(foreach source,$(pesigcheck_SOURCES),.$(patsubst %.c,%,$(source)).P)
-pesigcheck : $(pesigcheck_OBJECTS) $(STATIC_LIBS)
+efikeygen : $(call objects-of,$(EFIKEYGEN_SOURCES) $(COMMON_SOURCES))
+efikeygen : PKGS=nss nspr popt uuid
 
-client_SOURCES = pesign_context.c actions.c client.c
-client_OBJECTS = $(foreach source,$(client_SOURCES),$(patsubst %.c,%,$(source)).o) generic.a
-client_DEPS = $(foreach source,$(client_SOURCES),.$(patsubst %.c,%,$(source)).P)
-client : $(client_OBJECTS) $(STATIC_LIBS)
+efisiglist : $(call objects-of,$(EFISIGLIST_SOURCES) $(COMMON_SOURCES))
+efisiglist : PKGS=efivar nss nspr popt
 
-efisiglist_SOURCES = efisiglist.c siglist.c
-efisiglist_OBJECTS = $(foreach source,$(efisiglist_SOURCES),$(patsubst %.c,%,$(source)).o)
-efisiglist_DEPS = $(foreach source,$(efisiglist_SOURCES),.$(patsubst %.c,%,$(source)).P)
-efisiglist : $(efisiglist_OBJECTS)
+pesigcheck : $(call objects-of,$(PESIGCHECK_SOURCES) $(COMMON_SOURCES)) \
+	     $(TOPDIR)/libdpe/libdpe.a
+pesigcheck : PKGS=efivar nss nspr popt
 
-efikeygen_SOURCES = efikeygen.c
-efikeygen_OBJECTS = $(foreach source,$(efikeygen_SOURCES),$(patsubst %.c,%,$(source)).o) generic.a
-efikeygen_DEPS = $(foreach source,$(efikeygen_SOURCES),.$(patsubst %.c,%,$(source)).P)
-efikeygen : $(efikeygen_OBJECTS) $(STATIC_LIBS)
+pesign : $(call objects-of,$(PESIGN_SOURCES) $(COMMON_SOURCES)) \
+	 $(TOPDIR)/libdpe/libdpe.a
+pesign : PKGS=efivar nss nspr popt
 
-DEPS = $(generic_DEPS) $(authvar_DEPS) $(pesign_DEPS) $(client_DEPS) \
-	$(pesigcheck_DEPS) $(efisiglist_DEPS) $(efikeygen_DEPS)
+deps : $(ALL_SOURCES)
+	$(MAKE) -f $(TOPDIR)/Make.deps deps SOURCES="$(ALL_SOURCES)"
 
-pesign.sysvinit pesign.service : % : %.in
-	sed -e "s,@@LIBEXECDIR@@,$(libexecdir),g" $< > $@
-
-deps : $(DEPS)
-
-depclean :
-	@rm -fv .*.P
-
--include $(DEPS)
-
-clean : depclean
+clean :
 	@rm -rfv *.o *.a *.so $(TARGETS)
+	@rm -rfv .*.d
 
 install_systemd: pesign.service
-	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/lib/tmpfiles.d/
-	$(INSTALL) -m 644 tmpfiles.conf $(INSTALLROOT)/usr/lib/tmpfiles.d/pesign.conf
-	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/lib/systemd/system/
-	$(INSTALL) -m 644 pesign.service $(INSTALLROOT)/usr/lib/systemd/system/
-	$(INSTALL) -d -m 755 $(INSTALLROOT)$(libexecdir)/pesign/
-	$(INSTALL) -m 755 pesign-authorize-users $(INSTALLROOT)$(libexecdir)/pesign/pesign-authorize-users
-	$(INSTALL) -m 755 pesign-authorize-groups $(INSTALLROOT)$(libexecdir)/pesign/pesign-authorize-groups
-	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pesign
-	$(INSTALL) -m 600 /dev/null $(INSTALLROOT)/etc/pesign/users
-	$(INSTALL) -m 600 /dev/null $(INSTALLROOT)/etc/pesign/groups
+	$(INSTALL) -d -m 755 $(INSTALLROOT)$(libdatadir)tmpfiles.d/
+	$(INSTALL) -m 644 tmpfiles.conf $(INSTALLROOT)$(libdatadir)tmpfiles.d/pesign.conf
+	$(INSTALL) -d -m 755 $(INSTALLROOT)$(libdatadir)systemd/system/
+	$(INSTALL) -m 644 pesign.service $(INSTALLROOT)$(libdatadir)systemd/system/
 
 install_sysvinit: pesign.sysvinit
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rc.d/init.d/
@@ -85,25 +66,29 @@ install_sysvinit: pesign.sysvinit
 install :
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pki/pesign/
 	$(INSTALL) -d -m 770 $(INSTALLROOT)/var/run/pesign/
-	$(INSTALL) -d -m 755 $(INSTALLROOT)$(PREFIX)/bin/
-	$(INSTALL) -m 755 authvar $(INSTALLROOT)$(PREFIX)/bin/
-	$(INSTALL) -m 755 pesign $(INSTALLROOT)$(PREFIX)/bin/
-	$(INSTALL) -m 755 client $(INSTALLROOT)$(PREFIX)/bin/pesign-client
-	$(INSTALL) -m 755 efikeygen $(INSTALLROOT)$(PREFIX)/bin/
-	$(INSTALL) -m 755 efisiglist $(INSTALLROOT)$(PREFIX)/bin/
-	$(INSTALL) -m 755 pesigcheck $(INSTALLROOT)$(PREFIX)/bin/
+	$(INSTALL) -d -m 755 $(INSTALLROOT)$(bindir)
+	$(INSTALL) -m 755 authvar $(INSTALLROOT)$(bindir)
+	$(INSTALL) -m 755 pesign $(INSTALLROOT)$(bindir)
+	$(INSTALL) -m 755 client $(INSTALLROOT)$(bindir)pesign-client
+	$(INSTALL) -m 755 efikeygen $(INSTALLROOT)$(bindir)
+	$(INSTALL) -m 755 efisiglist $(INSTALLROOT)$(bindir)
+	$(INSTALL) -m 755 pesigcheck $(INSTALLROOT)$(bindir)
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -m 644 pesign.popt $(INSTALLROOT)/etc/popt.d/
-	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/share/man/man1/
-	$(INSTALL) -m 644 pesign.1 $(INSTALLROOT)/usr/share/man/man1/
-	$(INSTALL) -m 644 pesign-client.1 $(INSTALLROOT)/usr/share/man/man1/
-	$(INSTALL) -m 644 efikeygen.1 $(INSTALLROOT)/usr/share/man/man1/
-	$(INSTALL) -m 644 pesigcheck.1 $(INSTALLROOT)/usr/share/man/man1/
-	$(INSTALL) -m 644 authvar.1 $(INSTALLROOT)/usr/share/man/man1/
-	$(INSTALL) -m 644 efisiglist.1 $(INSTALLROOT)/usr/share/man/man1/
+	$(INSTALL) -d -m 755 $(INSTALLROOT)$(mandir)man1/
+	$(INSTALL) -m 644 pesign.1 $(INSTALLROOT)$(mandir)man1/
+	$(INSTALL) -m 644 pesign-client.1 $(INSTALLROOT)$(mandir)man1/
+	$(INSTALL) -m 644 efikeygen.1 $(INSTALLROOT)$(mandir)man1/
+	$(INSTALL) -m 644 pesigcheck.1 $(INSTALLROOT)$(mandir)man1/
+	$(INSTALL) -m 644 authvar.1 $(INSTALLROOT)$(mandir)man1/
+	$(INSTALL) -m 644 efisiglist.1 $(INSTALLROOT)$(mandir)man1/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
+	$(INSTALL) -d -m 755 $(INSTALLROOT)$(libexecdir)/pesign/
+	$(INSTALL) -m 750 pesign-authorize-users $(INSTALLROOT)$(libexecdir)/pesign/
+	$(INSTALL) -m 750 pesign-authorize-groups $(INSTALLROOT)$(libexecdir)/pesign/
+	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pesign
+	$(INSTALL) -m 600 /dev/null $(INSTALLROOT)/etc/pesign/users
+	$(INSTALL) -m 600 /dev/null $(INSTALLROOT)/etc/pesign/groups
 
-.PHONY: all deps clean depclean install
-
-include $(TOPDIR)/Make.rules
+.PHONY: all deps clean install

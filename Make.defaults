@@ -1,42 +1,73 @@
-INSTALLROOT:= $(DESTDIR)
-PREFIX := /usr
+prefix	?= /usr/
+prefix	:= $(abspath $(prefix))/
+libdir	?= $(prefix)lib64/
+libdatadir ?= $(prefix)lib/
+libexecdir ?= $(prefix)libexec/
+datadir	?= $(prefix)share/
+mandir	?= $(datadir)man/
+includedir ?= $(prefix)include/
+bindir	?= $(prefix)bin/
+pcdir	?= $(libdir)pkgconfig/
+docdir	?= $(prefix)share/doc/
+DESTDIR	?=
+INSTALLROOT = $(DESTDIR)
+
+INSTALL	?= install
+CROSS_COMPILE	?= $(bindir)
+
+PKG_CONFIG = $(CROSS_COMPILE)pkg-config
+CC	:= $(if $(filter default,$(origin CC)),$(CROSS_COMPILE)gcc,$(CC))
+CCLD	:= $(if $(filter undefined,$(origin CCLD)),$(CC),$(CCLD))
+CFLAGS	?= -O2 -g
+AS	:= $(CROSS_COMPILE)as
+AR	:= $(CROSS_COMPILE)gcc-ar
+RANLIB	:= $(CROSS_COMPILE)gcc-ranlib
+OBJCOPY	:= $(CROSS_COMPILE)objcopy
+LD	:= $(CROSS_COMPILE)ld
+INSTALL	:= $(CROSS_COMPILE)install
+
+PKGS	=
 
 HOSTARCH   = $(shell uname -m | sed s,i[3456789]86,ia32,)
 ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
-INCDIR	   = -I$(TOPDIR)/include
-CPPFLAGS   = -DCONFIG_$(ARCH)
-CFLAGS     = -g -O0
-BUILDFLAGS := $(CFLAGS) $(ARCH3264) -Wall -fshort-wchar -fno-strict-aliasing -fno-merge-constants --std=gnu99 -D_GNU_SOURCE -Wno-unused-result -Wno-unused-function
-ASFLAGS    = $(ARCH3264)
-LDFLAGS	   = -nostdlib
-CCLDFLAGS  = -shared
-INSTALL	   = install
-# XXX this is broken
-bindir     = $(PREFIX)/bin/
-libexecdir = $(PREFIX)/libexec
 
-CC            = $(bindir)gcc
-AS            = $(bindir)as
-LD            = $(bindir)ld.bfd
-AR            = $(bindir)ar
-RANLIB        = $(bindir)ranlib
-OBJCOPY       = $(bindir)objcopy
+SOFLAGS	= -shared
+clang_cflags =
+gcc_cflags = -Wmaybe-uninitialized
+cflags	= $(CFLAGS) $(ARCH3264) \
+	-Wall -Wsign-compare -Wno-unused-result -Wno-unused-function\
+	-std=gnu11 -fshort-wchar -fPIC -flto -fno-strict-aliasing \
+	-fno-merge-constants \
+	-D_GNU_SOURCE -DCONFIG_$(ARCH) -I${TOPDIR}/include \
+	$(if $(filter $(CC),clang),$(clang_cflags), ) \
+	$(if $(filter $(CC),gcc),$(gcc_cflags), ) \
+	$(call pkg-config-cflags)
+clang_ccldflags =
+gcc_ccldflags = -fno-merge-constants \
+	-Wl,--fatal-warnings,--no-allow-shlib-undefined,--default-symver \
+	-Wl,-O2 -Wl,--no-undefined-version -Wl,-z,relro,-z,now
+ccldflags = $(cflags) $(CCLDFLAGS) $(LDFLAGS) \
+	$(if $(filter $(CCLD),clang),$(clang_ccldflags),) \
+	$(if $(filter $(CCLD),gcc),$(gcc_ccldflags),) \
+	$(call pkg-config-ccldflags)
+efi_cflags = $(cflags)
+ASFLAGS	= $(ARCH3264)
+CPPFLAGS ?=
+
+LDLIBS	= $(foreach lib,$(LIBS),-l$(lib)) $(call pkg-config-ldlibs)
 
 ifeq ($(ARCH),ia64)
-  CFLAGS += -mfixed-range=f32-f127
-  LIBDIR = $(PREFIX)/lib64
+  efi_cflags += -mfixed-range=f32-f127
 endif
 
 ifeq ($(ARCH), ia32)
-  LIBDIR := $(PREFIX)/lib
   ifeq ($(HOSTARCH), x86_64)
     ARCH3264 := -m32
   endif
 endif
 
 ifeq ($(ARCH), x86_64)
-  CFLAGS += -mno-red-zone
-  LIBDIR := $(PREFIX)/lib64
+  efi_cflags += -mno-red-zone
   ifeq ($(HOSTARCH), ia32)
     ARCH3264 := -m64
   endif

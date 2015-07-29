@@ -3,14 +3,13 @@
 *.so
 *.a
 *.efi
-.*.P
 pesign
 authvar
-*.sw?
-core.*
 ms
 client
 efikeygen
 efisiglist
 pesigcheck
 peverify
+pesign.service
+pesign.sysvinit

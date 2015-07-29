@@ -1,25 +1,18 @@
-SRCDIR = .
-TOPDIR = $(SRCDIR)/..
+SRCDIR = $(realpath .)
+TOPDIR = $(realpath ..)
 
+include $(TOPDIR)/Make.version
+include $(TOPDIR)/Make.rules
 include $(TOPDIR)/Make.defaults
 
 SUBDIRS = libdpe
 
-all : $(SUBDIRS)
+clean all install :
+	for x in $(SUBDIRS) ; do \
+		$(MAKE) -C $$x $@ ; \
+	done
 
 $(SUBDIRS) :
-	$(MAKE) -C $@ TOPDIR=$(TOPDIR) SRCDIR=$(TOPDIR)/$@/ ARCH=$(ARCH)
+	$(MAKE) -C $@ all
 
-clean :
-	@for x in $(SUBDIRS) ; do $(MAKE) -C $${x} TOPDIR=$(TOPDIR) SRCDIR=$(TOPDIR)/$@/ ARCH=$(ARCH) $@ ; done
-
-install :
-	@for x in $(SUBDIRS) ; do $(MAKE) -C $${x} TOPDIR=$(TOPDIR) SRCDIR=$(TOPDIR)/$@/ ARCH=$(ARCH) $@ ; done
-
-install_systemd:
-
-install_sysvinit:
-
-.PHONY: all $(SUBDIRS) clean install
-
-include $(TOPDIR)/Make.rules
+.PHONY: $(SUBDIRS)

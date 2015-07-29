@@ -1,46 +1,40 @@
-SRCDIR = .
-TOPDIR = $(SRCDIR)/..
+SRCDIR = $(realpath .)
+TOPDIR = $(realpath ..)
 
-SONAME = libdpe.so.0
-
+include $(TOPDIR)/Make.version
+include $(TOPDIR)/Make.rules
 include $(TOPDIR)/Make.defaults
 
-BUILDFLAGS += -fPIC
-CCLDFLAGS += -fPIC -Wl,-z,relro,-z,now
+LIBTARGETS=libdpe.so
+STATICLIBTARGETS=libdpe.a
+TARGETS=$(LIBTARGETS) $(STATICLIBTARGETS)
 
-TARGETS = libdpe.so libdpe.a
-all : $(TARGETS)
+LIBDPE_SOURCES = $(wildcard *.c)
+ALL_SOURCES=$(LIBDPE_SOURCES)
+-include $(call deps-of,$(ALL_SOURCES))
 
-SOURCES = $(patsubst %.c,%,$(wildcard *.c))
-OBJECTS = $(foreach source,$(SOURCES),$(source).o)
-DEPS = $(foreach source,$(SOURCES),.$(source).P)
-# PEOBJECTS = $(foreach source,$(SOURCES),$(source)_pe.o)
+all : deps $(TARGETS)
 
-libdpe.a :: $(OBJECTS)
+libdpe.a : $(call objects-of,$(LIBDPE_SOURCES))
+libdpe.a : LIBS=pthread
+# libdpe.a : | $(wildcard *.h) $(wildcard $(TOPDIR)/include/libdpe/*.h)
+libdpe.so : $(call objects-of,$(LIBDPE_SOURCES))
+libdpe.so : LIBS=pthread
+# libdpe.so : | $(wildcard *.h) $(wildcard $(TOPDIR)/include/libdpe/*.h)
 
-libdpe.so :: $(OBJECTS)
+deps : $(ALL_SOURCES)
+	$(MAKE) -f $(TOPDIR)/Make.deps deps SOURCES="$(ALL_SOURCES)"
 
-deps : $(DEPS)
+clean :
+	@rm -rfv *~ *.o *.a *.so *.so.* .*.d
 
--include $(DEPS)
+#install :
+#	$(INSTALL) -d -m 755 $(DESTDIR)$(libdir)
+#	$(foreach x,$(LIBTARGETS), \
+#		$(INSTALL) -m 755 $(x) $(DESTDIR)$(libdir)/$(x).$(VERSION) ;\
+#		ln -fs $(x).$(VERSION) $(DESTDIR)$(libdir)/$(x).$(MAJOR_VERSION) ;\
+#		ln -fs $(x).$(VERSION) $(DESTDIR)$(libdir)/$(x); )
+#	$(foreach x,$(STATICLIBTARGETS), \
+#		$(INSTALL) -m 644 $(x) $(DESTDIR)$(libdir)/$(x); )
 
-depclean :
-	@rm -fv .*.P
-
-clean : depclean
-	@rm -rfv *~ *.o *.a *.so
-
-install :
-	echo "LIBDIR: $(LIBDIR)"
-	$(INSTALL) -d -m 755 $(INSTALLROOT)$(LIBDIR)
-	for x in $(TARGETS) ; do \
-		$(INSTALL) -m 755  $$x $(INSTALLROOT)$(LIBDIR) ; \
-	done
-
-install_systemd:
-
-install_sysvinit:
-
-.PHONY: all clean install
-
-include $(TOPDIR)/Make.rules
+.SECONDARY : $(foreach x,$(LIBTARGETS),$(x).$(VERSION) $(x).$(MAJOR_VERSION))

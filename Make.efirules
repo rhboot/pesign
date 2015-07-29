@@ -1,3 +1,9 @@
+default : all
+
+.PHONY: default all deps clean install test
+
+include $(TOPDIR)/Make.version
+
 %.efi : %.so
 	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
 		   -j .rela -j .reloc --target=$(FORMAT) $*.so $@

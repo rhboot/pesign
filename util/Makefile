@@ -1,6 +1,9 @@
-SRCDIR = .
-TOPDIR = $(SRCDIR)/..
+SRCDIR = $(realpath .)
+TOPDIR = $(realpath ..)
 
+include $(TOPDIR)/Make.version
+include $(TOPDIR)/Make.rules
+include $(TOPDIR)/Make.efirules
 include $(TOPDIR)/Make.defaults
 
 FORMAT=efi-app-$(HOSTARCH)
@@ -14,7 +17,7 @@ TARGETS = setupsb.efi dumpsb.efi clearpk.efi
 all : $(TARGETS)
 
 clean : 
-	@rm -rfv *.o *.a *.so $(TARGETS)
+	@rm -rfv *.o *.a *.so .*.d $(TARGETS)
 
 install :
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/boot/efi/EFI/redhat/
