@@ -23,7 +23,7 @@ test :
 
 % : %.c
 
-% :
+$(BINTARGETS) : % :
 	$(CCLD) $(ccldflags) $(CPPFLAGS) -o $@ $^ $(LDLIBS)
 
 %.so : 
