@@ -184,7 +184,7 @@ oom:
 	n = recvmsg(pollfd->fd, &msg, MSG_WAITALL);
 
 	pesignd_string *tn = (pesignd_string *)buffer;
-	if (n < sizeof(tn->size)) {
+	if (n < (long long)sizeof(tn->size)) {
 malformed:
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
 			"unlock-token: invalid data");
@@ -202,7 +202,7 @@ malformed:
 		goto malformed;
 
 	pesignd_string *tp = pesignd_string_next(tn);
-	if (n < sizeof(tp->size))
+	if (n < (long long)sizeof(tp->size))
 		goto malformed;
 	n -= sizeof(tp->size);
 	if (n < tp->size)
@@ -288,7 +288,7 @@ handle_is_token_unlocked(context *ctx, struct pollfd *pollfd, socklen_t size)
 	n = recvmsg(pollfd->fd, &msg, MSG_WAITALL);
 
 	pesignd_string *tn = (pesignd_string *)buffer;
-	if (n < sizeof(tn->size)) {
+	if (n < (long long)sizeof(tn->size)) {
 malformed:
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
 			"unlock-token: invalid data");
@@ -476,7 +476,7 @@ oom:
 	n = recvmsg(pollfd->fd, &msg, MSG_WAITALL);
 
 	pesignd_string *tn = (pesignd_string *)buffer;
-	if (n < sizeof(tn->size)) {
+	if (n < (long long)sizeof(tn->size)) {
 malformed:
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
 			"handle_signing: invalid data");
@@ -497,7 +497,7 @@ malformed:
 	if (!ctx->cms->tokenname)
 		goto oom;
 
-	if (n < sizeof(tn->size))
+	if (n < (long long)sizeof(tn->size))
 		goto malformed;
 	pesignd_string *cn = pesignd_string_next(tn);
 	n -= sizeof(cn->size);
@@ -690,7 +690,7 @@ handle_get_cmd_version(context *ctx, struct pollfd *pollfd, socklen_t size)
 	int32_t version = -1;
 	uint32_t command;
 
-	if (n < sizeof(command)) {
+	if (n < (long long)sizeof(command)) {
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
 			"unlock-token: invalid data");
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
@@ -760,7 +760,7 @@ handle_event(context *ctx, struct pollfd *pollfd)
 	if (n == 0)
 		return n;
 
-	if (n < sizeof (pm)) {
+	if (n < (long long)sizeof (pm)) {
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
 			"got message with invalid size %zu", n);
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,

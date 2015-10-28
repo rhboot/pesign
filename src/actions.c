@@ -211,7 +211,7 @@ export_pubkey(pesign_context *p_ctx)
 	SECItem derPublicKey = ctx->cert->derPublicKey;
 	rc = write(p_ctx->outkeyfd, derPublicKey.data, derPublicKey.len);
 	close(p_ctx->outkeyfd);
-	if (rc == derPublicKey.len)
+	if (rc >= 0 && (unsigned long)rc == derPublicKey.len)
 		exit(0);
 	exit(1);
 }
@@ -225,15 +225,15 @@ export_cert(pesign_context *p_ctx)
 	SECItem derCert = ctx->cert->derCert;
 	rc = write(p_ctx->outcertfd, derCert.data, derCert.len);
 	close(p_ctx->outcertfd);
-	if (rc == derCert.len)
+	if (rc >= 0 && (unsigned long)rc == derCert.len)
 		exit(0);
 	exit(1);
 }
 
-off_t
+ssize_t
 export_signature(cms_context *cms, int fd, int ascii_armor)
 {
-	off_t ret = 0;
+	ssize_t ret = 0;
 	int rc = 0;
 
 	SECItem *sig = &cms->newsig;

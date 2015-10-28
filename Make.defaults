@@ -35,13 +35,14 @@ SOFLAGS	= -shared
 clang_cflags =
 gcc_cflags = -Wmaybe-uninitialized
 cflags	= $(CFLAGS) $(ARCH3264) \
-	-Wall -Wsign-compare -Wno-unused-result -Wno-unused-function\
+	-Wall -Werror -Wno-cpp  -Wsign-compare -Wno-unused-result \
+	-Wno-unused-function\
 	-std=gnu11 -fshort-wchar -fPIC -flto -fno-strict-aliasing \
 	-fno-merge-constants \
 	-D_GNU_SOURCE -DCONFIG_$(ARCH) -I${TOPDIR}/include \
 	$(if $(filter $(CC),clang),$(clang_cflags), ) \
 	$(if $(filter $(CC),gcc),$(gcc_cflags), ) \
-	$(call pkg-config-cflags)
+	$(call pkg-config-cflags) -Werror
 clang_ccldflags =
 gcc_ccldflags = -fno-merge-constants \
 	-Wl,--fatal-warnings,--no-allow-shlib-undefined,--default-symver \

@@ -195,8 +195,8 @@ check_db(db_specifier which, pesigcheck_context *ctx, checkfn check,
 			cert = (EFI_SIGNATURE_DATA *)((uint8_t *)certlist +
 				sizeof(EFI_SIGNATURE_LIST) +
 				certlist->SignatureHeaderSize);
-			
-			for (int i = 0; i < certcount; i++) {
+
+			for (unsigned int i = 0; i < certcount; i++) {
 				sig.data = cert->SignatureData;
 				sig.len = certlist->SignatureSize - sizeof(efi_guid_t);
 				found = check(ctx, &sig, &certlist->SignatureType,

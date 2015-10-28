@@ -86,7 +86,7 @@ hex_to_bin(char *hex, size_t size)
 	if (!ret)
 		return NULL;
 
-	for (int i = 0, j = 0; i < size*2; i+= 2, j++) {
+	for (unsigned int i = 0, j = 0; i < size*2; i+= 2, j++) {
 		uint8_t val;
 
 		val = hexchar_to_bin(hex[i]);

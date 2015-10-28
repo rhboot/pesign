@@ -137,7 +137,7 @@ __pe_updatemmap(Pe *pe, size_t shnum)
 
 	size_t dd_size = sizeof (*dd) / sizeof (dd->exports);
 	data_dirent *dde = &dd->exports;
-	for (int i = 0; i < dd_size; i++, dde++) {
+	for (unsigned int i = 0; i < dd_size; i++, dde++) {
 		if (dde->size != 0) {
 			char *addr = compute_mem_addr(pe, dde->virtual_address);
 			msync(addr, dde->size, MS_SYNC);

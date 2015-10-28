@@ -51,7 +51,7 @@ extern uint16_t *ascii_to_ucs2(const char *s)
 	ret = calloc(2, size);
 	if (!ret)
 		return NULL;
-	for (int i = 0; i < size; i++)
+	for (unsigned int i = 0; i < size; i++)
 		ret[i] = s[i];
 	return ret;
 }

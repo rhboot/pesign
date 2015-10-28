@@ -131,7 +131,7 @@ done:
 		return 0;
 	}
 
-	off_t n = iter->n;
+	size_t n = iter->n;
 	void *certs = iter->certs;
 	size_t size = iter->size;
 
@@ -149,7 +149,7 @@ done:
 
 		tmpcert = (win_certificate *)((uint8_t *)certs + n);
 
-		if ((intptr_t)tmpcert >	(intptr_t)map + map_size)
+		if ((intptr_t)tmpcert > (intptr_t)((intptr_t)map + map_size))
 			return -1;
 
 		/* length _includes_ the size of the structure. */

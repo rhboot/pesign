@@ -140,7 +140,8 @@ signature_list_add_sig(signature_list *sl, efi_guid_t owner,
 	if (!efi_guid_cmp(sl->SignatureType, &efi_guid_x509_cert)) {
 		if (sigsize > sl->SignatureSize)
 			resize_entries(sl, sigsize + sizeof (efi_guid_t));
-	} else if (sigsize != get_sig_type_size(sl->SignatureType)) {
+	} else if (sigsize !=
+		   (unsigned long long)get_sig_type_size(sl->SignatureType)) {
 		char *guidname = NULL;
 		int rc = efi_guid_to_id_guid(sl->SignatureType, &guidname);
 		if (rc < 0) {

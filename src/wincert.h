@@ -36,7 +36,7 @@ typedef struct win_certificate {
 
 typedef struct cert_iter {
 	Pe *pe;
-	off_t n;
+	size_t n;
 	void *certs;
 	size_t size;
 } cert_iter;

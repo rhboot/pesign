@@ -338,7 +338,7 @@ generate_cinfo_digest(cms_context *cms, SpcContentInfo *cip)
 		goto err;
 	}
 
-	if (cms->ci_digest->len > digest_get_digest_size(cms))
+	if ((long long)cms->ci_digest->len > digest_get_digest_size(cms))
 		goto err;
 
 	PK11_DestroyContext(ctx, PR_TRUE);
