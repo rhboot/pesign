@@ -194,7 +194,7 @@ malformed:
 		return;
 	}
 	n -= sizeof(tn->size);
-	if (n < tn->size)
+	if ((size_t)n < tn->size)
 		goto malformed;
 	n -= tn->size;
 
@@ -202,10 +202,10 @@ malformed:
 		goto malformed;
 
 	pesignd_string *tp = pesignd_string_next(tn);
-	if (n < (long long)sizeof(tp->size))
+	if ((size_t)n < sizeof(tp->size))
 		goto malformed;
 	n -= sizeof(tp->size);
-	if (n < tp->size)
+	if ((size_t)n < tp->size)
 		goto malformed;
 	n -= tp->size;
 
@@ -298,7 +298,7 @@ malformed:
 		return;
 	}
 	n -= sizeof(tn->size);
-	if (n < tn->size)
+	if ((size_t)n < tn->size)
 		goto malformed;
 	n -= tn->size;
 
@@ -487,7 +487,7 @@ malformed:
 	}
 
 	n -= sizeof(tn->size);
-	if (n < tn->size)
+	if ((size_t)n < tn->size)
 		goto malformed;
 	n -= tn->size;
 
@@ -497,11 +497,11 @@ malformed:
 	if (!ctx->cms->tokenname)
 		goto oom;
 
-	if (n < (long long)sizeof(tn->size))
+	if ((size_t)n < sizeof(tn->size))
 		goto malformed;
 	pesignd_string *cn = pesignd_string_next(tn);
 	n -= sizeof(cn->size);
-	if (n < cn->size)
+	if ((size_t)n < cn->size)
 		goto malformed;
 
 	ctx->cms->certname = PORT_ArenaStrdup(ctx->cms->arena,
