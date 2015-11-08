@@ -17,7 +17,9 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <err.h>
 #include <fcntl.h>
+#include <glob.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -576,14 +578,28 @@ main(int argc, char *argv[])
 
 	if (!daemon) {
 		SECStatus status;
-		if (need_db)
+		if (need_db) {
 			status = NSS_Init(certdir);
-		else
+			if (status != SECSuccess) {
+				char *globpattern = NULL;
+				rc = asprintf(&globpattern, "%s/cert*.db",
+					      certdir);
+				if (rc > 0) {
+					glob_t globbuf;
+					memset(&globbuf, 0, sizeof(globbuf));
+					rc = glob(globpattern, GLOB_ERR, NULL,
+						  &globbuf);
+					if (rc != 0) {
+						err(1, "Could not open NSS database (\"%s\")",
+						     PORT_ErrorToString(PORT_GetError()));
+					}
+				}
+			}
+		} else
 			status = NSS_NoDB_Init(NULL);
 		if (status != SECSuccess) {
-			fprintf(stderr, "Could not initialize nss: %s\n",
+			errx(1, "Could not initialize nss. NSS says \"%s\" errno says \"%m\"\n",
 				PORT_ErrorToString(PORT_GetError()));
-			exit(1);
 		}
 
 		status = register_oids(ctxp->cms_ctx);
