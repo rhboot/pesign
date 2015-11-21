@@ -17,5 +17,9 @@ if [[ -r /etc/pesign/groups ]]; then
 		setfacl -m g:${group}:rw /var/run/pesign/socket
 	    fi
 	fi
+	if [ -d /etc/pki/pesign ]; then
+	    setfacl -m g:${group}:rx /etc/pki/pesign
+	    setfacl -m g:${group}:r /etc/pki/pesign/{cert8,key3,secmod}.db
+	fi
     done
 fi
