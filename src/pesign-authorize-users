@@ -12,10 +12,14 @@
 if [[ -r /etc/pesign/users ]]; then
     for username in $(cat /etc/pesign/users); do
 	if [ -d /var/run/pesign ]; then
-	    setfacl -m g:${username}:rx /var/run/pesign
+	    setfacl -m u:${username}:rx /var/run/pesign
 	    if [ -e /var/run/pesign/socket ]; then
-		setfacl -m g:${username}:rw /var/run/pesign/socket
+		setfacl -m u:${username}:rw /var/run/pesign/socket
 	    fi
+	fi
+	if [ -d /etc/pki/pesign ]; then
+	    setfacl -m u:${username}:rx /etc/pki/pesign
+	    setfacl -m u:${username}:r /etc/pki/pesign/{cert8,key3,secmod}.db
 	fi
     done
 fi
