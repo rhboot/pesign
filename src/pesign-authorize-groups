@@ -11,9 +11,11 @@
 
 if [[ -r /etc/pesign/groups ]]; then
     for group in $(cat /etc/pesign/groups); do
-        setfacl -m g:${group}:rx /var/run/pesign
-        setfacl -m g:${group}:rw /var/run/pesign/socket
-        setfacl -m g:${username}:rx /etc/pki/pesign
-        setfacl -m g:${username}:r /etc/pki/pesign/{cert8,key3,secmod}.db
+	if [ -d /var/run/pesign ]; then
+	    setfacl -m g:${group}:rx /var/run/pesign
+	    if [ -e /var/run/pesign/socket ]; then
+		setfacl -m g:${group}:rw /var/run/pesign/socket
+	    fi
+	fi
     done
 fi
