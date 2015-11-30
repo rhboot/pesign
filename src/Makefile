@@ -67,6 +67,7 @@ install_sysvinit: pesign.sysvinit
 
 install :
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pki/pesign/
+	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pki/pesign-rh-test/
 	$(INSTALL) -d -m 770 $(INSTALLROOT)/var/run/pesign/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(bindir)
 	$(INSTALL) -m 755 authvar $(INSTALLROOT)$(bindir)

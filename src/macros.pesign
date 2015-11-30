@@ -7,7 +7,7 @@
 # And magically get the right thing.
 
 %__pesign_token %{nil}%{?pe_signing_token:-t "%{pe_signing_token}"}
-%__pesign_cert %{!?pe_signing_cert:-c "Red Hat Test Certificate"}%{?pe_signing_cert:-c "%{pe_signing_cert}"}
+%__pesign_cert %{!?pe_signing_cert:"Red Hat Test Certificate"}%{?pe_signing_cert:"%{pe_signing_cert}"}
 
 %_pesign /usr/bin/pesign
 %_pesign_client /usr/bin/pesign-client
@@ -21,6 +21,10 @@
 # -a <input ca cert filename>		# rhel only
 # -s 					# perform signing
 %pesign(i:o:C:e:c:n:a:s)						\
+  _pesign_nssdir=/etc/pki/pesign					\
+  if [ %{__pesign_cert} = "Red Hat Test Certificate" ]; then		\
+    _pesign_nssdir=/etc/pki/pesign-rh-test				\
+  fi									\
   if [ -x %{_pesign} ] &&  						\\\
        [ "%{_target_cpu}" == "x86_64" -o 				\\\
          "%{_target_cpu}" == "aarch64" ]; then				\
@@ -41,7 +45,8 @@
                         -c "/CN=Fedora Secure Boot Signer"		\\\
                         %{-i} %{-o} %{-e} %{-s} %{-C}			\
     else								\
-      %{_pesign} %{__pesign_token} %{__pesign_cert}			\\\
+      %{_pesign} %{__pesign_token} -c %{__pesign_cert}			\\\
+		 --certdir ${_pesign_nssdir}				\\\
                  %{-i} %{-o} %{-e} %{-s} %{-C}				\
     fi									\
   else									\
