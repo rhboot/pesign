@@ -8,8 +8,8 @@ include $(TOPDIR)/Make.defaults
 SUBDIRS := include libdpe src
 
 install :
-	$(INSTALL) -d -m 755 $(INSTALLROOT)$(prefix)$(docdir)/pesign-$(VERSION)/
-	$(INSTALL) -pm 644 COPYING $(INSTALLROOT)$(prefix)$(docdir)/pesign-$(VERSION)/
+	$(INSTALL) -d -m 755 $(INSTALLROOT)$(docdir)/pesign-$(VERSION)/
+	$(INSTALL) -pm 644 COPYING $(INSTALLROOT)$(docdir)/pesign-$(VERSION)/
 	@set -e ; for x in $(SUBDIRS) ; do \
 		$(MAKE) -C $$x $@ ; \
 	done
