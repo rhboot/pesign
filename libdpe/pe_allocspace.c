@@ -61,7 +61,10 @@ pe_set_image_size(Pe *pe)
 	struct pe32plus_opt_hdr *opthdr = pe->state.pe32plus_exe.opthdr;
 
 	Pe_Scn *scn = NULL;
-	struct section_header shdr, tmp_shdr;
+	struct section_header shdr = { 0, }, tmp_shdr;
+	if (pehdr->sections < 1)
+		return -1;
+
 	for (int i = 0; i < pehdr->sections; i++) {
 		scn = pe_nextscn(pe, scn);
 		if (scn == NULL)
