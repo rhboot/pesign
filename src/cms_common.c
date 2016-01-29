@@ -1660,30 +1660,6 @@ generate_auth_info(cms_context *cms, SECItem *der, char *url)
 	return 0;
 }
 
-typedef struct {
-	SECItem oid;
-	SECItem keyhash;
-} KeyId;
-
-static const SEC_ASN1Template KeyIdTemplate[] = {
-	{.kind = SEC_ASN1_SEQUENCE,
-	 .offset = 0,
-	 .sub = NULL,
-	 .size = sizeof (KeyId),
-	},
-	{.kind = SEC_ASN1_OBJECT_ID,
-	 .offset = offsetof(KeyId, oid),
-	 .sub = &SEC_ObjectIDTemplate,
-	 .size = sizeof (SECItem),
-	},
-	{.kind = SEC_ASN1_OCTET_STRING,
-	 .offset = offsetof(KeyId, keyhash),
-	 .sub = NULL,
-	 .size = sizeof (SECItem),
-	},
-	{ 0 }
-};
-
 int
 generate_keys(cms_context *cms, PK11SlotInfo *slot,
 		SECKEYPrivateKey **privkey, SECKEYPublicKey **pubkey)
