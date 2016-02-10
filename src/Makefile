@@ -33,7 +33,7 @@ client : $(call objects-of,$(CLIENT_SOURCES) $(COMMON_SOURCES))
 client : PKGS=efivar nss nspr popt
 
 efikeygen : $(call objects-of,$(EFIKEYGEN_SOURCES) $(COMMON_SOURCES))
-efikeygen : PKGS=nss nspr popt uuid
+efikeygen : PKGS=efivar nss nspr popt uuid
 
 efisiglist : $(call objects-of,$(EFISIGLIST_SOURCES) $(COMMON_SOURCES))
 efisiglist : PKGS=efivar nss nspr popt
