@@ -21,9 +21,7 @@ test :
 %.a :
 	$(AR) -cvqs $@ $^
 
-% : %.c
-
-$(BINTARGETS) : % :
+% : %.o
 	$(CCLD) $(ccldflags) $(CPPFLAGS) -o $@ $^ $(LDLIBS)
 
 %.so : 
