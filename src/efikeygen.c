@@ -487,7 +487,7 @@ int main(int argc, char *argv[])
 	struct poptOption options[] = {
 		{NULL, '\0', POPT_ARG_INTL_DOMAIN, "pesign" },
 		/* global nss-ish things */
-		{"dbdir", 'd', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+		{"dbdir", 'd', POPT_ARG_STRING,
 			&dbdir, 0, "Directory for nss database", "<directory>"},
 		{"token", 't', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
 			&tokenname, 0, "NSS token holding signing key",
