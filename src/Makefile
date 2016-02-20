@@ -25,8 +25,7 @@ ALL_SOURCES=$(COMMON_SOURCES) $(AUTHVAR_SORUCES) $(CLIENT_SOURCES) \
 	$(PESIGN_SOURCES)
 -include $(call deps-of,$(ALL_SOURCES))
 
-authvar : $(call objects-of,$(AUTHVAR_SOURCES) $(COMMON_SOURCES)) \
-	  $(TOPDIR)/libdpe/libdpe.a
+authvar : $(call objects-of,$(AUTHVAR_SOURCES) $(COMMON_SOURCES))
 authvar : PKGS=efivar nss nspr popt
 
 client : $(call objects-of,$(CLIENT_SOURCES) $(COMMON_SOURCES))
@@ -38,12 +37,12 @@ efikeygen : PKGS=efivar nss nspr popt uuid
 efisiglist : $(call objects-of,$(EFISIGLIST_SOURCES) $(COMMON_SOURCES))
 efisiglist : PKGS=efivar nss nspr popt
 
-pesigcheck : $(call objects-of,$(PESIGCHECK_SOURCES) $(COMMON_SOURCES)) \
-	     $(TOPDIR)/libdpe/libdpe.a
+pesigcheck : $(call objects-of,$(PESIGCHECK_SOURCES) $(COMMON_SOURCES))
+pesigcheck : LDLIBS+=$(TOPDIR)/libdpe/libdpe.a
 pesigcheck : PKGS=efivar nss nspr popt
 
-pesign : $(call objects-of,$(PESIGN_SOURCES) $(COMMON_SOURCES)) \
-	 $(TOPDIR)/libdpe/libdpe.a
+pesign : $(call objects-of,$(PESIGN_SOURCES) $(COMMON_SOURCES))
+pesign : LDLIBS+=$(TOPDIR)/libdpe/libdpe.a
 pesign : PKGS=efivar nss nspr popt
 
 deps : $(ALL_SOURCES)
