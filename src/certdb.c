@@ -60,9 +60,14 @@ add_db_file(pesigcheck_context *ctx, db_specifier which, const char *dbfile,
 
 	db->map = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, db->fd, 0);
 	if (db->map == MAP_FAILED) {
-		save_errno(close(db->fd);
-			   free(db));
-		return -1;
+		db->map = NULL;
+		size_t sz = 0;
+		rc = read_file(db->fd, (char **)&db->map, &sz);
+		if (rc < 0) {
+			save_errno(close(db->fd);
+				   free(db));
+			return -1;
+		}
 	}
 
 	EFI_SIGNATURE_LIST *certlist;
@@ -198,8 +203,10 @@ check_db(db_specifier which, pesigcheck_context *ctx, checkfn check,
 
 			for (unsigned int i = 0; i < certcount; i++) {
 				sig.data = cert->SignatureData;
-				sig.len = certlist->SignatureSize - sizeof(efi_guid_t);
-				found = check(ctx, &sig, &certlist->SignatureType,
+				sig.len = certlist->SignatureSize
+					  - sizeof(efi_guid_t);
+				found = check(ctx, &sig,
+					      &certlist->SignatureType,
 					      &pkcs7sig);
 				if (found == FOUND)
 					return FOUND;
