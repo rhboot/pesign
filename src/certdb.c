@@ -325,12 +325,21 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 			PORT_ErrorToString(PORT_GetError()));
 		goto out;
 	}
+	cert->timeOK = PR_TRUE;
 
+	SECItem *eTime;
 	PRTime atTime;
-	atTime = determine_reasonable_time(cert);
+	// atTime = determine_reasonable_time(cert);
+	eTime = SEC_PKCS7GetSigningTime(cinfo);
+	if (eTime != NULL) {
+		if (DER_DecodeTimeChoice (&atTime, eTime) != SECSuccess)
+			atTime = determine_reasonable_time(cert);
+	} else {
+		atTime = determine_reasonable_time(cert);
+	}
 	/* Verify the signature */
 	result = SEC_PKCS7VerifyDetachedSignatureAtTime(cinfo,
-						certUsageObjectSigner,
+						certUsageSSLServer,
 						digest, HASH_AlgSHA256,
 						PR_FALSE, atTime);
 	if (!result) {
