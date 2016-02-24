@@ -125,7 +125,8 @@ teardown_digests(cms_context *ctx)
 
 static int
 __attribute__ ((format (printf, 3, 4)))
-cms_common_log(cms_context *ctx, int priority, char *fmt, ...)
+cms_common_log(cms_context *ctx __attribute__((__unused__)), int priority,
+	       char *fmt, ...)
 {
 	va_list ap;
 	FILE *out = priority & LOG_ERR ? stderr : stdout;

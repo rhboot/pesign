@@ -41,7 +41,7 @@ __get_last_section(Pe *pe)
 	}
 	if (ret)
 		return ret->shdr;
-	
+
 	return NULL;
 }
 
@@ -93,7 +93,7 @@ sort_sections (Pe_Scn **scns, Pe_ScnList *list)
 }
 
 off_t
-__pe_updatemmap(Pe *pe, size_t shnum)
+__pe_updatemmap(Pe *pe, size_t shnum __attribute__((__unused__)))
 {
 	/* This needs to write back the whole file:
 	 * 1) mz/pe/pe-o headers
@@ -148,7 +148,8 @@ __pe_updatemmap(Pe *pe, size_t shnum)
 }
 
 int
-__pe_updatefile(Pe *pe, size_t shnum)
+__pe_updatefile(Pe *pe __attribute__((__unused__)),
+		size_t shnum __attribute__((__unused__)))
 {
 	__libpe_seterrno(PE_E_UNKNOWN_ERROR);
 	return 1;

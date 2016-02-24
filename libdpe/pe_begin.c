@@ -30,15 +30,20 @@
 #include "libdpe.h"
 
 static inline Pe *
-file_read_pe_obj(int fildes, void *map_address, unsigned char *p_ident,
-		size_t maxsize, Pe_Cmd cmd, Pe *parent)
+file_read_pe_obj(int fildes __attribute__((__unused__)),
+		 void *map_address __attribute__((__unused__)),
+		 unsigned char *p_ident __attribute__((__unused__)),
+		 size_t maxsize __attribute__((__unused__)),
+		 Pe_Cmd cmd __attribute__((__unused__)),
+		 Pe *parent __attribute__((__unused__)))
 {
 	return NULL;
 }
 
 static inline Pe *
 file_read_pe_exe(int fildes, void *map_address, unsigned char *p_ident,
-		size_t maxsize, Pe_Cmd cmd, Pe *parent)
+		 size_t maxsize, Pe_Cmd cmd __attribute__((__unused__)),
+		 Pe *parent)
 {
 	Pe_Kind kind = determine_kind(p_ident, maxsize);
 	size_t scncnt = get_shnum(map_address, maxsize);
@@ -274,7 +279,7 @@ write_file (int fd, Pe_Cmd cmd)
 }
 
 static Pe *
-dup_pe(int fildes, Pe_Cmd cmd, Pe *ref)
+dup_pe(int fildes, Pe_Cmd cmd __attribute__((__unused__)), Pe *ref)
 {
 	if (fildes == -1) {
 		fildes = ref->fildes;

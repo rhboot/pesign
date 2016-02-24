@@ -101,7 +101,8 @@ static char *SEC_GetPassword(FILE *input, FILE *output, char *prompt,
 static char consoleName[] = { "/dev/tty" };
 
 static char *
-SECU_GetPasswordString(void *arg, char *prompt)
+SECU_GetPasswordString(void *arg __attribute__((__unused__)),
+		       char *prompt __attribute__((__unused__)))
 {
     char *p = NULL;
     FILE *input, *output;
@@ -219,7 +220,8 @@ SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
 }
 
 char *
-get_password_passthrough(PK11SlotInfo *slot, PRBool retry, void *arg)
+get_password_passthrough(PK11SlotInfo *slot __attribute__((__unused__)),
+			 PRBool retry, void *arg)
 {
 	if (retry)
 		return NULL;
@@ -236,13 +238,15 @@ get_password_passthrough(PK11SlotInfo *slot, PRBool retry, void *arg)
 }
 
 char *
-get_password_fail(PK11SlotInfo *slot, PRBool retry, void *arg)
+get_password_fail(PK11SlotInfo *slot __attribute__((__unused__)),
+		  PRBool retry __attribute__((__unused__)),
+		  void *arg __attribute__((__unused__)))
 {
 	return NULL;
 }
 
 char *
-SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg) 
+SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 {
     char prompt[255];
     secuPWData *pwdata = (secuPWData *)arg;
@@ -258,7 +262,7 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
     }
     if (retry && pwdata->source != PW_NONE) {
 	PR_fprintf(PR_STDERR, "Incorrect password/PIN entered.\n");
-    	return NULL;
+	return NULL;
     }
 
     switch (pwdata->source) {
@@ -276,11 +280,11 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 	/* it's already been dup'ed */
 	return pw;
     case PW_EXTERNAL:
-	sprintf(prompt, 
+	sprintf(prompt,
 	        "Press Enter, then enter PIN for \"%s\" on external device.\n",
 		PK11_GetTokenName(slot));
 	(void) SECU_GetPasswordString(NULL, prompt);
-    	/* Fall Through */
+	/* Fall Through */
     case PW_PLAINTEXT:
 	return PL_strdup(pwdata->data);
     default:
@@ -295,7 +299,9 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 #warning investigate killing readpw
 #endif
 char *
-readpw(PK11SlotInfo *slot, PRBool retry, void *arg)
+readpw(PK11SlotInfo *slot __attribute__((__unused__)),
+       PRBool retry __attribute__((__unused__)),
+       void *arg __attribute__((__unused__)))
 {
 	struct termios sio, tio;
 	char line[LINE_MAX], *p;

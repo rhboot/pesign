@@ -174,7 +174,8 @@ err:
 }
 
 void
-callback(poptContext con, enum poptCallbackReason reason,
+callback(poptContext con __attribute__((__unused__)),
+	 enum poptCallbackReason reason __attribute__((__unused__)),
 	 const struct poptOption *opt,
 	 const char *arg, const void *data)
 {

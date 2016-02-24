@@ -49,7 +49,8 @@ static struct hash_param hash_params[] = {
 static int n_hash_params = sizeof (hash_params) / sizeof (hash_params[0]);
 
 int
-set_hash_parameters(char *value, char *name, int *hash_number)
+set_hash_parameters(char *value __attribute__((__unused__)),
+		    char *name, int *hash_number)
 {
 	if (strcmp(name, "help")) {
 		for (int i = 0; i < n_hash_params; i++) {

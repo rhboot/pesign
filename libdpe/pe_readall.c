@@ -20,7 +20,7 @@
 #include "libdpe.h"
 
 char *
-__libpe_readall(Pe *pe)
+__libpe_readall(Pe *pe __attribute__((__unused__)))
 {
 	return NULL;
 }

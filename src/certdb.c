@@ -218,7 +218,7 @@ check_db(db_specifier which, pesigcheck_context *ctx, checkfn check,
 
 static db_status
 check_hash(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
-	   SECItem *pkcs7sig)
+	   SECItem *pkcs7sig __attribute__((__unused__)))
 {
 	efi_guid_t efi_sha256 = efi_guid_sha256;
 	efi_guid_t efi_sha1 = efi_guid_sha1;

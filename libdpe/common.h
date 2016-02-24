@@ -56,7 +56,7 @@ compute_file_addr(Pe *pe, void *addr)
 
 static inline size_t
 __attribute__ ((unused))
-get_shnum(void *map_address, size_t maxsize)
+get_shnum(void *map_address, size_t maxsize __attribute__((__unused__)))
 {
 	size_t result = 0;
 	void *buf = (void *)map_address;
@@ -74,7 +74,7 @@ get_shnum(void *map_address, size_t maxsize)
 
 static inline Pe_Kind
 __attribute__ ((unused))
-determine_kind(void *buf, size_t len)
+determine_kind(void *buf, size_t len __attribute__((__unused__)))
 {
 	Pe_Kind retval = PE_K_NONE;
 	uint16_t mz_magic = MZ_MAGIC;

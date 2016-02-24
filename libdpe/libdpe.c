@@ -21,12 +21,14 @@
 
 #include "libdpe.h"
 
-Pe *pe_clone(Pe *pe, Pe_Cmd cmd)
+Pe *pe_clone(Pe *pe __attribute__((__unused__)),
+	     Pe_Cmd cmd __attribute__((__unused__)))
 {
 	return NULL;
 }
 
-Pe *pe_memory(char *image, size_t size)
+Pe *pe_memory(char *image __attribute__((__unused__)),
+	      size_t size __attribute__((__unused__)))
 {
 	return NULL;
 }

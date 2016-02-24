@@ -417,7 +417,8 @@ generate_authvar_content_info(cms_context *cms, SpcContentInfo *cip)
 }
 
 void
-free_spc_content_info(cms_context *cms, SpcContentInfo *cip)
+free_spc_content_info(cms_context *cms __attribute__((__unused__)),
+		      SpcContentInfo *cip __attribute__((__unused__)))
 {
 #if 0
 	SECITEM_FreeItem(&cip->contentType, PR_TRUE);

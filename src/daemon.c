@@ -67,7 +67,8 @@ steal_from_cms(cms_context *old, cms_context *new)
 }
 
 static void
-hide_stolen_goods_from_cms(cms_context *new, cms_context *old)
+hide_stolen_goods_from_cms(cms_context *new,
+			   cms_context *old __attribute__((__unused__)))
 {
 	new->tokenname = NULL;
 	new->certname = NULL;
@@ -119,7 +120,9 @@ send_response(context *ctx, cms_context *cms, struct pollfd *pollfd, int32_t rc)
 }
 
 static void
-handle_kill_daemon(context *ctx, struct pollfd *pollfd, socklen_t size)
+handle_kill_daemon(context *ctx __attribute__((__unused__)),
+		   struct pollfd *pollfd __attribute__((__unused__)),
+		   socklen_t size __attribute__((__unused__)))
 {
 	should_exit = 1;
 }
@@ -624,8 +627,9 @@ static void
 #if 0
 __attribute__((noreturn))
 #endif
-handle_invalid_input(pesignd_cmd cmd, context *ctx, struct pollfd *pollfd,
-			socklen_t size)
+handle_invalid_input(pesignd_cmd cmd, context *ctx,
+		     struct pollfd *pollfd __attribute__((__unused__)),
+		     socklen_t size __attribute__((__unused__)))
 {
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
 			"got unexpected command 0x%x", cmd);
@@ -922,7 +926,7 @@ get_uid_and_gid(context *ctx, char **homedir)
 }
 
 static void
-quit_handler(int signal)
+quit_handler(int signal __attribute__((__unused__)))
 {
 	should_exit = 1;
 }
@@ -970,7 +974,7 @@ set_up_socket(context *ctx)
 }
 
 static void
-check_socket(context *ctx)
+check_socket(context *ctx __attribute__((__unused__)))
 {
 	errno = 0;
 	int rc = access(SOCKPATH, R_OK);

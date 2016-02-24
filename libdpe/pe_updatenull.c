@@ -32,7 +32,8 @@ pe_default_mzhdr(Pe *pe, struct mz_hdr *mzhdr)
 }
 
 static int
-pe_default_pehdr(Pe *pe, struct pe_hdr *pehdr, size_t shnum)
+pe_default_pehdr(Pe *pe, struct pe_hdr *pehdr,
+		 size_t shnum __attribute__((__unused__)))
 {
 	/* Always write the pe magic */
 	uint32_t pe_magic = cpu_to_le32(PE_MAGIC);
@@ -43,7 +44,8 @@ pe_default_pehdr(Pe *pe, struct pe_hdr *pehdr, size_t shnum)
 
 
 off_t
-__pe_updatenull_wrlock(Pe *pe, size_t shnum)
+__pe_updatenull_wrlock(Pe *pe __attribute__((__unused__)),
+		       size_t shnum __attribute__((__unused__)))
 {
-	return 0;	
+	return 0;
 }
