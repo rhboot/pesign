@@ -58,7 +58,7 @@ static struct {
 		10, &oiddata[40]),
 	OID(szOID_CERTSRV_CA_VERSION, "Certification server CA version",
 		siAsciiString, 9, &oiddata[50]),
-	{ END_OID_LIST }
+	{ .oid = END_OID_LIST }
 };
 
 #undef OID
