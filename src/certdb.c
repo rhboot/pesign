@@ -37,7 +37,7 @@ add_db_file(pesigcheck_context *ctx, db_specifier which, const char *dbfile,
 	    db_f_type type)
 {
 	dblist *db = calloc(1, sizeof (dblist));
-	
+
 	if (!db)
 		return -1;
 
