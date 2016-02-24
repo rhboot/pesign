@@ -17,6 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <err.h>
 #include <errno.h>
 #include <popt.h>
 #include <sys/types.h>
@@ -42,8 +43,9 @@
 #define IMPORT			0x10
 #define EXPORT			0x20
 #define SET			0x40
+#define SHOW_SIGNATURE_SUPPORT	0x80
 
-#define FLAG_LIST_END		0x80
+#define FLAG_LIST_END		0x100
 
 static struct {
 	int flag;
@@ -217,7 +219,47 @@ set_timestamp(authvar_context *ctx, const char *time_str)
 	ctx->timestamp.pad2 = 0;
 }
 
-int main(int argc, char *argv[])
+static int
+show_signature_support(void)
+{
+	int rc;
+	uint8_t *data = NULL;
+	size_t data_size = 0;
+	uint32_t attrs = 0;
+	efi_guid_t *guids;
+
+	rc = efi_get_variable(efi_guid_global, "SignatureSupport",
+			      &data, &data_size, &attrs);
+	if (rc < 0) {
+		fprintf(stderr, "Could not read \"SignatureSupport\" variable: %m\n");
+		return rc;
+	}
+	if (data_size == 0)
+		return 0;
+	if (data_size % sizeof(efi_guid_t) != 0) {
+		fprintf(stderr, "Invalid size %zd for \"SignatureSupport\" variable\n",
+			data_size);
+		errno = EINVAL;
+		return -1;
+	}
+
+	guids = (efi_guid_t *)data;
+	for (size_t i = 0; i < data_size / sizeof(efi_guid_t); i++) {
+		char *id_guid = NULL;
+
+		rc = efi_guid_to_id_guid(&guids[i], &id_guid);
+		if (rc < 0)
+			continue;
+
+		printf("%s\n", id_guid);
+		free(id_guid);
+	}
+	free(data);
+	return 0;
+}
+
+int
+main(int argc, char *argv[])
 {
 	int rc;
 	authvar_context ctx = { 0, };
@@ -238,41 +280,92 @@ int main(int argc, char *argv[])
 
 	poptContext optCon;
 	struct poptOption options[] = {
-		{ NULL, '\0', POPT_ARG_INTL_DOMAIN, "pesign" },
-		{ "append", 'a', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
-			GENERATE_APPEND, "append to variable" },
-		{"certdir", 'd', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
-			&certdir, 0,
-			"specify nss certificate database directory",
-			"<certificate directory path>" },
-		{ "clear", 'c', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
-			GENERATE_CLEAR, "clear variable" },
-		{ "set", 's', POPT_ARG_VAL|POPT_ARGFLAG_OR, &action,
-			GENERATE_SET, "set variable" },
-		{ "namespace", 'N', POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
-			&ctx.namespace, 0,
-			"specified variable is in <namespace> or <guid>" ,
-			"{<namespace>|<guid>}" },
-		{ "guid", 'g', POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
-			&ctx.namespace, 0,
-			"specified variable is in <namespace> or <guid>" ,
-			"{<namespace>|<guid>}" },
-		{ "name", 'n', POPT_ARG_STRING, &ctx.name, 0, "variable name",
-			"<name>" },
-		{ "timestamp", 't', POPT_ARG_STRING, &time_str, 0,
-			"timestamp for the variable", "<time>" },
-		{ "value", 'v', POPT_ARG_STRING, &ctx.value, 0,
-			"value to set or append", "<value>" },
-		{ "valuefile", 'f', POPT_ARG_STRING, &ctx.valuefile, 0,
-			"read value from <file>", "<file>" },
-		{ "import", 'i', POPT_ARG_STRING, &ctx.importfile, 0,
-			"import variable from <file>", "<file>" },
-		{ "export", 'e', POPT_ARG_STRING, &ctx.exportfile, 0,
-			"export variable to <file> instead of firmware",
-			"<file>" },
-		{ "sign", 'S', POPT_ARG_STRING, &ctx.cms_ctx->certname, 0,
-			"sign variable with certificate <nickname>",
-			"<nickname>" },
+		{.argInfo = POPT_ARG_INTL_DOMAIN,
+		 .arg = "pesign" },
+		{.longName = "append",
+		 .shortName = 'a',
+		 .argInfo = POPT_ARG_VAL|POPT_ARGFLAG_OR,
+		 .arg = &action,
+		 .val = GENERATE_APPEND,
+		 .descrip = "append to variable" },
+		{.longName = "certdir",
+		 .shortName = 'd',
+		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
+		 .arg = &certdir,
+		 .descrip = "specify nss certificate database directory",
+		 .argDescrip = "<certificate directory path>" },
+		{.longName = "clear",
+		 .shortName = 'c',
+		 .argInfo = POPT_ARG_VAL|POPT_ARGFLAG_OR,
+		 .arg = &action,
+		 .val = GENERATE_CLEAR,
+		 .descrip = "clear variable" },
+		{.longName = "set",
+		 .shortName = 's',
+		 .argInfo = POPT_ARG_VAL|POPT_ARGFLAG_OR,
+		 .arg = &action,
+		 .val = GENERATE_SET,
+		 .descrip = "set variable" },
+		{.longName = "namespace",
+		 .shortName = 'N',
+		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
+		 .arg = &ctx.namespace,
+		 .descrip = "specified variable is in <namespace> or <guid>" ,
+		 .argDescrip = "{<namespace>|<guid>}" },
+		{.longName = "list-supported-sigs",
+		 .shortName = 'l',
+		 .argInfo = POPT_ARG_VAL|POPT_ARGFLAG_OR,
+		 .arg = &action,
+		 .val = SHOW_SIGNATURE_SUPPORT,
+		 .descrip = "list supported signature types" },
+		{.longName = "guid",
+		 .shortName = 'g',
+		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = &ctx.namespace,
+		 .descrip = "specified variable is in <namespace> or <guid>",
+		 .argDescrip = "{<namespace>|<guid>}" },
+		{.longName = "name",
+		 .shortName = 'n',
+		 .argInfo = POPT_ARG_STRING,
+		 .arg = &ctx.name,
+		 .descrip = "variable name",
+		 .argDescrip = "<name>" },
+		{.longName = "timestamp",
+		 .shortName = 't',
+		 .argInfo = POPT_ARG_STRING,
+		 .arg = &time_str,
+		 .descrip = "timestamp for the variable",
+		 .argDescrip = "<time>" },
+		{.longName = "value",
+		 .shortName = 'v',
+		 .argInfo = POPT_ARG_STRING,
+		 .arg = &ctx.value,
+		 .descrip = "value to set or append",
+		 .argDescrip = "<value>" },
+		{.longName = "valuefile",
+		 .shortName = 'f',
+		 .argInfo = POPT_ARG_STRING,
+		 .arg = &ctx.valuefile,
+		 .descrip = "read value from <file>",
+		 .argDescrip = "<file>" },
+		{.longName = "import",
+		 .shortName = 'i',
+		 .argInfo = POPT_ARG_STRING,
+		 .arg = &ctx.importfile,
+		 .descrip = "import variable from <file>",
+		 .argDescrip = "<file>" },
+		{.longName = "export",
+		 .shortName = 'e',
+		 .argInfo = POPT_ARG_STRING,
+		 .arg = &ctx.exportfile,
+		 .descrip = "export variable to <file> instead of firmware",
+		 .argDescrip = "<file>" },
+		{.longName = "sign",
+		 .shortName = 'S',
+		 .argInfo = POPT_ARG_STRING,
+		 .arg = &ctx.cms_ctx->certname,
+		 .descrip = "sign variable with certificate <nickname>",
+		 .argDescrip = "<nickname>" },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
@@ -280,20 +373,20 @@ int main(int argc, char *argv[])
 
 	optCon = poptGetContext("authvar", argc, (const char **)argv,
 				options, 0);
+
+	rc = poptReadDefaultConfig(optCon, 0);
+	if (rc < 0 && !(rc == POPT_ERROR_ERRNO && errno == ENOENT))
+		errx(1, "poptReadDefaultConfig failed: %s", poptStrerror(rc));
+
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
 
-	if (rc < -1) {
-		fprintf(stderr, "authvar: Invalid argument: %s: %s\n",
-			poptBadOption(optCon, 0), poptStrerror(rc));
-		exit(1);
-	}
+	if (rc < -1)
+		errx(1, "Invalid argument: %s: %s\n",
+		     poptBadOption(optCon, 0), poptStrerror(rc));
 
-	if (poptPeekArg(optCon)) {
-		fprintf(stderr, "authvar: Invalid Argument: \"%s\"\n",
-			poptPeekArg(optCon));
-		exit(1);
-	}
+	if (poptPeekArg(optCon))
+		errx(1, "Invalid Argument: \"%s\"\n", poptPeekArg(optCon));
 
 	poptFreeContext(optCon);
 
@@ -301,7 +394,7 @@ int main(int argc, char *argv[])
 		action |= IMPORT;
 	if (ctx.exportfile)
 		action |= EXPORT;
-	if (!(action & (IMPORT|EXPORT)))
+	if (!(action & (IMPORT|EXPORT)) && action != SHOW_SIGNATURE_SUPPORT)
 		action |= SET;
 
 	if ((action & GENERATE_APPEND) || (action & GENERATE_CLEAR) ||
@@ -365,6 +458,11 @@ int main(int argc, char *argv[])
 	case NO_FLAGS:
 		fprintf(stderr, "authvar: No action specified\n");
 		exit(1);
+		break;
+	case SHOW_SIGNATURE_SUPPORT:
+		rc = show_signature_support();
+		if (rc < 0)
+			errx(1, "authvar: could not show support signatures");
 		break;
 	case GENERATE_APPEND|EXPORT|SIGN:
 	case GENERATE_APPEND|SET|SIGN:
