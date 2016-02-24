@@ -91,7 +91,7 @@ hex_to_bin(char *hex, size_t size)
 		uint8_t val;
 
 		val = hexchar_to_bin(hex[i]);
-		if (val < 0) {
+		if (val > 15) {
 out_of_range:
 			free(ret);
 			errno = ERANGE;
@@ -99,7 +99,7 @@ out_of_range:
 		}
 		ret[j] = (val & 0xf) << 4;
 		val = hexchar_to_bin(hex[i+1]);
-		if (val < 0)
+		if (val > 15)
 			goto out_of_range;
 		ret[j] |= val & 0xf;
 	};
