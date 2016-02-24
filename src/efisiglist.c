@@ -16,6 +16,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <popt.h>
@@ -112,6 +113,7 @@ main(int argc, char *argv[])
 	poptContext optCon;
 	efi_guid_t owner = efi_guid_redhat_2;
 	int rc;
+	char *infile = NULL;
 	char *outfile = NULL;
 	char *hash = NULL;
 	char *hash_type = "sha256";
@@ -125,6 +127,12 @@ main(int argc, char *argv[])
 	struct poptOption options[] = {
 		{.argInfo = POPT_ARG_INTL_DOMAIN,
 		 .descrip = "pesign" },
+		{.longName = "infile",
+		 .shortName = 'i',
+		 .argInfo = POPT_ARG_STRING,
+		 .arg = &infile,
+		 .descrip = "input database",
+		 .argDescrip = "<infile>" },
 		{.longName = "outfile",
 		 .shortName = 'o',
 		 .argInfo = POPT_ARG_STRING,
@@ -194,6 +202,14 @@ main(int argc, char *argv[])
 		fprintf(stderr, "efisiglist: hash and certfile cannot be "
 			"specified at the same time\n");
 		exit(1);
+	}
+
+	int infd = -1;
+
+	if (infile) {
+		infd = open(infile, O_RDONLY);
+		if (infd < 0)
+			err(1, "could not open \"%s\"", infile);
 	}
 
 	int outfd = -1;
