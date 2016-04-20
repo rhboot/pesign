@@ -17,6 +17,8 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <assert.h>
+
 #include "libdpe.h"
 
 int
@@ -28,8 +30,6 @@ pe_end(Pe *pe)
 		/* This is allowed and is a no-op. */
 		return 0;
 	}
-
-	rwlock_wrlock(pe->lock);
 
 	if (pe->ref_count != 0 && --pe->ref_count != 0) {
 		int result = pe->ref_count;
@@ -84,7 +84,6 @@ pe_end(Pe *pe)
 		else if (pe->flags & PE_F_MMAPPED)
 			xmunmap(pe->map_address, pe->maximum_size);
 	}
-	rwlock_fini(pe->lock);
 	xfree(pe);
 
 	return (parent != NULL && parent->ref_count ? pe_end(parent) : 0);

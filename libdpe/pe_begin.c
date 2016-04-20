@@ -307,9 +307,7 @@ pe_begin(int fildes, Pe_Cmd cmd, Pe *ref)
 {
 	Pe *retval = NULL;
 
-	if (ref != NULL) {
-		rwlock_rdlock(ref->lock);
-	} else if (fcntl(fildes, F_GETFL) == -1 && errno == EBADF) {
+	if (fcntl(fildes, F_GETFL) == -1 && errno == EBADF) {
 		__libpe_seterrno(PE_E_INVALID_FILE);
 		return NULL;
 	}
@@ -356,7 +354,5 @@ pe_begin(int fildes, Pe_Cmd cmd, Pe *ref)
 			break;
 	}
 
-	if (ref != NULL)
-		rwlock_unlock(ref->lock);
 	return retval;
 }

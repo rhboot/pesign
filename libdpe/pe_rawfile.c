@@ -35,12 +35,10 @@ error_out:
 	if (pe->map_address == NULL && __libpe_readall(pe) == NULL)
 		goto error_out;
 
-	rwlock_rdlock(pe->lock);
 	if (size != NULL)
 		*size = pe->maximum_size;
 
 	result = (char *)pe->map_address;
-	rwlock_unlock(pe->lock);
 
 	return result;
 }

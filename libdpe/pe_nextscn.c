@@ -17,6 +17,8 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include <assert.h>
+
 #include "libdpe.h"
 
 Pe_Scn *
@@ -26,8 +28,6 @@ pe_nextscn(Pe *pe, Pe_Scn *scn)
 
 	if (pe == NULL)
 		return NULL;
-
-	rwlock_rdlock(pe->lock);
 
 	if (scn == NULL) {
 		if (pe->state.pe.scns.cnt > 0)
@@ -43,8 +43,6 @@ pe_nextscn(Pe *pe, Pe_Scn *scn)
 			result = &list->data[0];
 		}
 	}
-
-	rwlock_unlock(pe->lock);
 
 	return result;
 }

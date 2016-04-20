@@ -147,25 +147,9 @@ allocate_pe(int fildes, void *map_address, size_t maxsize,
 		result->maximum_size = maxsize;
 		result->map_address = map_address;
 		result->parent = parent;
-
-		rwlock_init(result->lock);
 	}
 
 	return result;
-}
-
-static void
-__attribute__ ((unused))
-libpe_acquire_all(Pe *pe)
-{
-	rwlock_wrlock(pe->lock);
-}
-
-static void
-__attribute__ ((unused))
-libpe_release_all(Pe *pe)
-{
-	rwlock_unlock(pe->lock);
 }
 
 /* We often have to update a flag iff a value changed.  Make this

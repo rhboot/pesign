@@ -44,7 +44,7 @@ pe_default_pehdr(Pe *pe, struct pe_hdr *pehdr,
 
 
 off_t
-__pe_updatenull_wrlock(Pe *pe __attribute__((__unused__)),
+__pe_updatenull(Pe *pe __attribute__((__unused__)),
 		       size_t shnum __attribute__((__unused__)))
 {
 	return 0;

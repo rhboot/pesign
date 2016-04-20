@@ -19,34 +19,11 @@
 
 #include "libdpe.h"
 
-static struct pe_hdr *
-__pe_getpehdr_rdlock(Pe *pe, struct pe_hdr *dest)
-{
-	struct pe_hdr *result = NULL;
-
-	if (!pe)
-		return NULL;
-
-	if (pe->state.pe.pehdr == NULL) {
-		__libpe_seterrno(PE_E_WRONG_ORDER_PEHDR);
-	} else {
-		memcpy(dest, pe->state.pe.pehdr, sizeof(*dest));
-		result = dest;
-	}
-	return result;
-}
-
 struct pe_hdr *
 pe_getpehdr(Pe *pe, struct pe_hdr *dest)
 {
-	struct pe_hdr *result;
-
 	if (pe == NULL)
 		return NULL;
-
-	rwlock_rdlock(pe->lock);
-	result = __pe_getpehdr_rdlock(pe, dest);
-	rwlock_unlock(pe->lock);
-
-	return result;
+	memcpy(dest, pe->state.pe.pehdr, sizeof(*dest));
+	return dest;
 }

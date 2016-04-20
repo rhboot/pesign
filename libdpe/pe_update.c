@@ -26,7 +26,6 @@
 static off_t
 write_file(Pe *pe, off_t size, size_t shnum)
 {
-	
 	struct stat st;
 	if (fstat(pe->fildes, &st) != 0) {
 		__libpe_seterrno(PE_E_WRITE_ERROR);
@@ -93,14 +92,12 @@ pe_update(Pe *pe, Pe_Cmd cmd)
 		return -1;
 	}
 
-	rwlock_wrlock(pe->lock);
-
 	size_t shnum = (pe->state.pe.scns_last->cnt == 0
 		? 0
 		: 1 + pe->state.pe.scns_last->data[
 					pe->state.pe.scns_last->cnt - 1].index);
-	
-	off_t size = __pe_updatenull_wrlock(pe, shnum);
+
+	off_t size = __pe_updatenull(pe, shnum);
 
 	if (size != -1 && (cmd == PE_C_WRITE || PE_C_WRITE_MMAP)) {
 		if (pe->cmd != PE_C_RDWR && pe->cmd != PE_C_RDWR_MMAP &&
@@ -116,6 +113,5 @@ pe_update(Pe *pe, Pe_Cmd cmd)
 		}
 	}
 
-	rwlock_unlock(pe->lock);
 	return size;
 }

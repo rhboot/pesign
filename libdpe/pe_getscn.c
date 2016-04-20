@@ -37,8 +37,6 @@ pe_getscn(Pe *pe, size_t idx)
 		return NULL;
 	}
 
-	rwlock_rdlock(pe->lock);
-
 	Pe_Scn *result = NULL;
 
 	Pe_ScnList *runp = &pe->state.pe.scns;
@@ -60,8 +58,6 @@ pe_getscn(Pe *pe, size_t idx)
 			break;
 		}
 	}
-
-	rwlock_unlock(pe->lock);
 
 	return result;
 }

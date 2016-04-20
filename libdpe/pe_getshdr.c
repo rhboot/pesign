@@ -32,10 +32,7 @@ pe_getshdr(Pe_Scn *scn, struct section_header *dst)
 		return NULL;
 	}
 
-	rwlock_rdlock(scn->pe->lock);
-
 	result = memcpy(dst, scn->shdr, sizeof(*dst));
-	rwlock_unlock(scn->pe->lock);
 
 	return result;
 }

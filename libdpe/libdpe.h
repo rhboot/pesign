@@ -21,7 +21,6 @@
 
 #include <libdpe/libdpe.h>
 #include "endian.h"
-#include "lock.h"
 
 enum {
 	PE_F_DIRTY = 0x1,
@@ -88,7 +87,6 @@ struct Pe {
 	int flags;
 
 	int ref_count;
-	rwlock_define(,lock);
 
 	union {
 		struct {
@@ -175,7 +173,7 @@ struct Pe {
 
 extern off_t __pe_updatemmap(Pe *pe, size_t shnum);
 extern int __pe_updatefile(Pe *pe, size_t shnum);
-extern off_t __pe_updatenull_wrlock(Pe *pe, size_t shnum);
+extern off_t __pe_updatenull(Pe *pe, size_t shnum);
 extern char *__libpe_readall(Pe *pe);
 
 #endif /* LIBDPE_PRIV_H */
