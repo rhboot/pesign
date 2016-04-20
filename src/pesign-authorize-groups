@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 #
 # With /run/pesign/socket on tmpfs, a simple way of restoring the
@@ -9,7 +10,7 @@
 
 # License: GPLv2
 
-if [[ -r /etc/pesign/groups ]]; then
+if [ -r /etc/pesign/groups ]; then
     for group in $(cat /etc/pesign/groups); do
 	if [ -d /var/run/pesign ]; then
 	    setfacl -m g:${group}:rx /var/run/pesign
@@ -17,9 +18,13 @@ if [[ -r /etc/pesign/groups ]]; then
 		setfacl -m g:${group}:rw /var/run/pesign/socket
 	    fi
 	fi
-	if [ -d /etc/pki/pesign ]; then
-	    setfacl -m g:${group}:rx /etc/pki/pesign
-	    setfacl -m g:${group}:r /etc/pki/pesign/{cert8,key3,secmod}.db
-	fi
+	for x in /etc/pki/pesign* ; do
+	    if [ -d ${x} ]; then
+		setfacl -m g:${group}:rx /etc/pki/pesign
+		for y in ${x}/{cert8,key3,secmod}.db ; do
+		    setfacl -m g:${group}:rw ${y}
+		done
+	    fi
+	done
     done
 fi
