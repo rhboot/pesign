@@ -12,7 +12,8 @@ TARGETS=$(BINTARGETS) $(SVCTARGETS)
 all : deps $(TARGETS)
 
 COMMON_SOURCES = cms_common.c content_info.c oid.c password.c \
-	signed_data.c signer_info.c wincert.c ucs2.c 
+	signed_data.c signer_info.c ucs2.c
+COMMON_PE_SOURCES = wincert.c cms_pe_common.c
 AUTHVAR_SOURCES = authvar.c authvar_context.c
 CLIENT_SOURCES = pesign_context.c actions.c client.c
 EFIKEYGEN_SOURCES = efikeygen.c
@@ -26,9 +27,11 @@ ALL_SOURCES=$(COMMON_SOURCES) $(AUTHVAR_SORUCES) $(CLIENT_SOURCES) \
 -include $(call deps-of,$(ALL_SOURCES))
 
 authvar : $(call objects-of,$(AUTHVAR_SOURCES) $(COMMON_SOURCES))
+# authvar : LDLIBS+=$(TOPDIR)/libdpe/libdpe.a
 authvar : PKGS=efivar nss nspr popt
 
-client : $(call objects-of,$(CLIENT_SOURCES) $(COMMON_SOURCES))
+client : $(call objects-of,$(CLIENT_SOURCES) $(COMMON_SOURCES) $(COMMON_PE_SOURCES))
+client : LDLIBS+=$(TOPDIR)/libdpe/libdpe.a
 client : PKGS=efivar nss nspr popt
 
 efikeygen : $(call objects-of,$(EFIKEYGEN_SOURCES) $(COMMON_SOURCES))
@@ -37,11 +40,11 @@ efikeygen : PKGS=efivar nss nspr popt uuid
 efisiglist : $(call objects-of,$(EFISIGLIST_SOURCES) $(COMMON_SOURCES))
 efisiglist : PKGS=efivar nss nspr popt
 
-pesigcheck : $(call objects-of,$(PESIGCHECK_SOURCES) $(COMMON_SOURCES))
+pesigcheck : $(call objects-of,$(PESIGCHECK_SOURCES) $(COMMON_SOURCES) $(COMMON_PE_SOURCES))
 pesigcheck : LDLIBS+=$(TOPDIR)/libdpe/libdpe.a
 pesigcheck : PKGS=efivar nss nspr popt
 
-pesign : $(call objects-of,$(PESIGN_SOURCES) $(COMMON_SOURCES))
+pesign : $(call objects-of,$(PESIGN_SOURCES) $(COMMON_SOURCES) $(COMMON_PE_SOURCES))
 pesign : LDLIBS+=$(TOPDIR)/libdpe/libdpe.a
 pesign : PKGS=efivar nss nspr popt
 
