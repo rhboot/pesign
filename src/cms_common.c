@@ -641,40 +641,6 @@ generate_string(cms_context *cms, SECItem *der, char *str)
 	return 0;
 }
 
-static SEC_ASN1Template IntegerTemplate[] = {
-	{.kind = SEC_ASN1_INTEGER,
-	 .offset = 0,
-	 .sub = NULL,
-	 .size = sizeof(long),
-	},
-	{ 0 },
-};
-
-int
-generate_integer(cms_context *cms, SECItem *der, unsigned long integer)
-{
-	void *ret;
-
-	uint32_t u32;
-
-	SECItem input = {
-		.data = (void *)&integer,
-		.len = sizeof(integer),
-		.type = siUnsignedInteger,
-	};
-
-	if (integer < 0x100000000) {
-		u32 = integer & 0xffffffffUL;
-		input.data = (void *)&u32;
-		input.len = sizeof(u32);
-	}
-
-	ret = SEC_ASN1EncodeItem(cms->arena, der, &input, IntegerTemplate);
-	if (ret == NULL)
-		cmsreterr(-1, cms, "could not encode data");
-	return 0;
-}
-
 int
 generate_time(cms_context *cms, SECItem *encoded, time_t when)
 {
