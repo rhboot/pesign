@@ -117,7 +117,6 @@ extern int generate_object_id(cms_context *ctx, SECItem *encoded,
 				SECOidTag tag);
 extern int generate_empty_sequence(cms_context *ctx, SECItem *encoded);
 extern int generate_time(cms_context *ctx, SECItem *encoded, time_t when);
-extern int generate_integer(cms_context *cms, SECItem *der, unsigned long integer);
 extern int generate_string(cms_context *cms, SECItem *der, char *str);
 extern int wrap_in_set(cms_context *cms, SECItem *der, SECItem **items);
 extern int wrap_in_seq(cms_context *cms, SECItem *der,
