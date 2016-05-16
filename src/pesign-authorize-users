@@ -18,10 +18,10 @@ if [ -r /etc/pesign/users ]; then
 		setfacl -m g:${username}:rw /var/run/pesign/socket
 	    fi
 	fi
-	for x in /etc/pki/pesign* ; do
+	for x in /etc/pki/pesign*/ ; do
 	    if [ -d ${x} ]; then
-		setfacl -m g:${username}:rx /etc/pki/pesign
-		for y in ${x}/{cert8,key3,secmod}.db ; do
+		setfacl -m g:${username}:rx ${x}
+		for y in ${x}{cert8,key3,secmod}.db ; do
 		    setfacl -m g:${username}:rw ${y}
 		done
 	    fi
