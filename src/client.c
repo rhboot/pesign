@@ -555,7 +555,7 @@ main(int argc, char *argv[])
 
 	struct poptOption options[] = {
 		{.argInfo = POPT_ARG_INTL_DOMAIN,
-		 .descrip = "pesign" },
+		 .arg = "pesign" },
 		{.longName = "token",
 		 .shortName = 't',
 		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,

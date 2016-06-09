@@ -486,7 +486,7 @@ int main(int argc, char *argv[])
 	poptContext optCon;
 	struct poptOption options[] = {
 		{.argInfo = POPT_ARG_INTL_DOMAIN,
-		 .descrip = "pesign" },
+		 .arg = "pesign" },
 		/* global nss-ish things */
 		{.longName = "dbdir",
 		 .shortName = 'd',

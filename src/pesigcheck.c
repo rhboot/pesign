@@ -214,7 +214,7 @@ main(int argc, char *argv[])
 	poptContext optCon;
 	struct poptOption options[] = {
 		{.argInfo = POPT_ARG_INTL_DOMAIN,
-		 .descrip = "pesign" },
+		 .arg = "pesign" },
 		{.longName = "dbfile",
 		 .shortName = 'D',
 		 .argInfo = POPT_ARG_CALLBACK|POPT_CBFLAG_POST,
