@@ -126,7 +126,7 @@ main(int argc, char *argv[])
 
 	struct poptOption options[] = {
 		{.argInfo = POPT_ARG_INTL_DOMAIN,
-		 .descrip = "pesign" },
+		 .arg = "pesign" },
 		{.longName = "infile",
 		 .shortName = 'i',
 		 .argInfo = POPT_ARG_STRING,
