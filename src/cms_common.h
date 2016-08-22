@@ -123,6 +123,7 @@ extern int wrap_in_seq(cms_context *cms, SECItem *der,
 			SECItem *items, int num_items);
 extern int make_context_specific(cms_context *cms, int ctxt, SECItem *encoded,
 			SECItem *original);
+extern int make_eku_oid(cms_context *cms, SECItem *encoded, SECOidTag oid_tag);
 extern int generate_validity(cms_context *cms, SECItem *der, time_t start,
 				time_t end);
 extern int generate_common_name(cms_context *cms, SECItem *der, char *cn);
