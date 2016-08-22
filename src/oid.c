@@ -33,6 +33,7 @@ static uint8_t oiddata[] = {
 	0x2b, 0x06, 0x01, 0x04, 0x01, 0x82, 0x37, 0x02, 0x01, 0x0f,
 	0x2b, 0x06, 0x01, 0x04, 0x01, 0x82, 0x37, 0x02, 0x01, 0x15,
 	0x2b, 0x06, 0x01, 0x04, 0x01, 0x82, 0x37, 0x15, 0x01,
+	0x2b, 0x06, 0x01, 0x04, 0x01, 0x92, 0x08, 0x10, 0x01, 0x02,
 };
 
 #define OID(num, desc_s, oidtype, length, value)		\
@@ -53,11 +54,14 @@ static struct {
 	OID(SPC_STATEMENT_TYPE_OBJID, "Statement Type", siDEROID, 10,
 		&oiddata[10]),
 	OID(SPC_PE_IMAGE_DATA_OBJID, "PE Image Data", siDEROID, 10,
-		&oiddata[30]),
+		&oiddata[20]),
 	OID(SPC_INDIVIDUAL_SP_KEY_PURPOSE_OBJID, "Individual Key", siDEROID,
-		10, &oiddata[40]),
+		10, &oiddata[30]),
 	OID(szOID_CERTSRV_CA_VERSION, "Certification server CA version",
-		siAsciiString, 9, &oiddata[50]),
+		siAsciiString, 9, &oiddata[40]),
+	OID(SHIM_EKU_MODULE_SIGNING_ONLY,
+		"Certificate is used for kernel modules only", siDEROID, 10,
+		&oiddata[49]),
 	{ .oid = END_OID_LIST }
 };
 
