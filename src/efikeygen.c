@@ -49,6 +49,7 @@
 #include <libdpe/libdpe.h>
 
 #include "cms_common.h"
+#include "oid.h"
 #include "util.h"
 
 typedef struct {
@@ -249,20 +250,34 @@ add_basic_constraints(cms_context *cms, void *extHandle)
 }
 
 static int
-add_extended_key_usage(cms_context *cms, void *extHandle)
+add_extended_key_usage(cms_context *cms, int modsign_only, void *extHandle)
 {
-	SECItem value = {
-		.data = (unsigned char *)"\x30\x0a\x06\x08\x2b\x06\x01"
-					 "\x05\x05\x07\x03\x03",
-		.len = 12,
-		.type = siBuffer
-	};
-
-
+	SECItem values[2];
+	SECItem wrapped = { 0 };
 	SECStatus status;
+	SECOidTag tag;
+	int rc;
+
+	if (modsign_only < 1 || modsign_only > 2)
+		cmsreterr(-1, cms, "could not encode extended key usage");
+
+	rc = make_eku_oid(cms, &values[0], SEC_OID_EXT_KEY_USAGE_CODE_SIGN);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not encode extended key usage");
+
+	tag = find_ms_oid_tag(SHIM_EKU_MODULE_SIGNING_ONLY);
+	printf("tag: %d\n", tag);
+	rc = make_eku_oid(cms, &values[1], tag);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not encode extended key usage");
+
+	rc = wrap_in_seq(cms, &wrapped, values, modsign_only);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not encode extended key usage");
+
 
 	status = CERT_AddExtension(extHandle, SEC_OID_X509_EXT_KEY_USAGE,
-					&value, PR_FALSE, PR_TRUE);
+					&wrapped, PR_FALSE, PR_TRUE);
 	if (status != SECSuccess)
 		cmsreterr(-1, cms, "could not encode extended key usage");
 
@@ -294,7 +309,7 @@ static int
 add_extensions_to_crq(cms_context *cms, CERTCertificateRequest *crq,
 			int is_ca, int is_self_signed, SECKEYPublicKey *pubkey,
 			SECKEYPublicKey *spubkey,
-			char *url)
+			char *url, int modsign_only)
 {
 	void *mark = PORT_ArenaMark(cms->arena);
 
@@ -319,7 +334,7 @@ add_extensions_to_crq(cms_context *cms, CERTCertificateRequest *crq,
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not generate certificate extensions");
 
-	rc = add_extended_key_usage(cms, extHandle);
+	rc = add_extended_key_usage(cms, modsign_only, extHandle);
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not generate certificate extensions");
 
@@ -469,6 +484,7 @@ int main(int argc, char *argv[])
 {
 	int is_ca = 0;
 	int is_self_signed = -1;
+	int modsign_only = 0;
 	char *tokenname = "NSS Certificate DB";
 	char *signer = NULL;
 	char *nickname = NULL;
@@ -522,6 +538,18 @@ int main(int argc, char *argv[])
 		 .descrip = "Generate a self-signed certificate" },
 
 		/* stuff about the generated key */
+		{.longName = "kernel",
+		 .shortName = 'k',
+		 .argInfo = POPT_ARG_VAL|POPT_ARGFLAG_OR,
+		 .arg = &modsign_only,
+		 .val = 1,
+		 .descrip = "Generate a kernel-signing certificate" },
+		{.longName = "module",
+		 .shortName = 'm',
+		 .argInfo = POPT_ARG_VAL|POPT_ARGFLAG_OR,
+		 .arg = &modsign_only,
+		 .val = 2,
+		 .descrip = "Generate a module-signing certificate" },
 		{.longName = "nickname",
 		 .shortName = 'n',
 		 .argInfo = POPT_ARG_STRING,
@@ -628,6 +656,9 @@ int main(int argc, char *argv[])
 			liberr(1, "could not allocate cms context");
 	}
 
+	if (modsign_only < 1 || modsign_only > 2)
+		errx(1, "either --kernel or --module must be used");
+
 	SECStatus status = NSS_InitReadWrite(dbdir);
 	if (status != SECSuccess)
 		nsserr(1, "could not initialize NSS");
@@ -638,6 +669,10 @@ int main(int argc, char *argv[])
 
 	SECKEYPublicKey *pubkey = NULL;
 	SECKEYPrivateKey *privkey = NULL;
+
+	status = register_oids(cms);
+	if (status != SECSuccess)
+		nsserr(1, "Could not register OIDs");
 
 	PK11SlotInfo *slot = NULL;
 	if (pubfile) {
@@ -713,7 +748,7 @@ int main(int argc, char *argv[])
 	crq = CERT_CreateCertificateRequest(name, spki, &attributes);
 
 	rc = add_extensions_to_crq(cms, crq, is_ca, is_self_signed, pubkey,
-					spubkey, url);
+					spubkey, url, modsign_only);
 	if (rc < 0)
 		exit(1);
 

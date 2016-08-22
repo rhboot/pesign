@@ -715,6 +715,35 @@ make_context_specific(cms_context *cms, int ctxt, SECItem *encoded,
 	return 0;
 }
 
+static SEC_ASN1Template EKUOidSequence[] = {
+	{
+	.kind = SEC_ASN1_OBJECT_ID,
+	.offset = 0,
+	.sub = &SEC_AnyTemplate,
+	.size = sizeof (SECItem),
+	},
+	{ 0 }
+};
+
+int
+make_eku_oid(cms_context *cms, SECItem *encoded, SECOidTag oid_tag)
+{
+	void *rv;
+	SECOidData *oid_data;
+
+	oid_data = SECOID_FindOIDByTag(oid_tag);
+	if (!oid_data)
+		cmsreterr(-1, cms, "could not encode eku oid data");
+
+	rv = SEC_ASN1EncodeItem(cms->arena, encoded, &oid_data->oid,
+				EKUOidSequence);
+	if (rv == NULL)
+		cmsreterr(-1, cms, "could not encode eku oid data");
+
+	encoded->type = siBuffer;
+	return 0;
+}
+
 int
 generate_octet_string(cms_context *cms, SECItem *encoded, SECItem *original)
 {
