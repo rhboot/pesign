@@ -41,11 +41,11 @@
                  --certdir ${nss} -c signer %{-o}			\
       rm -rf ${sattrs} ${sattrs}.sig ${nss}				\
     elif [ -S /var/run/pesign/socket ]; then				\
-      %{_pesign_client} -t "OpenSC Card (Fedora Signer)"		\\\
-                        -c "/CN=Fedora Secure Boot Signer"		\\\
+      %{_pesign_client} -t %{__pesign_token}				\\\
+                        -c %{__pesign_cert}				\\\
                         %{-i} %{-o} %{-e} %{-s} %{-C}			\
     else								\
-      %{_pesign} %{__pesign_token} -c %{__pesign_cert}			\\\
+      %{_pesign} -t %{__pesign_token} -c %{__pesign_cert}		\\\
 		 --certdir ${_pesign_nssdir}				\\\
                  %{-i} %{-o} %{-e} %{-s} %{-C}				\
     fi									\
