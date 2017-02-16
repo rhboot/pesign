@@ -339,7 +339,7 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	}
 	/* Verify the signature */
 	result = SEC_PKCS7VerifyDetachedSignatureAtTime(cinfo,
-						certUsageSSLServer,
+						certUsageObjectSigner,
 						digest, HASH_AlgSHA256,
 						PR_FALSE, atTime);
 	if (!result) {
