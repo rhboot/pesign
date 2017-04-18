@@ -438,7 +438,7 @@ main(int argc, char *argv[])
 		 .arg = &ctxp->outfile,
 		 .descrip = "specify output file",
 		 .argDescrip = "<outfile>" },
-		{.longName = "certficate",
+		{.longName = "certificate",
 		 .shortName = 'c',
 		 .argInfo = POPT_ARG_STRING,
 		 .arg = &certname,
