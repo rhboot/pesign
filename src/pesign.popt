@@ -1,3 +1,4 @@
 pesign alias --cert --certificate
 pesign alias --certficate --certificate
 pesign alias --daemon --daemonize
+pesign alias --ascii --ascii-armor
