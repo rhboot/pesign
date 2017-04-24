@@ -130,7 +130,7 @@ check_signature(pesigcheck_context *ctx)
 	cert_iter iter;
 
 	generate_digest(ctx->cms_ctx, ctx->inpe, 1);
-	
+
 	if (check_db_hash(DBX, ctx) == FOUND)
 		return -1;
 
@@ -225,6 +225,11 @@ main(int argc, char *argv[])
 		 .argInfo = POPT_ARG_CALLBACK|POPT_CBFLAG_POST,
 		 .arg = (void *)callback,
 		 .descrip = (void *)ctxp },
+		{.longName = "certfile",
+		 .shortName = 'c',
+		 .argInfo = POPT_ARG_CALLBACK|POPT_CBFLAG_POST,
+		 .arg = (void *)callback,
+		 .descrip = (void *)ctxp },
 		{.longName = "in",
 		 .shortName = 'i',
 		 .argInfo = POPT_ARG_STRING,
@@ -258,7 +263,7 @@ main(int argc, char *argv[])
 		 .shortName = 'c',
 		 .argInfo = POPT_ARG_STRING,
 		 .arg = &certfile,
-		 .descrip = "the certificate (in DER form) for verification ",
+		 .descrip = "import certfile (in DER encoding) for allowed certificate",
 		 .argDescrip = "<certfile>" },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
