@@ -132,7 +132,8 @@ int
 generate_signerInfo_list(cms_context *cms, SpcSignerInfo ***signerInfo_list_p, SignerInfoType type)
 {
 	SpcSignerInfo **signerInfo_list;
-	int err, rc;
+	int err = 0;
+	int rc;
 
 	if (!signerInfo_list_p)
 		return -1;
