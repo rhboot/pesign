@@ -43,7 +43,7 @@ typedef struct {
 
 extern db_status check_db_hash(db_specifier which, pesigcheck_context *ctx);
 extern db_status check_db_cert(db_specifier which, pesigcheck_context *ctx,
-				void *data, ssize_t datalen);
+				void *data, ssize_t datalen, SECItem *match);
 
 extern void init_cert_db(pesigcheck_context *ctx, int use_system_dbs);
 extern int add_cert_db(pesigcheck_context *ctx, const char *filename);

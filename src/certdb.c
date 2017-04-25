@@ -205,7 +205,7 @@ typedef db_status (*checkfn)(pesigcheck_context *ctx, SECItem *sig,
 
 static db_status
 check_db(db_specifier which, pesigcheck_context *ctx, checkfn check,
-	 void *data, ssize_t datalen)
+	 void *data, ssize_t datalen, SECItem *match)
 {
 	SECItem pkcs7sig, sig;
 	dblist *dbl = which == DB ? ctx->db : ctx->dbx;
@@ -241,8 +241,12 @@ check_db(db_specifier which, pesigcheck_context *ctx, checkfn check,
 				found = check(ctx, &sig,
 					      &certlist->SignatureType,
 					      &pkcs7sig);
-				if (found == FOUND)
+				if (found == FOUND) {
+					if (match)
+						memcpy(match, &sig,
+						       sizeof(sig));
 					return FOUND;
+				}
 				cert = (EFI_SIGNATURE_DATA *)((uint8_t *)cert +
 				        certlist->SignatureSize);
 			}
@@ -280,7 +284,7 @@ check_hash(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 db_status
 check_db_hash(db_specifier which, pesigcheck_context *ctx)
 {
-	return check_db(which, ctx, check_hash, NULL, 0);
+	return check_db(which, ctx, check_hash, NULL, 0, NULL);
 }
 
 static void
@@ -459,7 +463,8 @@ out:
 }
 
 db_status
-check_db_cert(db_specifier which, pesigcheck_context *ctx, void *data, ssize_t datalen)
+check_db_cert(db_specifier which, pesigcheck_context *ctx,
+	      void *data, ssize_t datalen, SECItem *match)
 {
-	return check_db(which, ctx, check_cert, data, datalen);
+	return check_db(which, ctx, check_cert, data, datalen, match);
 }
