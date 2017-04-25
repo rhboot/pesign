@@ -345,13 +345,45 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	PRBool result;
 	SECStatus rv;
 	db_status status = NOT_FOUND;
+	PRTime atTime = PR_Now();
+	SECItem *eTime;
 	PRTime earlyNow = 0, lateNow = 0x7fffffffffffffff;
-	PRTime notBefore = 0, notAfter = 0x7fffffffffffffff;
+	PRTime notBefore, notAfter;
 
 	efi_guid_t efi_x509 = efi_guid_x509_cert;
 
 	if (memcmp(sigtype, &efi_x509, sizeof(efi_guid_t)) != 0)
 		return NOT_FOUND;
+
+	cinfo = SEC_PKCS7DecodeItem(pkcs7sig, NULL, NULL, NULL, NULL, NULL,
+				    NULL, NULL);
+	if (!cinfo)
+		goto out;
+
+	notBefore = earlyNow;
+	notAfter = lateNow;
+	find_cert_times(cinfo, &notBefore, &notAfter);
+	if (earlyNow < notBefore)
+		earlyNow = notBefore;
+	if (lateNow > notAfter)
+		lateNow = notAfter;
+
+	// atTime = determine_reasonable_time(cert);
+	eTime = SEC_PKCS7GetSigningTime(cinfo);
+	if (eTime != NULL) {
+		if (DER_DecodeTimeChoice (&atTime, eTime) == SECSuccess) {
+			if (earlyNow < atTime)
+				earlyNow = atTime;
+			if (lateNow > atTime)
+				lateNow = atTime;
+		}
+	}
+
+	if (lateNow < earlyNow)
+		printf("Signature has impossible time constraint: %ld <= %ld\n",
+		       earlyNow / 1000000, lateNow / 1000000);
+	atTime = earlyNow / 2 + lateNow / 2;
+
 
 	cinfo = SEC_PKCS7DecodeItem(pkcs7sig, NULL, NULL, NULL, NULL, NULL,
 				    NULL, NULL);
@@ -401,31 +433,6 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 			PORT_ErrorToString(PORT_GetError()));
 		goto out;
 	}
-	cert->timeOK = PR_TRUE;
-
-	find_cert_times(cinfo, &notBefore, &notAfter);
-	if (earlyNow < notBefore)
-		earlyNow = notBefore;
-	if (lateNow > notAfter)
-		lateNow = notAfter;
-
-	SECItem *eTime;
-	PRTime atTime;
-	// atTime = determine_reasonable_time(cert);
-	eTime = SEC_PKCS7GetSigningTime(cinfo);
-	if (eTime != NULL) {
-		if (DER_DecodeTimeChoice (&atTime, eTime) == SECSuccess) {
-			if (earlyNow < atTime)
-				earlyNow = atTime;
-			if (lateNow > atTime)
-				lateNow = atTime;
-		}
-	}
-
-	if (lateNow < earlyNow)
-		printf("Impossible time constraints: %ld <= %ld\n",
-		       earlyNow / 1000000, lateNow / 1000000);
-	atTime = earlyNow / 2 + lateNow / 2;
 
 	/* Verify the signature */
 	result = SEC_PKCS7VerifyDetachedSignatureAtTime(cinfo,
