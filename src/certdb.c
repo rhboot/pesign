@@ -250,12 +250,53 @@ check_db_hash(db_specifier which, pesigcheck_context *ctx)
 	return check_db(which, ctx, check_hash, NULL, 0);
 }
 
-static PRTime
-determine_reasonable_time(CERTCertificate *cert)
+static void
+find_cert_times(SEC_PKCS7ContentInfo *cinfo,
+		PRTime *notBefore, PRTime *notAfter)
 {
-	PRTime notBefore, notAfter;
-	CERT_GetCertTimes(cert, &notBefore, &notAfter);
-	return notBefore;
+	CERTCertDBHandle *defaultdb, *certdb;
+	SEC_PKCS7SignedData *sdp;
+	CERTCertificate **certs = NULL;
+	SECItem **rawcerts;
+	int i, certcount;
+	SECStatus rv;
+
+	if (cinfo->contentTypeTag->offset != SEC_OID_PKCS7_SIGNED_DATA) {
+err:
+		*notBefore = 0;
+		*notAfter = 0x7fffffffffffffff;
+		return;
+	}
+
+	sdp = cinfo->content.signedData;
+	rawcerts = sdp->rawCerts;
+
+	defaultdb = CERT_GetDefaultCertDB();
+
+	certdb = defaultdb;
+	if (certdb == NULL)
+		goto err;
+
+	certcount = 0;
+	if (rawcerts != NULL) {
+		for (; rawcerts[certcount] != NULL; certcount++)
+			;
+	}
+	rv = CERT_ImportCerts(certdb, certUsageObjectSigner, certcount,
+			      rawcerts, &certs, PR_FALSE, PR_FALSE, NULL);
+	if (rv != SECSuccess)
+		goto err;
+
+	for (i = 0; i < certcount; i++) {
+		PRTime nb = 0, na = 0x7fffffffffff;
+		CERT_GetCertTimes(certs[i], &nb, &na);
+		if (*notBefore < nb)
+			*notBefore = nb;
+		if (*notAfter > na)
+			*notAfter = na;
+	}
+
+	CERT_DestroyCertArray(certs, certcount);
 }
 
 static db_status
@@ -271,6 +312,8 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	PRBool result;
 	SECStatus rv;
 	db_status status = NOT_FOUND;
+	PRTime earlyNow = 0, lateNow = 0x7fffffffffffffff;
+	PRTime notBefore = 0, notAfter = 0x7fffffffffffffff;
 
 	efi_guid_t efi_x509 = efi_guid_x509_cert;
 
@@ -327,16 +370,30 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	}
 	cert->timeOK = PR_TRUE;
 
+	find_cert_times(cinfo, &notBefore, &notAfter);
+	if (earlyNow < notBefore)
+		earlyNow = notBefore;
+	if (lateNow > notAfter)
+		lateNow = notAfter;
+
 	SECItem *eTime;
 	PRTime atTime;
 	// atTime = determine_reasonable_time(cert);
 	eTime = SEC_PKCS7GetSigningTime(cinfo);
 	if (eTime != NULL) {
-		if (DER_DecodeTimeChoice (&atTime, eTime) != SECSuccess)
-			atTime = determine_reasonable_time(cert);
-	} else {
-		atTime = determine_reasonable_time(cert);
+		if (DER_DecodeTimeChoice (&atTime, eTime) == SECSuccess) {
+			if (earlyNow < atTime)
+				earlyNow = atTime;
+			if (lateNow > atTime)
+				lateNow = atTime;
+		}
 	}
+
+	if (lateNow < earlyNow)
+		printf("Impossible time constraints: %ld <= %ld\n",
+		       earlyNow / 1000000, lateNow / 1000000);
+	atTime = earlyNow / 2 + lateNow / 2;
+
 	/* Verify the signature */
 	result = SEC_PKCS7VerifyDetachedSignatureAtTime(cinfo,
 						certUsageObjectSigner,
