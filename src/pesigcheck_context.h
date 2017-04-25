@@ -34,6 +34,7 @@ typedef enum {
 
 struct dblist {
 	db_f_type type;
+	char *path;
 	int fd;
 	struct dblist *next;
 	size_t size;

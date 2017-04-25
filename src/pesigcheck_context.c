@@ -87,6 +87,7 @@ pesigcheck_context_fini(pesigcheck_context *ctx)
 		munmap(db->map, db->size);
 		close(db->fd);
 		ctx->db = db->next;
+		free(db->path);
 		free(db);
 	}
 	while (ctx->dbx) {
@@ -95,6 +96,7 @@ pesigcheck_context_fini(pesigcheck_context *ctx)
 		if (db->type == DB_CERT)
 			free(db->data);
 		munmap(db->map, db->size);
+		free(db->path);
 		close(db->fd);
 		ctx->dbx = db->next;
 		free(db);
