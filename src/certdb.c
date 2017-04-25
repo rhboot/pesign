@@ -18,6 +18,7 @@
  */
 
 #include <fcntl.h>
+#include <libgen.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -42,10 +43,25 @@ add_db_file(pesigcheck_context *ctx, db_specifier which, const char *dbfile,
 		return -1;
 
 	db->type = type;
-
 	db->fd = open(dbfile, O_RDONLY);
 	if (db->fd < 0) {
 		save_errno(free(db));
+		return -1;
+	}
+
+	char *path = strdup(dbfile);
+	if (!path) {
+		save_errno(close(db->fd);
+			   free(db));
+		return -1;
+	}
+
+	db->path = basename(path);
+	db->path = strdup(db->path);
+	free(path);
+	if (!db->path) {
+		save_errno(close(db->fd);
+			   free(db));
 		return -1;
 	}
 
@@ -53,6 +69,7 @@ add_db_file(pesigcheck_context *ctx, db_specifier which, const char *dbfile,
 	int rc = fstat(db->fd, &sb);
 	if (rc < 0) {
 		save_errno(close(db->fd);
+			   free(db->path);
 			   free(db));
 		return -1;
 	}
@@ -65,6 +82,7 @@ add_db_file(pesigcheck_context *ctx, db_specifier which, const char *dbfile,
 		rc = read_file(db->fd, (char **)&db->map, &sz);
 		if (rc < 0) {
 			save_errno(close(db->fd);
+				   free(db->path);
 				   free(db));
 			return -1;
 		}
@@ -133,6 +151,7 @@ add_cert_file(pesigcheck_context *ctx, const char *filename)
 #define DB_PATH "/sys/firmware/efi/efivars/db-d719b2cb-3d3a-4596-a3bc-dad00e67656f"
 #define MOK_PATH "/sys/firmware/efi/efivars/MokListRT-605dab50-e046-4300-abb6-3dd810dd8b23"
 #define DBX_PATH "/sys/firmware/efi/efivars/dbx-d719b2cb-3d3a-4596-a3bc-dad00e67656f"
+#define MOKX_PATH "/sys/firmware/efi/efivars/MokListXRT-605dab50-e046-4300-abb6-3dd810dd8b23"
 
 void
 init_cert_db(pesigcheck_context *ctx, int use_system_dbs)
@@ -167,6 +186,18 @@ init_cert_db(pesigcheck_context *ctx, int use_system_dbs)
 			"database \"%s\": %m\n", DBX_PATH);
 		exit(1);
 	}
+
+	rc = add_db_file(ctx, DBX, MOKX_PATH, DB_EFIVAR);
+	if (rc < 0 && errno != ENOENT) {
+		fprintf(stderr, "pesigcheck: Could not add key database "
+			"\"%s\": %m\n", MOKX_PATH);
+		exit(1);
+	}
+
+	if (ctx->dbx == NULL) {
+		fprintf(stderr, "pesigcheck: warning: "
+			"No key recovation database available\n");
+	}
 }
 
 typedef db_status (*checkfn)(pesigcheck_context *ctx, SECItem *sig,
@@ -187,6 +218,8 @@ check_db(db_specifier which, pesigcheck_context *ctx, checkfn check,
 	sig.type = siBuffer;
 
 	while (dbl) {
+		printf("Searching %s %s\n", which == DB ? "db" : "dbx",
+		       dbl->path);
 		EFI_SIGNATURE_LIST *certlist;
 		EFI_SIGNATURE_DATA *cert;
 		size_t dbsize = dbl->datalen;
