@@ -61,6 +61,7 @@ typedef struct pesigcheck_context {
 	Pe *inpe;
 
 	int quiet;
+	int verbose;
 
 	hashlist *hashes;
 
