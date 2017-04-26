@@ -966,10 +966,37 @@ err:
 }
 
 void
-generate_digest_step(cms_context *cms, void *data, size_t len)
+print_digest_state(cms_context *cms, int i)
 {
-	for (int i = 0; i < n_digest_params; i++)
+	unsigned int len = digest_params[i].size;
+	unsigned char data[len];
+	PK11Context *ctx;
+	unsigned char *savectx = NULL;
+	unsigned int statelen;
+
+	savectx = PK11_SaveContextAlloc(cms->digests[i].pk11ctx, NULL, 0, &statelen);
+	ctx = PK11_CreateDigestContext(digest_params[i].digest_tag);
+	PK11_RestoreContext(ctx, savectx, statelen);
+
+	PK11_DigestFinal(ctx, data, &len, digest_params[i].size);
+
+	for (unsigned int j = 0; j < len; j++)
+		printf("%02x", (unsigned char)data[j]);
+	PK11_Finalize(ctx);
+	PK11_DestroyContext(ctx, PR_TRUE);
+	printf("\n");
+}
+
+void
+generate_digest_step(cms_context *cms, void *data, off_t offset, size_t len)
+{
+	for (int i = 0; i < n_digest_params; i++) {
+		if (digest_params[i].digest_tag != SEC_OID_SHA256)
+			continue;
 		PK11_DigestOp(cms->digests[i].pk11ctx, data, len);
+		printf("offset: 0x%08zx len: %.7zd %s: ", offset, len, digest_params[i].name);
+		print_digest_state(cms, i);
+	}
 }
 
 int

@@ -67,6 +67,7 @@ typedef struct {
 	int ascii;
 	int sign;
 	int hash;
+	int hash_oracle;
 } pesign_context;
 
 extern int pesign_context_new(pesign_context **ctx);

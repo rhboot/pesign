@@ -159,7 +159,8 @@ extern void cms_set_pw_data(cms_context *cms, void *pwdata);
 extern int set_digest_parameters(cms_context *ctx, char *name);
 
 extern int generate_digest_begin(cms_context *cms);
-extern void generate_digest_step(cms_context *cms, void *data, size_t len);
+extern void generate_digest_step(cms_context *cms, void *data, off_t offset, size_t len);
+extern void print_digest_state(cms_context *cms, int i);
 extern int generate_digest_finish(cms_context *cms);
 
 typedef struct {

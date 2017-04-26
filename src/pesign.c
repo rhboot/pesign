@@ -50,7 +50,8 @@
 #define EXPORT_PUBKEY		0x400
 #define EXPORT_CERT		0x800
 #define DAEMONIZE		0x1000
-#define FLAG_LIST_END		0x2000
+#define DIGEST_ORACLE		0x2000
+#define FLAG_LIST_END		0x4000
 
 static struct {
 	int flag;
@@ -468,6 +469,12 @@ main(int argc, char *argv[])
 		 .arg = &ctxp->hash,
 		 .val = 1,
 		 .descrip = "hash binary" },
+		{.longName = "hash_oracle",
+		 .shortName = 'H',
+		 .argInfo = POPT_ARG_VAL|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = &ctxp->hash_oracle,
+		 .val = 1,
+		 .descrip = "hash the binary with a pile of different padding options" },
 		{.longName = "digest_type",
 		 .shortName = 'd',
 		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
@@ -657,6 +664,8 @@ main(int argc, char *argv[])
 
 	if (ctxp->hash)
 		action |= GENERATE_DIGEST|PRINT_DIGEST;
+	if (ctxp->hash_oracle)
+		action |= DIGEST_ORACLE|PRINT_DIGEST;
 
 	if (!daemon) {
 		SECStatus status;
@@ -868,6 +877,20 @@ main(int argc, char *argv[])
 			open_input(ctxp);
 			generate_digest(ctxp->cms_ctx, ctxp->inpe, padding);
 			print_digest(ctxp);
+			break;
+		case DIGEST_ORACLE|PRINT_DIGEST:
+			open_input(ctxp);
+			do {
+				rc = generate_digest(ctxp->cms_ctx,
+						     ctxp->inpe, 2);
+				if (rc >= 0)
+					print_digest(ctxp);
+			} while (rc >= 0);
+			if (rc == -1) {
+				fprintf(stderr,
+					"Error generating digest: %m\n");
+				exit(1);
+			}
 			break;
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:

@@ -23,6 +23,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <syslog.h>
@@ -68,6 +69,39 @@ check_pointer_and_size(Pe *pe, void *ptr, size_t size)
 #define dprintf(fmt, args...) printf(fmt, ## args)
 #endif
 
+#define PAD_ORACLE_RANGE 4096
+
+static int
+determine_pad(size_t hash_size, int normal, size_t *pad_size, size_t *trim_size)
+{
+	static int trim_state;
+	static int pad_state;
+
+	if (normal) {
+		*pad_size = ALIGNMENT_PADDING(hash_size, 8);
+		*trim_size = 0;
+		dprintf("Adding normal pad (%zd bytes)\n", *pad_size);
+	} else {
+		*trim_size = trim_state;
+		*pad_size = pad_state++;
+
+		if (pad_state > PAD_ORACLE_RANGE) {
+			pad_state = 0;
+			trim_state += 1;
+		}
+		if (trim_state > PAD_ORACLE_RANGE) {
+			trim_state = 0;
+			pad_state = 0;
+			return -1;
+		}
+
+		dprintf("Adding trim of -%zd and pad of %zd.\n",
+			*trim_size, *pad_size);
+	}
+
+	return 0;
+}
+
 int
 generate_digest(cms_context *cms, Pe *pe, int padded)
 {
@@ -77,10 +111,16 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 	struct pe32plus_opt_hdr *pe64opthdr = NULL;
 	unsigned long hashed_bytes = 0;
 	int rc = -1;
+	int ret = -1;
 
 	if (!pe) {
 		cms->log(cms, LOG_ERR, "no output pe ready");
 		return -1;
+	}
+
+	if (cms->digests) {
+		PORT_Free(cms->digests);
+		cms->digests = NULL;
 	}
 
 	rc = generate_digest_begin(cms);
@@ -121,14 +161,17 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 	default:
 		goto error;
 	}
+
 	if (!check_pointer_and_size(pe, hash_base, hash_size)) {
 		cms->log(cms, LOG_ERR, "%s:%s:%d PE header is invalid",
 			__FILE__, __func__, __LINE__);
 		goto error;
 	}
-	dprintf("beginning of hash\n");
-	dprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
-	generate_digest_step(cms, hash_base, hash_size);
+
+	printf("offset: 0x00000000 len:       0 sha256: ");
+	print_digest_state(cms, 0);
+
+	generate_digest_step(cms, hash_base, hash_base - map, hash_size);
 
 	/* 5. Skip over the image checksum
 	 * 6. Get the address of the beginning of the cert dir entry
@@ -151,8 +194,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 			__FILE__, __func__, __LINE__);
 		goto error;
 	}
-	generate_digest_step(cms, hash_base, hash_size);
-	dprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
+	generate_digest_step(cms, hash_base, hash_base - map, hash_size);
 
 	/* 8. Skip over the crt dir
 	 * 9. Hash everything up to the end of the image header. */
@@ -166,8 +208,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 			"invalid", __FILE__, __func__, __LINE__);
 		goto error;
 	}
-	generate_digest_step(cms, hash_base, hash_size);
-	dprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
+	generate_digest_step(cms, hash_base, hash_base - map, hash_size);
 
 	/* 10. Set SUM_OF_BYTES_HASHED to the size of the header. */
 	hashed_bytes = pe32opthdr ? pe32opthdr->header_size
@@ -199,8 +240,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 			goto error_shdrs;
 		}
 
-		generate_digest_step(cms, hash_base, hash_size);
-		dprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
+		generate_digest_step(cms, hash_base, hash_base - map, hash_size);
 
 		hashed_bytes += hash_size;
 	}
@@ -214,20 +254,26 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 				"trailing data", __FILE__, __func__, __LINE__);
 			goto error_shdrs;
 		}
-		if (hash_size % 8 != 0 && padded) {
-			size_t tmp_size = hash_size +
-					  ALIGNMENT_PADDING(hash_size, 8);
+		if ((hash_size % 8 != 0 && padded == 1) || padded == 2) {
+			size_t pad_size;
+			size_t trim_size;
+			int valid = determine_pad(hash_size, padded == 1,
+						  &pad_size, &trim_size) >= 0;
+			size_t tmp_size = hash_size - trim_size + pad_size;
 			uint8_t tmp_array[tmp_size];
+
+			if (!valid) {
+				dprintf("finished iterating padding oracle.\n");
+				ret = -2;
+				goto error_shdrs;
+			}
 			memset(tmp_array, '\0', tmp_size);
-			memcpy(tmp_array, hash_base, hash_size);
-			generate_digest_step(cms, tmp_array, tmp_size);
-			dprintf("digesting %lx + %lx\n", (unsigned long)tmp_array, tmp_size);
+			memcpy(tmp_array, hash_base, hash_size - trim_size);
+			generate_digest_step(cms, tmp_array, hash_base - map, tmp_size);
 		} else {
-			generate_digest_step(cms, hash_base, hash_size);
-			dprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
+			generate_digest_step(cms, hash_base, hash_base - map, hash_size);
 		}
 	}
-	dprintf("end of hash\n");
 
 	rc = generate_digest_finish(cms);
 	if (rc < 0)
@@ -244,7 +290,7 @@ error_shdrs:
 	if (shdrs)
 		free(shdrs);
 error:
-	return -1;
+	return ret;
 }
 
 
