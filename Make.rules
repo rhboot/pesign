@@ -79,3 +79,7 @@ endef
 
 $(TOPDIR)/libdpe/%.a $(TOPDIR)/libdpe/% :
 	$(MAKE) -C $(TOPDIR)/libdpe $(notdir $@)
+
+define get-config =
+$(shell git config --local --get "$(NAME).$(1)")
+endef

@@ -4,6 +4,7 @@ TOPDIR = $(realpath .)
 include $(TOPDIR)/Make.version
 include $(TOPDIR)/Make.rules
 include $(TOPDIR)/Make.defaults
+include $(TOPDIR)/Make.coverity
 
 SUBDIRS := include libdpe src
 
