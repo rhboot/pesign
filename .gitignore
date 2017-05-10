@@ -12,3 +12,4 @@
 *.tar.*
 *.rpm
 core.*
+cov-int

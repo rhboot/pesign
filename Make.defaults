@@ -1,3 +1,5 @@
+NAME	= pesign
+COMMIT_ID ?= $(shell git log -1 --pretty=%H 2>/dev/null || echo master)
 prefix	?= /usr/
 prefix	:= $(abspath $(prefix))/
 libdir	?= $(prefix)lib64/
