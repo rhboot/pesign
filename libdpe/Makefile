@@ -9,7 +9,7 @@ LIBTARGETS=libdpe.so
 STATICLIBTARGETS=libdpe.a
 TARGETS=$(LIBTARGETS) $(STATICLIBTARGETS)
 
-LIBDPE_SOURCES = $(wildcard *.c)
+LIBDPE_SOURCES = $(sort $(wildcard *.c))
 ALL_SOURCES=$(LIBDPE_SOURCES)
 -include $(call deps-of,$(ALL_SOURCES))
 
