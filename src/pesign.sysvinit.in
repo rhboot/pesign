@@ -20,6 +20,9 @@ RETVAL=0
 
 start(){
     echo -n "Starting pesign: "
+    mkdir /var/run/pesign 2>/dev/null &&
+        chown pesign:pesign /var/run/pesign &&
+        chmod 0770 /var/run/pesign
     daemon /usr/bin/pesign --daemonize
     RETVAL=$?
     echo
