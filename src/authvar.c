@@ -511,6 +511,7 @@ main(int argc, char *argv[])
 	case IMPORT|SET:
 	case IMPORT|SIGN|SET:
 		fprintf(stderr, "authvar: not implemented\n");
+		/* fallthrough. */
 	case IMPORT|SIGN|EXPORT:
 	default:
 		fprintf(stderr, "authvar: invalid flags: ");
