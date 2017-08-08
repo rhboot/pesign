@@ -660,10 +660,12 @@ main(int argc, char *argv[])
 
 	if (!daemon) {
 		SECStatus status;
+		int error;
 		if (need_db) {
 			status = NSS_Init(certdir);
 			if (status != SECSuccess) {
 				char *globpattern = NULL;
+				error = errno;
 				rc = asprintf(&globpattern, "%s/cert*.db",
 					      certdir);
 				if (rc > 0) {
@@ -680,8 +682,10 @@ main(int argc, char *argv[])
 		} else
 			status = NSS_NoDB_Init(NULL);
 		if (status != SECSuccess) {
-			errx(1, "Could not initialize nss. NSS says \"%s\" errno says \"%m\"\n",
-				PORT_ErrorToString(PORT_GetError()));
+			errno = error;
+			errx(1, "Could not initialize nss.\n"
+			        "NSS says \"%s\" errno says \"%m\"\n",
+			     PORT_ErrorToString(PORT_GetError()));
 		}
 
 		status = register_oids(ctxp->cms_ctx);

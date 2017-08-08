@@ -19,6 +19,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <glob.h>
 #include <poll.h>
 #include <pwd.h>
 #include <signal.h>
@@ -1104,10 +1105,32 @@ daemonize(cms_context *cms_ctx, char *certdir, int do_fork)
 		"pesignd starting (pid %d)", ctx.pid);
 
 	SECStatus status = NSS_Init(certdir);
+	int error = errno;
 	if (status != SECSuccess) {
+		char *globpattern = NULL;
+		rc = asprintf(&globpattern, "%s/cert*.db",
+			      certdir);
+		if (rc > 0) {
+			glob_t globbuf;
+			memset(&globbuf, 0, sizeof(globbuf));
+			rc = glob(globpattern, GLOB_ERR, NULL,
+				  &globbuf);
+			if (rc != 0) {
+				errno = error;
+				ctx.backup_cms->log(ctx.backup_cms,
+					ctx.priority|LOG_NOTICE,
+					"Could not open NSS database (\"%s\"): %m",
+					PORT_ErrorToString(PORT_GetError()));
+				exit(1);
+			}
+		}
+	}
+	if (status != SECSuccess) {
+		errno = error;
 		ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_NOTICE,
-			"Could not initialize nss: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
+				    "Could not initialize nss.\n"
+				    "NSS says \"%s\" errno says \"%m\"\n",
+				    PORT_ErrorToString(PORT_GetError()));
 		exit(1);
 	}
 
