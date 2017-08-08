@@ -7,7 +7,7 @@ include $(TOPDIR)/Make.defaults
 
 BINTARGETS=authvar client efikeygen efisiglist pesigcheck pesign
 SVCTARGETS=pesign.sysvinit pesign.service
-TARGETS=$(BINTARGETS) $(SVCTARGETS)
+TARGETS=$(BINTARGETS) $(SVCTARGETS) pesign-users pesign-groups
 
 all : deps $(TARGETS)
 
@@ -65,6 +65,9 @@ install_sysvinit: pesign.sysvinit
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rc.d/init.d/
 	$(INSTALL) -m 755 pesign.sysvinit $(INSTALLROOT)/etc/rc.d/init.d/pesign
 
+pesign-users pesign-groups :
+	echo pesign > $@
+
 install :
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pki/pesign/
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pki/pesign-rh-test/
@@ -88,10 +91,9 @@ install :
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(libexecdir)/pesign/
-	$(INSTALL) -m 750 pesign-authorize-users $(INSTALLROOT)$(libexecdir)/pesign/
-	$(INSTALL) -m 750 pesign-authorize-groups $(INSTALLROOT)$(libexecdir)/pesign/
+	$(INSTALL) -m 750 pesign-authorize $(INSTALLROOT)$(libexecdir)/pesign/
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pesign
-	$(INSTALL) -m 600 /dev/null $(INSTALLROOT)/etc/pesign/users
-	$(INSTALL) -m 600 /dev/null $(INSTALLROOT)/etc/pesign/groups
+	$(INSTALL) -m 600 pesign-users $(INSTALLROOT)/etc/pesign/users
+	$(INSTALL) -m 600 pesign-groups $(INSTALLROOT)/etc/pesign/groups
 
 .PHONY: all deps clean install
