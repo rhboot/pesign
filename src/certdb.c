@@ -384,10 +384,9 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	}
 
 	if (lateNow < earlyNow)
-		printf("Signature has impossible time constraint: %ld <= %ld\n",
-		       earlyNow / 1000000, lateNow / 1000000);
+		printf("Signature has impossible time constraint: %lld <= %lld\n",
+		       earlyNow / 1000000LL, lateNow / 1000000LL);
 	atTime = earlyNow / 2 + lateNow / 2;
-
 
 	cinfo = SEC_PKCS7DecodeItem(pkcs7sig, NULL, NULL, NULL, NULL, NULL,
 				    NULL, NULL);
