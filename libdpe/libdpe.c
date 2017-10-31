@@ -19,7 +19,7 @@
 
 #include <stdio.h>
 
-#include "libdpe.h"
+#include "libdpe_priv.h"
 
 Pe *pe_clone(Pe *pe __attribute__((__unused__)),
 	     Pe_Cmd cmd __attribute__((__unused__)))

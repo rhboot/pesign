@@ -17,7 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
-#include "libdpe.h"
+#include "libdpe_priv.h"
 
 static int
 pe_default_mzhdr(Pe *pe, struct mz_hdr *mzhdr)

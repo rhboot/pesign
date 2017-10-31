@@ -17,7 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
-#include "libdpe.h"
+#include "libdpe_priv.h"
 
 char *
 pe_rawfile(Pe *pe, size_t *size)

@@ -27,7 +27,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
-#include "libdpe.h"
+#include "libdpe_priv.h"
 
 static inline Pe *
 file_read_pe_obj(int fildes __attribute__((__unused__)),

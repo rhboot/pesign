@@ -19,7 +19,7 @@
 
 #include <assert.h>
 
-#include "libdpe.h"
+#include "libdpe_priv.h"
 
 Pe_Scn *
 pe_nextscn(Pe *pe, Pe_Scn *scn)

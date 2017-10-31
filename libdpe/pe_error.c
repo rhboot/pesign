@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "libdpe.h"
+#include "libdpe_priv.h"
 
 static int global_error;
 

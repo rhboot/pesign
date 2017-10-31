@@ -17,7 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
-#include "libdpe.h"
+#include "libdpe_priv.h"
 
 int
 pe_getdatadir(Pe *pe, data_directory **dd)

@@ -19,7 +19,7 @@
 
 #include <assert.h>
 
-#include "libdpe.h"
+#include "libdpe_priv.h"
 
 int
 pe_end(Pe *pe)

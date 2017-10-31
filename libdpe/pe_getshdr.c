@@ -17,7 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
-#include "libdpe.h"
+#include "libdpe_priv.h"
 
 struct section_header *
 pe_getshdr(Pe_Scn *scn, struct section_header *dst)

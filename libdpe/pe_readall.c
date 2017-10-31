@@ -17,7 +17,7 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
-#include "libdpe.h"
+#include "libdpe_priv.h"
 
 char *
 __libpe_readall(Pe *pe __attribute__((__unused__)))
