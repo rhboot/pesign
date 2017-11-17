@@ -68,6 +68,7 @@ main(int argc, char *argv[])
 	int rc;
 
 	pesign_context *ctxp;
+	file_format fmt = FORMAT_PE_BINARY;
 
 	int list = 0;
 	int remove = 0;
@@ -416,6 +417,12 @@ main(int argc, char *argv[])
 		}
 	}
 
+	if (ctxp->infile) {
+		char *ext = strrchr(ctxp->infile, '.');
+		if (ext && strcmp(ext, ".ko") == 0)
+			fmt = FORMAT_KERNEL_MODULE;
+	}
+
 	switch (action) {
 		case NO_FLAGS:
 			fprintf(stderr, "pesign: Nothing to do.\n");
@@ -425,7 +432,14 @@ main(int argc, char *argv[])
 			rc = daemonize(ctxp->cms_ctx, certdir, fork);
 			break;
 		default:
-			pe_handle_action(ctxp, action, padding);
+			switch (fmt) {
+				case FORMAT_PE_BINARY:
+					pe_handle_action(ctxp, action, padding);
+					break;
+				case FORMAT_KERNEL_MODULE:
+					kmod_handle_action(ctxp, action);
+					break;
+			}
 	}
 	pesign_context_free(ctxp);
 

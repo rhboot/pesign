@@ -26,11 +26,17 @@ enum {
 	PESIGN_C_ALLOCATED = 1,
 };
 
+typedef enum {
+	FORMAT_PE_BINARY,
+	FORMAT_KERNEL_MODULE,
+} file_format;
+
 typedef struct {
 	int infd;
 	int outfd;
 	char *infile;
 	char *outfile;
+	size_t inlength;
 	mode_t outmode;
 
 	int force;

@@ -38,5 +38,6 @@
 
 void print_flag_name(FILE *f, int flag);
 void pe_handle_action(pesign_context *ctxp, int action, int padding);
+void kmod_handle_action(pesign_context *ctxp, int action);
 
 #endif /* PESIGN_STANDALONE_H */
