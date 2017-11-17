@@ -442,7 +442,7 @@ send_fd(int sd, int fd)
 
 static void
 sign(int sd, char *infile, char *outfile, char *tokenname, char *certname,
-	int attached)
+	int attached, uint32_t format)
 {
 	int infd = open(infile, O_RDONLY);
 	if (infd < 0) {
@@ -459,7 +459,7 @@ sign(int sd, char *infile, char *outfile, char *tokenname, char *certname,
 	}
 
 	struct msghdr msg;
-	struct iovec iov[2];
+	struct iovec iov[3];
 
 	uint32_t size0 = pesignd_string_size(tokenname);
 	uint32_t size1 = pesignd_string_size(certname);
@@ -478,7 +478,7 @@ oom:
 
 	pm->version = PESIGND_VERSION;
 	pm->command = attached ? CMD_SIGN_ATTACHED : CMD_SIGN_DETACHED;
-	pm->size = size0 + size1;
+	pm->size = size0 + size1 + sizeof(format);
 	iov[0].iov_base = pm;
 	iov[0].iov_len = sizeof (*pm);
 
@@ -499,18 +499,21 @@ oom:
 	if (!buffer)
 		goto oom;
 
+	iov[0].iov_base = &format;
+	iov[0].iov_len = sizeof(format);
+
 	pesignd_string *tn = (pesignd_string *)buffer;
 	pesignd_string_set(tn, tokenname);
-	iov[0].iov_base = tn;
-	iov[0].iov_len = size0;
+	iov[1].iov_base = tn;
+	iov[1].iov_len = size0;
 
 	pesignd_string *cn = pesignd_string_next(tn);
 	pesignd_string_set(cn, certname);
-	iov[1].iov_base = cn;
-	iov[1].iov_len = size1;
+	iov[2].iov_base = cn;
+	iov[2].iov_len = size1;
 
 	msg.msg_iov = iov;
-	msg.msg_iovlen = 2;
+	msg.msg_iovlen = 3;
 
 	n = sendmsg(sd, &msg, 0);
 	if (n < 0) {
@@ -552,6 +555,7 @@ main(int argc, char *argv[])
 	int pinfd = -1;
 	char *pinfile = NULL;
 	char *tokenpin = NULL;
+	enum pesign_file_format file_format = FORMAT_PE_BINARY;
 
 	struct poptOption options[] = {
 		{.argInfo = POPT_ARG_INTL_DOMAIN,
@@ -679,6 +683,12 @@ main(int argc, char *argv[])
 
 	int sd = -1;
 
+	if (infile) {
+		char *ext = strrchr(infile, '.');
+		if (ext && strcmp(ext, ".ko") == 0)
+			file_format = FORMAT_KERNEL_MODULE;
+	}
+
 	switch (action) {
 	case UNLOCK_TOKEN:
 		tokenpin = get_token_pin(pinfd, pinfile, "PESIGN_TOKEN_PIN");
@@ -720,7 +730,7 @@ main(int argc, char *argv[])
 			exit(1);
 		}
 		sd = connect_to_server();
-		sign(sd, infile, outfile, tokenname, certname, attached);
+		sign(sd, infile, outfile, tokenname, certname, attached, file_format);
 		break;
 	default:
 		fprintf(stderr, "Incompatible flags (0x%08x): ", action);

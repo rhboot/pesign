@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/prctl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -36,6 +37,7 @@
 #include <grp.h>
 
 #include "pesign.h"
+#include "kmod_common.h"
 
 #include <prerror.h>
 #include <nss.h>
@@ -453,87 +455,12 @@ set_up_outpe(context *ctx, int fd, Pe *inpe, Pe **outpe)
 	return 0;
 }
 
-static void
-handle_signing(context *ctx, struct pollfd *pollfd, socklen_t size,
-	int attached)
+static int
+sign_pe(context *ctx, int infd, int outfd, int attached)
 {
-	struct msghdr msg;
-	struct iovec iov;
-	ssize_t n;
-	char *buffer = malloc(size);
 	Pe *inpe = NULL;
 
-	if (!buffer) {
-oom:
-		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"unable to allocate memory: %m");
-		exit(1);
-	}
-
-	memset(&msg, '\0', sizeof(msg));
-
-	iov.iov_base = buffer;
-	iov.iov_len = size;
-	msg.msg_iov = &iov;
-	msg.msg_iovlen = 1;
-
-	n = recvmsg(pollfd->fd, &msg, MSG_WAITALL);
-
-	pesignd_string *tn = (pesignd_string *)buffer;
-	if (n < (long long)sizeof(tn->size)) {
-malformed:
-		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"handle_signing: invalid data");
-		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
-			"possible exploit attempt. closing.");
-		close(pollfd->fd);
-		return;
-	}
-
-	n -= sizeof(tn->size);
-	if ((size_t)n < tn->size)
-		goto malformed;
-	n -= tn->size;
-
-	/* authenticating with nss frees these ... best API ever. */
-	ctx->cms->tokenname = PORT_ArenaStrdup(ctx->cms->arena,
-						(char *)tn->value);
-	if (!ctx->cms->tokenname)
-		goto oom;
-
-	if ((size_t)n < sizeof(tn->size))
-		goto malformed;
-	pesignd_string *cn = pesignd_string_next(tn);
-	n -= sizeof(cn->size);
-	if ((size_t)n < cn->size)
-		goto malformed;
-
-	ctx->cms->certname = PORT_ArenaStrdup(ctx->cms->arena,
-						(char *)cn->value);
-	if (!ctx->cms->certname)
-		goto oom;
-
-	n -= cn->size;
-	if (n != 0)
-		goto malformed;
-
-	int infd=-1;
-	socket_get_fd(ctx, pollfd->fd, &infd);
-
-	int outfd=-1;
-	socket_get_fd(ctx, pollfd->fd, &outfd);
-
-	ctx->cms->log(ctx->cms, ctx->priority|LOG_NOTICE,
-		"attempting to sign with key \"%s:%s\"",
-		tn->value, cn->value);
-	free(buffer);
-
-	int rc = find_certificate(ctx->cms, 1);
-	if (rc < 0) {
-		goto finish;
-	}
-
-	rc = set_up_inpe(ctx, infd, &inpe);
+	int rc = set_up_inpe(ctx, infd, &inpe);
 	if (rc < 0)
 		goto finish;
 
@@ -587,6 +514,155 @@ finish:
 	if (inpe)
 		pe_end(inpe);
 
+	return rc;
+}
+
+static int
+sign_kmod(context *ctx, int infd, int outfd, int attached)
+{
+	unsigned char *map;
+	struct stat statbuf;
+	ssize_t sig_len;
+	int rc;
+
+	rc = fstat(infd, &statbuf);
+	if (rc != 0) {
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"could not stat input file: %m");
+		return rc;
+	}
+
+	map = mmap(NULL, statbuf.st_size, PROT_READ, MAP_PRIVATE, infd, 0);
+	if (map == MAP_FAILED) {
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"could not map input file: %m");
+		return -1;
+
+	}
+
+	rc = kmod_generate_digest(ctx->cms, map, statbuf.st_size);
+	if (rc < 0)
+		goto out;
+
+	if (attached) {
+		rc = write_file(outfd, map, statbuf.st_size);
+		if (rc) {
+			ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+				"could not write module data: %m");
+			goto out;
+		}
+	}
+
+	sig_len = kmod_write_signature(ctx->cms, outfd);
+	if (sig_len < 0) {
+		rc = sig_len;
+		goto out;
+	}
+
+	rc = kmod_write_sig_info(ctx->cms, outfd, sig_len);
+
+out:
+	munmap(map, statbuf.st_size);
+	return rc;
+}
+
+static void
+handle_signing(context *ctx, struct pollfd *pollfd, socklen_t size,
+	int attached)
+{
+	struct msghdr msg;
+	struct iovec iov;
+	ssize_t n;
+	char *buffer = malloc(size);
+	uint32_t file_format;
+
+	if (!buffer) {
+oom:
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"unable to allocate memory: %m");
+		exit(1);
+	}
+
+	memset(&msg, '\0', sizeof(msg));
+
+	iov.iov_base = buffer;
+	iov.iov_len = size;
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+
+	n = recvmsg(pollfd->fd, &msg, MSG_WAITALL);
+
+	file_format = *((uint32_t *) buffer);
+	n -= sizeof(uint32_t);
+
+	pesignd_string *tn = (pesignd_string *)(buffer + sizeof(uint32_t));
+	if (n < (long long)sizeof(tn->size)) {
+malformed:
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"handle_signing: invalid data");
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			"possible exploit attempt. closing.");
+		close(pollfd->fd);
+		return;
+	}
+
+	n -= sizeof(tn->size);
+	if ((size_t)n < tn->size)
+		goto malformed;
+	n -= tn->size;
+
+	/* authenticating with nss frees these ... best API ever. */
+	ctx->cms->tokenname = PORT_ArenaStrdup(ctx->cms->arena,
+						(char *)tn->value);
+	if (!ctx->cms->tokenname)
+		goto oom;
+
+	if ((size_t)n < sizeof(tn->size))
+		goto malformed;
+	pesignd_string *cn = pesignd_string_next(tn);
+	n -= sizeof(cn->size);
+	if ((size_t)n < cn->size)
+		goto malformed;
+
+	ctx->cms->certname = PORT_ArenaStrdup(ctx->cms->arena,
+						(char *)cn->value);
+	if (!ctx->cms->certname)
+		goto oom;
+
+	n -= cn->size;
+	if (n != 0)
+		goto malformed;
+
+	int infd=-1;
+	socket_get_fd(ctx, pollfd->fd, &infd);
+
+	int outfd=-1;
+	socket_get_fd(ctx, pollfd->fd, &outfd);
+
+	ctx->cms->log(ctx->cms, ctx->priority|LOG_NOTICE,
+		"attempting to sign with key \"%s:%s\"",
+		tn->value, cn->value);
+	free(buffer);
+
+	int rc = find_certificate(ctx->cms, 1);
+	if (rc < 0) {
+		goto finish;
+	}
+
+	switch (file_format) {
+	case FORMAT_PE_BINARY:
+		rc = sign_pe(ctx, infd, outfd, attached);
+		break;
+	case FORMAT_KERNEL_MODULE:
+		rc = sign_kmod(ctx, infd, outfd, attached);
+		break;
+	default:
+		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
+			      "unrecognised format %d", file_format);
+		rc = -1;
+	}
+
+finish:
 	close(infd);
 	close(outfd);
 

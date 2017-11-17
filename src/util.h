@@ -99,6 +99,27 @@ read_file(int fd, char **bufp, size_t *lenptr) {
     return 0;
 }
 
+static inline int
+__attribute__ ((unused))
+write_file(int fd, const void *data, size_t len)
+{
+	int rc;
+	size_t written = 0;
+
+	while (written < len) {
+		rc = write(fd, ((unsigned char *) data) + written,
+			   len - written);
+		if (rc < 0) {
+			if (errno == EINTR)
+				continue;
+			return rc;
+		}
+		written += rc;
+	}
+
+	return 0;
+}
+
 static int
 compare_shdrs (const void *a, const void *b)
 {
