@@ -423,7 +423,7 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 		goto out;
 	}
 
-	rv = CERT_DecodeTrustString(&trust, ",,P");
+	rv = CERT_DecodeTrustString(&trust, ",,CP");
 	if (rv != SECSuccess) {
 		fprintf(stderr, "Unable to decode trust string: %s\n",
 			PORT_ErrorToString(PORT_GetError()));
