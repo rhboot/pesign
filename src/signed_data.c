@@ -276,21 +276,25 @@ generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 
 	if (SEC_ASN1EncodeInteger(cms->arena, &sd.version, 1) == NULL) {
 		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		cms->ci_digest = NULL;
 		cmsreterr(-1, cms, "could not encode integer");
 	}
 
 	if (generate_algorithm_id_list(cms, &sd.algorithms) < 0) {
 		PORT_ArenaRelease(cms->arena, mark);
+		cms->ci_digest = NULL;
 		return -1;
 	}
 
 	if (generate_spc_content_info(cms, &sd.cinfo) < 0) {
 		PORT_ArenaRelease(cms->arena, mark);
+		cms->ci_digest = NULL;
 		return -1;
 	}
 
 	if (generate_certificate_list(cms, &sd.certificates) < 0) {
 		PORT_ArenaRelease(cms->arena, mark);
+		cms->ci_digest = NULL;
 		return -1;
 	}
 
@@ -298,6 +302,7 @@ generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 
 	if (generate_signerInfo_list(cms, &sd.signerInfos, PE_SIGNER_INFO) < 0) {
 		PORT_ArenaRelease(cms->arena, mark);
+		cms->ci_digest = NULL;
 		return -1;
 	}
 
@@ -305,6 +310,7 @@ generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 	if (SEC_ASN1EncodeItem(cms->arena, &encoded, &sd, SignedDataTemplate)
 			== NULL) {
 		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		cms->ci_digest = NULL;
 		cmsreterr(-1, cms, "could not encode SignedData");
 	}
 
@@ -320,6 +326,7 @@ generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 	if (SEC_ASN1EncodeItem(cms->arena, &wrapper, &sdw,
 			ContentInfoTemplate) == NULL) {
 		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		cms->ci_digest = NULL;
 		cmsreterr(-1, cms, "could not encode SignedData");
 	}
 
