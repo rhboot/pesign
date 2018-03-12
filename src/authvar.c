@@ -272,6 +272,8 @@ main(int argc, char *argv[])
 
 	int action = 0;
 
+	setenv("NSS_DEFAULT_DB_TYPE", "sql", 0);
+
 	rc = authvar_context_init(ctxp);
 	if (rc < 0) {
 		fprintf(stderr, "Could not initialize context: %m\n");

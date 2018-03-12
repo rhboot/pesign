@@ -177,6 +177,8 @@ main(int argc, char *argv[])
 		POPT_TABLEEND
 	};
 
+	setenv("NSS_DEFAULT_DB_TYPE", "sql", 0);
+
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
 	rc = poptReadDefaultConfig(optCon, 0);

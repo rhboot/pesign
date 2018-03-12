@@ -464,6 +464,8 @@ main(int argc, char *argv[])
 		POPT_TABLEEND
 	};
 
+	setenv("NSS_DEFAULT_DB_TYPE", "sql", 0);
+
 	rc = pesigcheck_context_init(ctxp);
 	if (rc < 0) {
 		fprintf(stderr, "pesigcheck: Could not initialize context: %m\n");

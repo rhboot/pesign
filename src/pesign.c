@@ -416,6 +416,8 @@ main(int argc, char *argv[])
 	char *certdir = "/etc/pki/pesign";
 	char *signum = NULL;
 
+	setenv("NSS_DEFAULT_DB_TYPE", "sql", 0);
+
 	rc = pesign_context_new(&ctxp);
 	if (rc < 0) {
 		fprintf(stderr, "Could not initialize context: %m\n");

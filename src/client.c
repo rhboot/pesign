@@ -22,6 +22,7 @@
 #include <popt.h>
 #include <pwd.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -627,6 +628,8 @@ main(int argc, char *argv[])
 		POPT_AUTOHELP
 		POPT_TABLEEND
 	};
+
+	setenv("NSS_DEFAULT_DB_TYPE", "sql", 0);
 
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
