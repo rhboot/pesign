@@ -38,6 +38,10 @@ struct hash_param {
 };
 
 static struct hash_param hash_params[] = {
+	{.name = "sha512",
+	 .guid = &efi_guid_sha512,
+	 .size = 64,
+	},
 	{.name = "sha256",
 	 .guid = &efi_guid_sha256,
 	 .size = 32,
