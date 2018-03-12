@@ -304,7 +304,9 @@ readpw(PK11SlotInfo *slot __attribute__((__unused__)),
        void *arg __attribute__((__unused__)))
 {
 	struct termios sio, tio;
-	char line[LINE_MAX] = "", *p;
+	char line[LINE_MAX], *p;
+
+	memset(line, '\0', sizeof (line));
 
 	if (tcgetattr(fileno(stdin), &sio) < 0) {
 		fprintf(stderr, "Could not read password from standard input.\n");
@@ -327,6 +329,8 @@ readpw(PK11SlotInfo *slot __attribute__((__unused__)),
 	tcsetattr(fileno(stdin), 0, &sio);
 
 	p = line + strcspn(line, "\r\n");
+	if (p == NULL)
+		p = line + strcspn(line, "\n");
 	if (p != NULL)
 		*p = '\0';
 
