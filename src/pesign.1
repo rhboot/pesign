@@ -93,7 +93,7 @@ Spawn a daemon for use with \fBpesign-client(1)\fR
 Do not fork when using \fB-\-daemonize\fR.
 
 .SH EXAMPLES
-If you have a certificate file and private key file, the following steps
+1.If you have a certificate file and private key file, the following steps
 may be used to sign a PE image:
 
 .RS 4
@@ -132,6 +132,82 @@ host:~$ pesign \-i <input\-file> \-o <output\-file> \\
 Please note that this is just an example, and that recommended best practice
 is to always store private keys in a FIPS 140-2 hardware security
 module, level 2 or higher.
+.LP
+.LP
+.LP
+2.If you have a key pair in your HSM and your HSM supports PKCS #11 and the OpenSSL Engine, the following steps may be used to sign a PE image using OpenSSL:
+.RS 4
+.LP
+# Install your vendor's engine into OpenSSL. (Contact your vendor for OpenSSL engine support)
+.RE
+.RS 4
+host:~$ cp <vendor_engine>.so  /usr/lib64/openssl/engines/
+.RE
+.RS 4
+host:~$ openssl engine -v <engine_id>
+.RE 
+.RS 20 
+[Verify vendor engine. engine_id is set by your vendor while producing .so file]
+.RE
+.RS 4
+.LP
+# Add PKCS #11 module
+.RE
+.RS 4
+host:~$ sudo su - pesign -s /bin/bash
+.RE
+.RS 4
+host:~$ modutil -dbdir /etc/pki/pesign -add <module_name> -libfile /usr/lib64/<vendor_engine>.so
+.RE
+.RS 4
+.LP
+# List the added module
+.RE
+.RS 4
+host:~$ modutil -dbdir /etc/pki/pesign -list
+.RE
+.RS 4
+Example, listing of PKCS #11 modules
+.RE
+.RS 4
+ -------------------------------------
+.RE
+.RS 4
+<module_name>
+.RE
+.RS 4
+library name: /usr/lib64/<vendor-engine>.so
+.RE
+.RS 4
+slots: N slots attached
+.RE
+.RS 4
+status: loaded
+.RE
+.RS 4
+slot: PCI Card
+.RE
+.RS 4
+token: Test-CA
+.RE
+.RS 4
+.LP
+# List certs in tokens
+.RE
+.RS 4
+host:~$ certutil -d /etc/pki/pesign -L -h "Test-CA" [token name from listing above]
+.RE
+.RS 4
+.LP
+# Sign with private key in HSM
+.RE
+.RS 4
+host:~$ pesign --sign --in=<input_file> --out=<output_file> --nss-token="Test-CA" --certficate="PUB_CRT"
+.RE
+.RS 4
+Where "Test-CA" is the name of the HSM token as listed by "modutil -list" and "PUB_CRT" is the certificate name/label in the HSM whose private key will be used to sign the PE binary.
+.RE
+.LP
 .SH "SEE ALSO"
 .BR pesign-client (1)
 .LP
@@ -140,5 +216,5 @@ http://csrc.nist.gov/publications/PubsFIPS.html
 
 .SH AUTHORS
 .nf
-Peter Jones
+Peter Jones, Vikas Charak
 .fi
