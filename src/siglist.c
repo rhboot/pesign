@@ -217,7 +217,10 @@ signature_list_realize(signature_list *sl, void **out, size_t *outsize)
 		return -1;
 	esl = ret;
 
-	memcpy(esl, sl, sizeof (*esl));
+	memcpy(&esl->SignatureType, sl->SignatureType, sizeof(efi_guid_t));
+	esl->SignatureListSize = sl->SignatureListSize;
+	esl->SignatureHeaderSize = sl->SignatureHeaderSize;
+	esl->SignatureSize = sl->SignatureSize;
 
 	uint8_t *pos = ret + sizeof (*esl);
 	for (int i = 0; i < count; i++) {
