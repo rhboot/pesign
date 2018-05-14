@@ -4,6 +4,7 @@ efikeygen \- command line tool for generating keys to use for PE image signing
 
 .SH SYNOPSIS
 \fBefikeygen\fR <[\-\-ca | \-C] [\-\-self\-sign | \-S] | [\-\-signer=\fInickname\fR]>
+       <[\-\-kernel | \-\-module]>
        [\-\-token=\fItoken\fR | \-t \fItoken\fR]
        [\-\-nickname=\fInickname\fR | \-n \fInickname\fR]
        [\-\-common\-name=\fIcommon name\fR | \-c \fIcommon name\fR]
@@ -29,6 +30,14 @@ The generated certificate is to be self signed.
 .TP
 \fB-\-signer\fR=\fInickname\fR
 Nickname of certificate to be used to sign the generated certificate.
+
+.TP
+\fB-\-kernel\fR
+The generated certificate is to be used to sign kernels.
+
+.TP
+\fB-\-module\fR
+The generated certificate is to be used to sign kernel modules.
 
 .TP
 \fB-\-token\fR=\fItoken\fR
