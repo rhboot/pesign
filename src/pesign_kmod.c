@@ -24,7 +24,7 @@
 
 #include "pesign.h"
 #include "pesign_standalone.h"
-#include "kmod_common.h"
+#include "file_kmod.h"
 
 static void
 open_input(pesign_context *ctx)

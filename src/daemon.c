@@ -37,7 +37,7 @@
 #include <grp.h>
 
 #include "pesign.h"
-#include "kmod_common.h"
+#include "file_kmod.h"
 
 #include <prerror.h>
 #include <nss.h>

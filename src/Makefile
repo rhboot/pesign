@@ -19,8 +19,8 @@ CLIENT_SOURCES = pesign_context.c actions.c client.c
 EFIKEYGEN_SOURCES = efikeygen.c
 EFISIGLIST_SOURCES = efisiglist.c siglist.c
 PESIGCHECK_SOURCES = pesigcheck.c pesigcheck_context.c certdb.c
-PESIGN_SOURCES = pesign.c pesign_context.c pesign_pe.c pesign_kmod.c \
-	actions.c daemon.c kmod_common.c
+PESIGN_SOURCES = pesign.c pesign_context.c actions.c daemon.c \
+		 file_pe.c file_kmod.c pesign_kmod.c
 
 ALL_SOURCES=$(COMMON_SOURCES) $(AUTHVAR_SORUCES) $(CLIENT_SOURCES) \
 	$(EFIKEYGEN_SOURCES) $(EFISIGLIST_SOURCES) $(PESIGCHECK_SOURCES) \
