@@ -48,9 +48,9 @@
 
 #include <libdpe/libdpe.h>
 
+#include "util.h"
 #include "cms_common.h"
 #include "oid.h"
-#include "util.h"
 
 typedef struct {
 	SECItem data;

@@ -57,8 +57,7 @@ struct digest {
 struct cms_context;
 
 typedef int (*cms_common_logger)(struct cms_context *, int priority,
-		char *fmt, ...)
-	__attribute__ ((format (printf, 3, 4)));
+		char *fmt, ...) PRINTF(3, 4);
 
 typedef struct cms_context {
 	PRArenaPool *arena;

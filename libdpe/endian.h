@@ -51,23 +51,20 @@
 #define le64_to_cpu(x) __builtin_bswap64(x)
 #endif
 
-static inline uint32_t
-__attribute__((unused))
+static inline uint32_t UNUSED
 SwapBytes32(uint32_t x)
 {
 	return __builtin_bswap32(x);
 }
 
-static inline int
-__attribute__((unused))
+static inline int UNUSED
 cmp_le16(uint16_t *ledata, uint16_t *cpudata)
 {
 	uint16_t tmp = le16_to_cpu(*ledata);
 	return memcmp(&tmp, cpudata, sizeof(*cpudata));
 }
 
-static inline int
-__attribute__((unused))
+static inline int UNUSED
 cmp_le32(uint32_t *ledata, uint32_t *cpudata)
 {
 	uint32_t tmp = le32_to_cpu(*ledata);

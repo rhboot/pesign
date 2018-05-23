@@ -23,10 +23,10 @@
 #include <libdpe/pe.h>
 
 #include "efitypes.h"
+#include "util.h"
 #include "cms_common.h"
 #include "wincert.h"
 #include "authvar_context.h"
-#include "util.h"
 #include "siglist.h"
 #include "endian.h"
 #include "ucs2.h"

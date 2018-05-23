@@ -40,16 +40,16 @@
 static int saw_content;
 
 static void
-handle_bytes(void *arg __attribute__((__unused__)),
-	     const char *buf __attribute__((__unused__)),
-	     unsigned long len __attribute__((__unused__)))
+handle_bytes(void *arg UNUSED,
+	     const char *buf UNUSED,
+	     unsigned long len UNUSED)
 {
 	saw_content = 1;
 }
 
 static PRBool
-decryption_allowed(SECAlgorithmID *algid __attribute__((__unused__)),
-		   PK11SymKey *key __attribute__((__unused__)))
+decryption_allowed(SECAlgorithmID *algid UNUSED,
+		   PK11SymKey *key UNUSED)
 {
 	return PR_TRUE;
 }

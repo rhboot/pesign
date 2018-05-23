@@ -6,7 +6,7 @@ struct _WIN_CERTIFICATE {
 	UINT16	wRevision;
 	UINT16	wCertificateType;
 	//UINT8	bCertficate[];
-} __attribute__((aligned (1)));
+} ALIGNED(1);
 
 typedef struct _WIN_CERTIFICATE WIN_CERTIFICATE;
 
@@ -23,28 +23,28 @@ struct _WIN_CERTIFICATE_UEFI_GUID {
 	WIN_CERTIFICATE	Hdr;
 	EFI_GUID	CertType;
 	//UINT8		CertData[];
-} __attribute__((aligned (1)));
+} ALIGNED(1);
 
 typedef struct _WIN_CERTIFICATE_UEFI_GUID WIN_CERTIFICATE_UEFI_GUID;
 
 struct _EFI_VARIABLE_AUTHENTICATION {
 	UINT64				MonotonicCount;
 	WIN_CERTIFICATE_UEFI_GUID	AuthInfo;
-} __attribute__((aligned (1)));
+} ALIGNED(1);
 
 typedef struct _EFI_VARIABLE_AUTHENTICATION EFI_VARIABLE_AUTHENTICATION;
 
 struct _EFI_VARIABLE_AUTHENTICATION_2 {
 	EFI_TIME			TimeStamp;
 	WIN_CERTIFICATE_UEFI_GUID	AuthInfo;
-} __attribute__((aligned (1)));
+} ALIGNED(1);
 
 typedef struct _EFI_VARIABLE_AUTHENTICATION_2 EFI_VARIABLE_AUTHENTICATION_2;
 
 struct _EFI_SIGNATURE_DATA {
 	EFI_GUID	SignatureOwner; /* 16 */
 //	UINT8		SignatureData[];
-} __attribute__((aligned (1)));
+} ALIGNED(1);
 
 typedef struct _EFI_SIGNATURE_DATA EFI_SIGNATURE_DATA;
 
@@ -53,7 +53,7 @@ struct _EFI_SIGNATURE_LIST {
 	UINT32		SignatureListSize;	/* 4 */
 	UINT32		SignatureHeaderSize;	/* 4 */
 	UINT32		SignatureSize;		/* 4 */
-} __attribute__((aligned (1)));
+} ALIGNED(1);
 
 typedef struct _EFI_SIGNATURE_LIST EFI_SIGNATURE_LIST;
 

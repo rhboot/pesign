@@ -21,14 +21,14 @@
 
 #include "libdpe_priv.h"
 
-Pe *pe_clone(Pe *pe __attribute__((__unused__)),
-	     Pe_Cmd cmd __attribute__((__unused__)))
+Pe *pe_clone(Pe *pe UNUSED,
+	     Pe_Cmd cmd UNUSED)
 {
 	return NULL;
 }
 
-Pe *pe_memory(char *image __attribute__((__unused__)),
-	      size_t size __attribute__((__unused__)))
+Pe *pe_memory(char *image UNUSED,
+	      size_t size UNUSED)
 {
 	return NULL;
 }

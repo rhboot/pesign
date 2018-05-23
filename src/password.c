@@ -101,8 +101,8 @@ static char *SEC_GetPassword(FILE *input, FILE *output, char *prompt,
 static char consoleName[] = { "/dev/tty" };
 
 static char *
-SECU_GetPasswordString(void *arg __attribute__((__unused__)),
-		       char *prompt __attribute__((__unused__)))
+SECU_GetPasswordString(void *arg UNUSED,
+		       char *prompt UNUSED)
 {
     char *p = NULL;
     FILE *input, *output;
@@ -220,7 +220,7 @@ SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
 }
 
 char *
-get_password_passthrough(PK11SlotInfo *slot __attribute__((__unused__)),
+get_password_passthrough(PK11SlotInfo *slot UNUSED,
 			 PRBool retry, void *arg)
 {
 	if (retry)
@@ -238,9 +238,9 @@ get_password_passthrough(PK11SlotInfo *slot __attribute__((__unused__)),
 }
 
 char *
-get_password_fail(PK11SlotInfo *slot __attribute__((__unused__)),
-		  PRBool retry __attribute__((__unused__)),
-		  void *arg __attribute__((__unused__)))
+get_password_fail(PK11SlotInfo *slot UNUSED,
+		  PRBool retry UNUSED,
+		  void *arg UNUSED)
 {
 	return NULL;
 }
@@ -299,9 +299,9 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 #warning investigate killing readpw
 #endif
 char *
-readpw(PK11SlotInfo *slot __attribute__((__unused__)),
-       PRBool retry __attribute__((__unused__)),
-       void *arg __attribute__((__unused__)))
+readpw(PK11SlotInfo *slot UNUSED,
+       PRBool retry UNUSED,
+       void *arg UNUSED)
 {
 	struct termios sio, tio;
 	char line[LINE_MAX], *p;

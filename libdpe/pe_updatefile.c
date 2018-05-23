@@ -23,8 +23,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
-static struct section_header *
-__attribute__((unused))
+static struct section_header * UNUSED
 __get_last_section(Pe *pe)
 {
 	Pe_Scn *scn = NULL;
@@ -79,8 +78,7 @@ compare_sections (const void *a, const void *b)
 	return 0;
 }
 
-static void
-__attribute__((unused))
+static void UNUSED
 sort_sections (Pe_Scn **scns, Pe_ScnList *list)
 {
 	Pe_Scn **scnp = scns;
@@ -93,7 +91,7 @@ sort_sections (Pe_Scn **scns, Pe_ScnList *list)
 }
 
 off_t
-__pe_updatemmap(Pe *pe, size_t shnum __attribute__((__unused__)))
+__pe_updatemmap(Pe *pe, size_t shnum UNUSED)
 {
 	/* This needs to write back the whole file:
 	 * 1) mz/pe/pe-o headers
@@ -148,8 +146,8 @@ __pe_updatemmap(Pe *pe, size_t shnum __attribute__((__unused__)))
 }
 
 int
-__pe_updatefile(Pe *pe __attribute__((__unused__)),
-		size_t shnum __attribute__((__unused__)))
+__pe_updatefile(Pe *pe UNUSED,
+		size_t shnum UNUSED)
 {
 	__libpe_seterrno(PE_E_UNKNOWN_ERROR);
 	return 1;

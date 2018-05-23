@@ -21,8 +21,7 @@ EFI_GUID gEfiShellInterfaceGuid = EFI_SHELL_INTERFACE_GUID;
  {0x47c7b225, 0xc42a, 0x11d2, {0x8e,0x57,0x0,0xa0,0xc9,0x69,0x72,0x3b}}
 EFI_GUID gEfiShellDevPathMap = EFI_SHELL_DEVICE_PATH_MAP;
 
-static void
-__attribute__((unused))
+static void UNUSED
 dumphex(UINT8 *data, UINTN data_size)
 {
 	int i, j;
@@ -37,8 +36,7 @@ dumphex(UINT8 *data, UINTN data_size)
 		Print(L"\n");
 }
 
-static void
-__attribute__((unused))
+static void UNUSED
 dumphex_str(CHAR16 *data, UINTN data_size)
 {
 	int i, j;
@@ -146,7 +144,7 @@ make_variable(UINT8 *hash, UINTN hash_size,
 		EFI_SIGNATURE_LIST sl;
 		EFI_SIGNATURE_DATA sd;
 		UINT8 cert[hash_size];
-	} __attribute__((aligned (1))) __attribute__((packed)) *var;
+	} ALIGNED(1) PACKED *var;
 
 	var = AllocatePool(sizeof(*var));
 	if (!var)

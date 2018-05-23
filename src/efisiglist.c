@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
+#include "util.h"
 #include "efitypes.h"
 #include "siglist.h"
 
@@ -54,7 +55,7 @@ static struct hash_param hash_params[] = {
 static int n_hash_params = sizeof (hash_params) / sizeof (hash_params[0]);
 
 int
-set_hash_parameters(char *value __attribute__((__unused__)),
+set_hash_parameters(char *value UNUSED,
 		    char *name, int *hash_number)
 {
 	if (strcmp(name, "help")) {

@@ -16,7 +16,7 @@ typedef enum {
 
 struct _EFI_SHELL_ARG_INFO {
 	UINT32 Attributes;
-} __attribute__((packed)) __attribute__((aligned (1)));
+} PACKED ALIGNED(1);
 
 typedef struct _EFI_SHELL_ARG_INFO EFI_SHELL_ARG_INFO;
 
@@ -37,7 +37,7 @@ struct _EFI_SHELL_INTERFACE {
 	EFI_SHELL_ARG_INFO	*ArgInfo;
 
 	BOOLEAN			EchoOn;
-} __attribute__((packed)) __attribute__((aligned (1)));
+} PACKED ALIGNED(1);
 
 typedef struct _EFI_SHELL_INTERFACE EFI_SHELL_INTERFACE;
 

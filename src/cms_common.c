@@ -123,9 +123,8 @@ teardown_digests(cms_context *ctx)
 	ctx->digests = NULL;
 }
 
-static int
-__attribute__ ((format (printf, 3, 4)))
-cms_common_log(cms_context *ctx __attribute__((__unused__)), int priority,
+static int PRINTF(3, 4)
+cms_common_log(cms_context *ctx UNUSED, int priority,
 	       char *fmt, ...)
 {
 	va_list ap;

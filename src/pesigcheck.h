@@ -22,12 +22,12 @@
 #include <libdpe/libdpe.h>
 #include <libdpe/pe.h>
 
+#include "util.h"
 #include "efitypes.h"
 #include "cms_common.h"
 #include "pesigcheck_context.h"
 #include "certdb.h"
 
-#include "util.h"
 #include "endian.h"
 #include "oid.h"
 #include "wincert.h"

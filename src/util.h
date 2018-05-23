@@ -27,6 +27,8 @@
 
 #include <libdpe/pe.h>
 
+#include "compiler.h"
+
 #define xfree(x) ({if (x) { free(x); x = NULL; }})
 
 #define save_errno(x)					\
@@ -74,8 +76,7 @@
 		return rv;						\
 	})
 
-static inline int
-__attribute__ ((unused))
+static inline int UNUSED
 read_file(int fd, char **bufp, size_t *lenptr) {
     int alloced = 0, size = 0, i = 0;
     char * buf = NULL;
@@ -99,8 +100,7 @@ read_file(int fd, char **bufp, size_t *lenptr) {
     return 0;
 }
 
-static inline int
-__attribute__ ((unused))
+static inline int UNUSED
 write_file(int fd, const void *data, size_t len)
 {
 	int rc;
@@ -154,15 +154,13 @@ compare_shdrs (const void *a, const void *b)
 	return 0;
 }
 
-static void
-__attribute__ ((unused))
+static void UNUSED
 sort_shdrs (struct section_header *shdrs, size_t sections)
 {
 	qsort(shdrs, sections, sizeof(*shdrs), compare_shdrs);
 }
 
-static void
-__attribute__ ((unused))
+static void UNUSED
 free_poison(void  *addrv, ssize_t len)
 {
 	uint8_t *addr = addrv;
@@ -171,8 +169,7 @@ free_poison(void  *addrv, ssize_t len)
 		addr[x] = poison_pills[x % 2];
 }
 
-static int
-__attribute__ ((unused))
+static int UNUSED
 content_is_empty(uint8_t *data, ssize_t len)
 {
 	if (len < 1)
@@ -183,35 +180,5 @@ content_is_empty(uint8_t *data, ssize_t len)
 			return 0;
 	return 1;
 }
-
-#if defined(DAEMON_H)
-static inline uint32_t
-__attribute__ ((unused))
-pesignd_string_size(char *buffer)
-{
-	pesignd_string *s;
-	return sizeof(s->size) + (buffer ? strlen(buffer) : 0) + 1;
-}
-
-static inline void
-__attribute__ ((unused))
-pesignd_string_set(pesignd_string *str, char *value)
-{
-	str->size = (value ? strlen(value) : 0) + 1;
-	if (value)
-		strcpy((char *)str->value, value);
-	else
-		str->value[0] = '\0';
-}
-
-static inline pesignd_string *
-__attribute__ ((unused))
-pesignd_string_next(pesignd_string *str)
-{
-	char *buffer = (char *)str;
-	buffer += sizeof(str->size) + str->size;
-	return (pesignd_string *)buffer;
-}
-#endif /* defined(DAEMON_H) */
 
 #endif /* PESIGN_UTIL_H */

@@ -59,7 +59,7 @@ err_list:
 }
 
 void
-free_algorithm_list(cms_context *cms __attribute__((__unused__)),
+free_algorithm_list(cms_context *cms UNUSED,
 		    SECAlgorithmID **algorithm_list)
 {
 	if (!algorithm_list)

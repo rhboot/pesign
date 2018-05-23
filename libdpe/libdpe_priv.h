@@ -20,6 +20,7 @@
 #define LIBDPE_PRIV_H 1
 
 #include <libdpe/libdpe.h>
+#include "compiler.h"
 #include "endian.h"
 
 enum {
