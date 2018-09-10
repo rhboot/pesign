@@ -719,7 +719,7 @@ main(int argc, char *argv[])
 		}
 		if (!certname) {
 			fprintf(stderr, "pesign-client: no certificate name "
-				"spefified\n");
+				"specified\n");
 			exit(1);
 		}
 		sd = connect_to_server();
