@@ -72,6 +72,7 @@ typedef struct cms_context {
 
 	struct digest *digests;
 	int selected_digest;
+	int omit_vendor_cert;
 
 	SECItem newsig;
 

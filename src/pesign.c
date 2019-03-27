@@ -50,7 +50,8 @@
 #define EXPORT_PUBKEY		0x400
 #define EXPORT_CERT		0x800
 #define DAEMONIZE		0x1000
-#define FLAG_LIST_END		0x2000
+#define OMIT_VENDOR_CERT	0x2000
+#define FLAG_LIST_END		0x4000
 
 static struct {
 	int flag;
@@ -408,6 +409,7 @@ main(int argc, char *argv[])
 	int fork = 1;
 	int padding = 0;
 	int need_db = 0;
+	int check_vendor_cert = 1;
 
 	char *digest_name = "sha256";
 	char *tokenname = "NSS Certificate DB";
@@ -573,6 +575,12 @@ main(int argc, char *argv[])
 		 .arg = &padding,
 		 .val = 1,
 		 .descrip = "pad data section" },
+		{.longName = "no-vendor-cert",
+		 .shortName = 'V',
+		 .argInfo = POPT_ARG_VAL,
+		 .arg = &check_vendor_cert,
+		 .val = 0,
+		 .descrip = "do not hash the .vendor_cert section." },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
@@ -660,6 +668,10 @@ main(int argc, char *argv[])
 	if (ctxp->hash)
 		action |= GENERATE_DIGEST|PRINT_DIGEST;
 
+	if (!check_vendor_cert) {
+		action |= OMIT_VENDOR_CERT;
+	}
+
 	if (!daemon) {
 		SECStatus status;
 		int error;
@@ -706,6 +718,8 @@ main(int argc, char *argv[])
 		}
 		exit(!is_help);
 	}
+
+	ctxp->cms_ctx->omit_vendor_cert = !check_vendor_cert;
 
 	ctxp->cms_ctx->tokenname = tokenname ?
 		PORT_ArenaStrdup(ctxp->cms_ctx->arena, tokenname) : NULL;
@@ -869,6 +883,11 @@ main(int argc, char *argv[])
 		case LIST_SIGNATURES:
 			open_input(ctxp);
 			list_signatures(ctxp);
+			break;
+		case GENERATE_DIGEST|PRINT_DIGEST|OMIT_VENDOR_CERT:
+			open_input(ctxp);
+			generate_digest(ctxp->cms_ctx, ctxp->inpe, padding);
+			print_digest(ctxp);
 			break;
 		case GENERATE_DIGEST|PRINT_DIGEST:
 			open_input(ctxp);

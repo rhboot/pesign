@@ -40,6 +40,12 @@
 #include <secerr.h>
 #include <certt.h>
 
+#if 1
+#define dprintf(fmt, ...)
+#else
+#define dprintf(fmt, args...) printf(fmt, ## args)
+#endif
+
 static int
 check_pointer_and_size(Pe *pe, void *ptr, size_t size)
 {
@@ -62,11 +68,75 @@ check_pointer_and_size(Pe *pe, void *ptr, size_t size)
 	return 1;
 }
 
-#if 1
-#define dprintf(fmt, ...)
-#else
-#define dprintf(fmt, args...) printf(fmt, ## args)
-#endif
+static void *
+get_strtab(Pe *pe)
+{
+	static void *ret = NULL;
+	uint32_t *ptr;
+	intptr_t intret = 0;
+	struct pe_hdr pehdr;
+	void *map = NULL;
+	size_t map_size = 0;
+
+	if (ret)
+		return ret;
+
+	if (pe_getpehdr(pe, &pehdr) == NULL)
+		pereterr(NULL, "invalid PE file header");
+
+	map = pe_rawfile(pe, &map_size);
+	if (!map || map_size < 1)
+		return 0;
+
+	if (pehdr.symbol_table == 0)
+		return NULL;
+
+	intret = (intptr_t)pehdr.symbol_table;
+	intret += pehdr.symbols * sizeof(struct pe_symtab_entry);
+
+	ptr = (uint32_t *)((intptr_t)map + intret);
+	if (!check_pointer_and_size(pe, ptr, 4))
+		pereterr(NULL, "invalid string table start");
+
+	if (!check_pointer_and_size(pe, ptr, *ptr))
+		pereterr(NULL, "invalid string table size");
+	ret = ptr;
+	return ret;
+}
+
+static char *
+get_str(Pe *pe, char *strnum)
+{
+	size_t sz;
+	unsigned long num;
+	char *strtab;
+	uint32_t strtabsz;
+
+	/* no idea what the real max size for these is, so... we're not going
+	 * to have 4B strings, and this can't be the end of the binary, so
+	 * this is big enough. */
+	sz = strnlen(strnum, 11);
+	if (sz == 11)
+		return NULL;
+
+	errno = 0;
+	num = strtoul(strnum, NULL, 10);
+	if (errno != 0)
+		return NULL;
+
+	strtab = get_strtab(pe);
+	if (!strtab)
+		return NULL;
+
+	strtabsz = *(uint32_t *)strtab;
+	if (num >= strtabsz)
+		return NULL;
+
+	if (strnlen(&strtab[num], strtabsz - num) > strtabsz - num - 1)
+		return NULL;
+
+	return &strtab[num];
+}
 
 int
 generate_digest(cms_context *cms, Pe *pe, int padded)
@@ -199,6 +269,18 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 			goto error_shdrs;
 		}
 
+		if (cms->omit_vendor_cert) {
+			char *name = shdrs[i].name;
+			if (name && name[0] == '/')
+				name = get_str(pe, name + 1);
+			dprintf("section:\"%s\"\n", name);
+			if (name && !strcmp(name, ".vendor_cert")) {
+				dprintf("skipping .vendor_cert section\n");
+				hashed_bytes += hash_size;
+				continue;
+			}
+		}
+
 		generate_digest_step(cms, hash_base, hash_size);
 		dprintf("digesting %lx + %lx\n", hash_base - map, hash_size);
 
@@ -247,4 +329,4 @@ error:
 	return -1;
 }
 
-
+/* vim:fenc=utf-8:sw=8:sts=8:noet */

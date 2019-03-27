@@ -109,6 +109,15 @@ struct pe_hdr {
 	uint16_t flags;		/* flags */
 };
 
+struct pe_symtab_entry {
+	uint8_t name[8];	/* symbol name */
+	uint32_t value;		/* depends */
+	uint16_t section;	/* section number */
+	uint16_t type;		/* 0x20 for function, 0x0 for not function */
+	uint8_t storage_class;	/* storage class */
+	uint8_t n_aux_symbols;	/* how many more records this one uses... */
+} __attribute__((__packed__)) __attribute__((__aligned__(1)));
+
 #define IMAGE_FILE_OPT_ROM_MAGIC	0x107
 #define IMAGE_FILE_OPT_PE32_MAGIC	0x10b
 #define IMAGE_FILE_OPT_PE32_PLUS_MAGIC	0x20b
