@@ -99,7 +99,7 @@ pe_update(Pe *pe, Pe_Cmd cmd)
 
 	off_t size = __pe_updatenull(pe, shnum);
 
-	if (size != -1 && (cmd == PE_C_WRITE || PE_C_WRITE_MMAP)) {
+	if (size != -1 && (cmd == PE_C_WRITE || cmd == PE_C_WRITE_MMAP)) {
 		if (pe->cmd != PE_C_RDWR && pe->cmd != PE_C_RDWR_MMAP &&
 				pe->cmd != PE_C_WRITE &&
 				pe->cmd != PE_C_WRITE_MMAP) {
