@@ -19,7 +19,8 @@ install_sysvinit :
 test :
 
 %.a :
-	$(AR) -cvqs $@ $^
+	$(AR) $(ARFLAGS) $@ $^
+	$(RANLIB) $(RANLIBFLAGS) $@
 
 % : %.o
 	$(CCLD) $(ccldflags) $(CPPFLAGS) -o $@ $^ $(LDLIBS)

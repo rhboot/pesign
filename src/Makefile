@@ -49,8 +49,12 @@ pesign : $(call objects-of,$(PESIGN_SOURCES) $(COMMON_SOURCES) $(COMMON_PE_SOURC
 pesign : LDLIBS+=$(TOPDIR)/libdpe/libdpe.a
 pesign : PKGS=efivar nss nspr popt
 
+deps : PKGS=efivar nss nspr popt uuid
 deps : $(ALL_SOURCES)
-	$(MAKE) -f $(TOPDIR)/Make.deps deps SOURCES="$(ALL_SOURCES)"
+	$(MAKE) -f $(TOPDIR)/Make.deps \
+		SOURCES="$(ALL_SOURCES)" \
+		PKGS="$(PKGS)" \
+		deps
 
 clean :
 	@rm -rfv *.o *.a *.so $(TARGETS)

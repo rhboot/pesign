@@ -15,15 +15,15 @@ DESTDIR	?=
 INSTALLROOT = $(DESTDIR)
 
 INSTALL	?= install
-CROSS_COMPILE	?= $(bindir)
+CROSS_COMPILE	?=
 
 PKG_CONFIG = $(CROSS_COMPILE)pkg-config
 CC	:= $(if $(filter default,$(origin CC)),$(CROSS_COMPILE)gcc,$(CC))
 CCLD	:= $(if $(filter undefined,$(origin CCLD)),$(CC),$(CCLD))
-CFLAGS	?= -O0 -g3 -fvar-tracking -fvar-tracking-assignments -Wno-error=cpp
+CFLAGS	?= -O0 -g3 -Wno-error=cpp
 AS	:= $(CROSS_COMPILE)as
-AR	:= $(CROSS_COMPILE)gcc-ar
-RANLIB	:= $(CROSS_COMPILE)gcc-ranlib
+AR	:= $(CROSS_COMPILE)$(if $(filter $(CC),clang),llvm-ar,$(notdir $(CC))-ar)
+RANLIB	:= $(CROSS_COMPILE)$(if $(filter $(CC),clang),llvm-ranlib,$(notdir $(CC))-ranlib)
 OBJCOPY	:= $(CROSS_COMPILE)objcopy
 LD	:= $(CROSS_COMPILE)ld
 INSTALL	:= $(CROSS_COMPILE)install
@@ -37,19 +37,20 @@ SOFLAGS	= -shared
 clang_cflags =
 gcc_cflags = -Wmaybe-uninitialized -grecord-gcc-switches
 cflags	= $(CFLAGS) $(ARCH3264) \
-	-Wall -Werror -Wextra -Wsign-compare -Wno-unused-result \
-	-Wno-unused-function -Wsign-compare \
+	-Wall -Wextra -Wsign-compare -Wno-unused-result \
+	-Wno-unused-function -Wno-missing-field-initializers \
+	-Werror \
 	-std=gnu11 -fshort-wchar -fPIC -flto -fno-strict-aliasing \
-	-fno-merge-constants -fkeep-inline-functions \
 	-D_GNU_SOURCE -DCONFIG_$(ARCH) -I${TOPDIR}/include \
 	$(if $(filter $(CC),clang),$(clang_cflags), ) \
 	$(if $(filter $(CC),gcc),$(gcc_cflags), ) \
 	$(call pkg-config-cflags) -Werror
 clang_ccldflags =
 gcc_ccldflags = -fno-merge-constants \
+	-fvar-tracking -fvar-tracking-assignments -fkeep-inline-functions \
 	-Wl,--fatal-warnings,--no-allow-shlib-undefined,--default-symver \
 	-Wl,-O2 -Wl,--no-undefined-version -Wl,-z,relro,-z,now \
-	--Wl,--no-add-needed,--no-copy-dt-needed-entries,--as-needed
+	-Wl,--no-add-needed,--no-copy-dt-needed-entries,--as-needed
 ccldflags = $(cflags) $(CCLDFLAGS) $(LDFLAGS) \
 	$(if $(filter $(CCLD),clang),$(clang_ccldflags),) \
 	$(if $(filter $(CCLD),gcc),$(gcc_ccldflags),) \
@@ -57,6 +58,8 @@ ccldflags = $(cflags) $(CCLDFLAGS) $(LDFLAGS) \
 efi_cflags = $(cflags)
 ASFLAGS	= $(ARCH3264)
 CPPFLAGS ?=
+RANLIBFLAGS	:= $(if $(filter $(CC),gcc),-D)
+ARFLAGS := $(if $(filter $(CC),gcc),-Dcvqs)$(if $(filter $(CC),clang),-cqvs)
 
 LDLIBS	= $(foreach lib,$(LIBS),-l$(lib)) $(call pkg-config-ldlibs)
 
