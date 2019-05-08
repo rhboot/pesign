@@ -27,7 +27,7 @@ test :
 
 %.so : 
 	$(CCLD) $(ccldflags) $(CPPFLAGS) $(SOFLAGS) \
-		-Wl,-soname,$@.$(MAJOR_VERSION) \
+		-Wl,-soname,$@.0.$(MAJOR_VERSION) \
 		-o $@ $^ $(LDLIBS)
 
 %.o: %.c
