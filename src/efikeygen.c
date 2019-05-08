@@ -836,6 +836,8 @@ int main(int argc, char *argv[])
 	SECItem signature;
 	status = SEC_SignData(&signature, certder.data, certder.len,
 				sprivkey, oid->offset);
+	if (status != SECSuccess)
+		nsserr(1, "could not create signature");
 
 	SECItem sigder = { 0, };
 	bundle_signature(cms, &sigder, &certder,
@@ -844,6 +846,8 @@ int main(int argc, char *argv[])
 
 	status = PK11_ImportDERCert(slot, &sigder, CK_INVALID_HANDLE, nickname,
 				PR_FALSE);
+	if (status != SECSuccess)
+		nsserr(1, "could not import signature");
 
 	NSS_Shutdown();
 	return 0;
