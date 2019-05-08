@@ -659,10 +659,13 @@ malformed:
 		rc = sign_kmod(ctx, infd, outfd, attached);
 		break;
 	default:
+		rc = -1;
+		break;
+	}
+
+	if (rc < 0)
 		ctx->cms->log(ctx->cms, ctx->priority|LOG_ERR,
 			      "unrecognised format %d", file_format);
-		rc = -1;
-	}
 
 finish:
 	close(infd);
