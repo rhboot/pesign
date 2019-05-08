@@ -12,4 +12,5 @@
 *.tar.*
 *.rpm
 core.*
-cov-int
+cov-int/
+scan-results/
