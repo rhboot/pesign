@@ -346,6 +346,14 @@ unlock_token(int sd, char *tokenname, char *pin)
 	}
 
 	free(buffer);
+
+	/*
+	 * This can't happen, because srvmsg is only allocated if
+	 * check_response() would return an error, but scan-build gets
+	 * confused and I'm tired of trying to convince it. --pj
+	 */
+	if (srvmsg)
+		free(srvmsg);
 }
 
 static void
@@ -398,6 +406,15 @@ is_token_unlocked(int sd, char *tokenname)
 	printf("token \"%s\" is %slocked\n", tokenname, rc == 1 ? "" : "un");
 
 	free(buffer);
+
+	/*
+	 * This can't happen, because srvmsg is only allocated if
+	 * check_response() would return an error, but scan-build gets
+	 * confused and I'm tired of trying to convince it. --pj
+	 */
+	if (srvmsg)
+		free(srvmsg);
+
 }
 
 static void
@@ -536,6 +553,14 @@ oom:
 			srvmsg);
 		exit(1);
 	}
+
+	/*
+	 * This can't happen, because srvmsg is only allocated if
+	 * check_response() would return an error, but scan-build gets
+	 * confused and I'm tired of trying to convince it. --pj
+	 */
+	if (srvmsg)
+		free(srvmsg);
 
 	close(infd);
 	close(outfd);
