@@ -283,7 +283,9 @@ dup_pe(int fildes, Pe_Cmd cmd UNUSED, Pe *ref)
 {
 	if (fildes == -1) {
 		fildes = ref->fildes;
-	} else if (ref->fildes != -1 && fildes != ref->fildes) {
+	}
+
+	if (ref->fildes != -1 && fildes != ref->fildes) {
 		__libpe_seterrno(PE_E_FD_MISMATCH);
 		return NULL;
 	}
