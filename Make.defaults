@@ -20,7 +20,7 @@ CROSS_COMPILE	?=
 PKG_CONFIG = $(CROSS_COMPILE)pkg-config
 CC	:= $(if $(filter default,$(origin CC)),$(CROSS_COMPILE)gcc,$(CC))
 CCLD	:= $(if $(filter undefined,$(origin CCLD)),$(CC),$(CCLD))
-CFLAGS	?= -O0 -g3 -Wno-error=cpp
+CFLAGS	?= -O0 -g3
 AS	:= $(CROSS_COMPILE)as
 AR	:= $(CROSS_COMPILE)$(if $(filter $(CC),clang),llvm-ar,$(notdir $(CC))-ar)
 RANLIB	:= $(CROSS_COMPILE)$(if $(filter $(CC),clang),llvm-ranlib,$(notdir $(CC))-ranlib)
@@ -39,12 +39,12 @@ gcc_cflags = -Wmaybe-uninitialized -grecord-gcc-switches
 cflags	= $(CFLAGS) $(ARCH3264) \
 	-Wall -Wextra -Wsign-compare -Wno-unused-result \
 	-Wno-unused-function -Wno-missing-field-initializers \
-	-Werror \
+	-Werror -Wno-error=cpp \
 	-std=gnu11 -fshort-wchar -fPIC -flto -fno-strict-aliasing \
 	-D_GNU_SOURCE -DCONFIG_$(ARCH) -I${TOPDIR}/include \
 	$(if $(filter $(CC),clang),$(clang_cflags), ) \
 	$(if $(filter $(CC),gcc),$(gcc_cflags), ) \
-	$(call pkg-config-cflags) -Werror
+	$(call pkg-config-cflags)
 clang_ccldflags =
 gcc_ccldflags = -fno-merge-constants \
 	-fvar-tracking -fvar-tracking-assignments -fkeep-inline-functions \
