@@ -1314,6 +1314,11 @@ generate_name(cms_context *cms, SECItem *der, CERTName *certname)
 			num_items++;
 	}
 
+	if (num_items == 0) {
+		PORT_ArenaRelease(cms->arena, marka);
+		cmsreterr(-1, cms, "No name items to encode");
+	}
+
 	SECItem items[num_items];
 
 	int i = 0;
