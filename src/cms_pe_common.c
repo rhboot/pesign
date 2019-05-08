@@ -148,6 +148,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 	struct pe32_opt_hdr *pe32opthdr = NULL;
 	struct pe32plus_opt_hdr *pe64opthdr = NULL;
 	unsigned long hashed_bytes = 0;
+	void *opthdr;
 	int rc = -1;
 
 	if (!pe) {
@@ -177,15 +178,20 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 	 * 4. Hash the image header from start to the beginning of the
 	 * checksum. */
 	hash_base = map;
+
+	opthdr = pe_getopthdr(pe);
+	if (opthdr == NULL) {
+		cms->log(cms, LOG_ERR, "%s:%s:%d PE header is invalid", __FILE__, __func__, __LINE__);
+		goto error;
+	}
+
 	switch (pe_kind(pe)) {
 	case PE_K_PE_EXE: {
-		void *opthdr = pe_getopthdr(pe);
 		pe32opthdr = opthdr;
 		hash_size = (uintptr_t)&pe32opthdr->csum - (uintptr_t)hash_base;
 		break;
 	}
 	case PE_K_PE64_EXE: {
-		void *opthdr = pe_getopthdr(pe);
 		pe64opthdr = opthdr;
 		hash_size = (uintptr_t)&pe64opthdr->csum - (uintptr_t)hash_base;
 		break;
