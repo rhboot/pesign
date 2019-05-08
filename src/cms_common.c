@@ -463,7 +463,7 @@ find_certificate(cms_context *cms, int needs_private_key)
 					is_valid_cert_without_private_key,
 					&cbdata);
 	}
-	if (cbdata.cert == NULL) {
+	if (status != SECSuccess || cbdata.cert == NULL) {
 		save_port_err(
 			CERT_DestroyCertList(certlist);
 			PK11_DestroySlotListElement(slots, &psle);
