@@ -14,6 +14,7 @@ pesign \- command line tool for signing UEFI applications
        [\-\-export\-pubkey=\fIoutkey\fR | \-K \fIoutkey\fR]
        [\-\-export\-cert=\fIoutcert\fR | \-C \fIoutcert\fR]
        [\-\-ascii\-armor | \-a] [\-\-daemonize | \-D] [\-\-nofork | \-N]
+       [\-\-padding | \-P | \-\-nopadding | \-p ]
        [\-\-signature\-number=\fIsignum\fR | \-u \fIsignum\fR]
 
 .SH DESCRIPTION
@@ -91,6 +92,12 @@ Spawn a daemon for use with \fBpesign-client(1)\fR
 .TP
 \fB-\-nofork\fR
 Do not fork when using \fB-\-daemonize\fR.
+
+.TP
+\fB-\-padding\fR | \fB-\-nopadding\fR
+Do or do not pad the binary out to the PE 9.3 alignment before signing.
+Padding is recommended (and in many circumstances required) even for binaries
+which predate the current PE spec, and is enabled by default as of pesign 113.
 
 .SH EXAMPLES
 1.If you have a certificate file and private key file, the following steps

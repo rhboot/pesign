@@ -74,7 +74,7 @@ main(int argc, char *argv[])
 	int remove = 0;
 	int daemon = 0;
 	int fork = 1;
-	int padding = 0;
+	int padding = 1;
 	int need_db = 0;
 	int check_vendor_cert = 1;
 
@@ -241,7 +241,13 @@ main(int argc, char *argv[])
 		 .argInfo = POPT_ARG_VAL,
 		 .arg = &padding,
 		 .val = 1,
-		 .descrip = "pad data section" },
+		 .descrip = "pad data section (default)" },
+		{.longName = "nopadding",
+		 .shortName = 'p',
+		 .argInfo = POPT_ARG_VAL,
+		 .arg = &padding,
+		 .val = 0,
+		 .descrip = "do not pad the data section" },
 		{.longName = "no-vendor-cert",
 		 .shortName = 'V',
 		 .argInfo = POPT_ARG_VAL,
