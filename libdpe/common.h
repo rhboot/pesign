@@ -61,6 +61,9 @@ get_shnum(void *map_address, size_t maxsize UNUSED)
 	void *buf = (void *)map_address;
 	struct mz_hdr *mz = (struct mz_hdr *)buf;
 
+	if (mz == NULL)
+		return (size_t)-1l;
+
 	off_t hdr = (off_t)le32_to_cpu(mz->peaddr);
 	struct pe_hdr *pe = (struct pe_hdr *)(buf + hdr);
 
@@ -80,7 +83,7 @@ determine_kind(void *buf, size_t len UNUSED)
 
 	if (cmp_le16(&mz->magic, &mz_magic))
 		return retval;
-		
+
 	retval = PE_K_MZ;
 
 	off_t hdr = (off_t)le32_to_cpu(mz->peaddr);
