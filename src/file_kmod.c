@@ -17,6 +17,8 @@
  * Author(s): Daniel Drake <drake@endlessm.com>
  */
 
+#include "fix_coverity.h"
+
 #include <stdint.h>
 
 #include "pesign.h"

@@ -17,6 +17,8 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include "fix_coverity.h"
+
 #include <unistd.h>
 #include <sys/mman.h>
 

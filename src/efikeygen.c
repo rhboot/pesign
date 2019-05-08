@@ -17,6 +17,8 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include "fix_coverity.h"
+
 #include <err.h>
 #include <fcntl.h>
 #include <limits.h>

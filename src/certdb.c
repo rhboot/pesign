@@ -17,6 +17,8 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include "fix_coverity.h"
+
 #include <fcntl.h>
 #include <libgen.h>
 #include <sys/mman.h>

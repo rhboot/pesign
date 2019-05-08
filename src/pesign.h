@@ -19,6 +19,8 @@
 #ifndef PESIGN_H
 #define PESIGN_H 1
 
+#include "fix_coverity.h"
+
 #include <libdpe/libdpe.h>
 #include <libdpe/pe.h>
 

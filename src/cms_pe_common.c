@@ -17,6 +17,8 @@
  * Author(s): Peter Jones <pjones@redhat.com>
  */
 
+#include "fix_coverity.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -19,6 +19,8 @@
 #ifndef LIBDPE_COMMON_H
 #define LIBDPE_COMMON_H 1
 
+#include "fix_coverity.h"
+
 #include <stdlib.h>
 #include <sys/mman.h>
 
