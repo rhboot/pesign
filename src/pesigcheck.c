@@ -262,7 +262,7 @@ check_signature(pesigcheck_context *ctx, int *nreasons,
 		reason->reason = BLACKLISTED;
 		reason->type = DIGEST;
 		get_digest(ctx, &reason->digest);
-		reason += 1;
+		nreason += 1;
 		is_invalid = true;
 	}
 
@@ -515,6 +515,10 @@ main(int argc, char *argv[])
 	if (!ctx.quiet)
 		printf("pesigcheck: \"%s\" is %s.\n", ctx.infile,
 			rc >= 0 ? "valid" : "invalid");
+
+	if (reasons)
+		free(reasons);
+
 	close_input(ctxp);
 	pesigcheck_context_fini(&ctx);
 
