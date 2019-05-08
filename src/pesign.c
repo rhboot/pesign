@@ -349,7 +349,7 @@ main(int argc, char *argv[])
 
 	if (!daemon) {
 		SECStatus status;
-		int error;
+		int error = 0;
 		if (need_db) {
 			status = NSS_Init(certdir);
 			if (status != SECSuccess) {
