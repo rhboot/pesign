@@ -315,7 +315,6 @@ parse_signatures(SECItem ***sigs, int *num_sigs, Pe *pe)
 	ssize_t datalen;
 	int nsigs = 0;
 
-	rc = 0;
 	while (1) {
 		rc = next_cert(&iter, &data, &datalen);
 		if (rc <= 0)

@@ -466,7 +466,6 @@ sign_pe(context *ctx, int infd, int outfd, int attached)
 	if (rc < 0)
 		goto finish;
 
-	rc = 0;
 	if (attached) {
 		Pe *outpe = NULL;
 		rc = set_up_outpe(ctx, outfd, inpe, &outpe);

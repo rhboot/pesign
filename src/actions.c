@@ -98,7 +98,6 @@ list_signatures(pesign_context *ctx)
 	cert_iter iter;
 
 	int rc = cert_iter_init(&iter, ctx->inpe);
-
 	if (rc < 0) {
 		printf("No certificate list found.\n");
 		return rc;
@@ -108,7 +107,6 @@ list_signatures(pesign_context *ctx)
 	ssize_t datalen;
 	int nsigs = 0;
 
-	rc = 0;
 	while (1) {
 		rc = next_cert(&iter, &data, &datalen);
 		if (rc <= 0)
