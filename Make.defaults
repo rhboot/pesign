@@ -17,23 +17,23 @@ INSTALLROOT = $(DESTDIR)
 INSTALL	?= install
 CROSS_COMPILE	?=
 
-PKG_CONFIG = $(CROSS_COMPILE)pkg-config
-CC	:= $(if $(filter default,$(origin CC)),$(CROSS_COMPILE)gcc,$(CC))
-CCLD	:= $(if $(filter undefined,$(origin CCLD)),$(CC),$(CCLD))
+PKG_CONFIG ?= $(CROSS_COMPILE)pkg-config
+CC	?= $(if $(filter default,$(origin CC)),$(CROSS_COMPILE)gcc,$(CC))
+CCLD	?= $(if $(filter undefined,$(origin CCLD)),$(CC),$(CCLD))
 CFLAGS	?= -O0 -g3
-AS	:= $(CROSS_COMPILE)as
-AR	:= $(CROSS_COMPILE)$(if $(filter $(CC),clang),llvm-ar,$(notdir $(CC))-ar)
-RANLIB	:= $(CROSS_COMPILE)$(if $(filter $(CC),clang),llvm-ranlib,$(notdir $(CC))-ranlib)
-OBJCOPY	:= $(CROSS_COMPILE)objcopy
-LD	:= $(CROSS_COMPILE)ld
-INSTALL	:= $(CROSS_COMPILE)install
+AS	?= $(CROSS_COMPILE)as
+AR	?= $(CROSS_COMPILE)$(if $(filter $(CC),clang),llvm-ar,$(notdir $(CC))-ar)
+RANLIB	?= $(CROSS_COMPILE)$(if $(filter $(CC),clang),llvm-ranlib,$(notdir $(CC))-ranlib)
+OBJCOPY	?= $(CROSS_COMPILE)objcopy
+LD	?= $(CROSS_COMPILE)ld
+INSTALL	?= $(CROSS_COMPILE)install
 
 PKGS	=
 
 HOSTARCH   = $(shell uname -m | sed s,i[3456789]86,ia32,)
 ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
 
-SOFLAGS	= -shared
+SOFLAGS	?= -shared
 clang_cflags =
 gcc_cflags = -Wmaybe-uninitialized -grecord-gcc-switches -flto
 cflags	= $(CFLAGS) $(ARCH3264) \
@@ -56,10 +56,10 @@ ccldflags = $(cflags) $(CCLDFLAGS) $(LDFLAGS) \
 	$(if $(filter $(CCLD),gcc),$(gcc_ccldflags),) \
 	$(call pkg-config-ccldflags)
 efi_cflags = $(cflags)
-ASFLAGS	= $(ARCH3264)
+ASFLAGS	?= $(ARCH3264)
 CPPFLAGS ?=
-RANLIBFLAGS	:= $(if $(filter $(CC),gcc),-D)
-ARFLAGS := $(if $(filter $(CC),gcc),-Dcvqs)$(if $(filter $(CC),clang),-cqvs)
+RANLIBFLAGS	?= $(if $(filter $(CC),gcc),-D)
+ARFLAGS ?= $(if $(filter $(CC),gcc),-Dcvqs)$(if $(filter $(CC),clang),-cqvs)
 
 LDLIBS	= $(foreach lib,$(LIBS),-l$(lib)) $(call pkg-config-ldlibs)
 
