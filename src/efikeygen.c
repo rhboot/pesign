@@ -268,7 +268,6 @@ add_extended_key_usage(cms_context *cms, int modsign_only, void *extHandle)
 		cmsreterr(-1, cms, "could not encode extended key usage");
 
 	tag = find_ms_oid_tag(SHIM_EKU_MODULE_SIGNING_ONLY);
-	printf("tag: %d\n", tag);
 	rc = make_eku_oid(cms, &values[1], tag);
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not encode extended key usage");
