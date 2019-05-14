@@ -206,7 +206,7 @@ static int
 add_cert_type(cms_context *cms, void *extHandle, int is_ca)
 {
 	SECItem bitStringValue;
-	unsigned char type = NS_CERT_TYPE_APP;
+	int type = NS_CERT_TYPE_APP;
 
 	if (is_ca)
 		type |= NS_CERT_TYPE_SSL_CA |
