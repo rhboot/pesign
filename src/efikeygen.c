@@ -41,6 +41,13 @@
 #include "cms_common.h"
 #include "oid.h"
 
+enum {
+	MODSIGN_EKU_NONE,
+	MODSIGN_EKU_KERNEL,
+	MODSIGN_EKU_MODULE,
+	MODSIGN_EKU_CA
+};
+
 typedef struct {
 	SECItem data;
 	SECAlgorithmID keytype;
@@ -170,8 +177,7 @@ add_key_usage(cms_context *cms, void *extHandle, int is_ca)
 
 	if (is_ca) {
 		usage = KU_KEY_CERT_SIGN |
-			KU_CRL_SIGN |
-			KU_DIGITAL_SIGNATURE;
+			KU_CRL_SIGN;
 	} else {
 		usage = KU_KEY_ENCIPHERMENT |
 			KU_DATA_ENCIPHERMENT |
@@ -239,7 +245,7 @@ add_basic_constraints(cms_context *cms, void *extHandle)
 }
 
 static int
-add_extended_key_usage(cms_context *cms, int modsign_only, void *extHandle)
+add_extended_key_usage(cms_context *cms, int modsign_eku, void *extHandle)
 {
 	SECItem values[2];
 	SECItem wrapped = { 0 };
@@ -247,7 +253,11 @@ add_extended_key_usage(cms_context *cms, int modsign_only, void *extHandle)
 	SECOidTag tag;
 	int rc;
 
-	if (modsign_only < 1 || modsign_only > 2)
+	if (modsign_eku == MODSIGN_EKU_CA)
+		return 0;
+
+	if (modsign_eku != MODSIGN_EKU_KERNEL
+	    && modsign_eku != MODSIGN_EKU_MODULE)
 		cmsreterr(-1, cms, "could not encode extended key usage");
 
 	rc = make_eku_oid(cms, &values[0], SEC_OID_EXT_KEY_USAGE_CODE_SIGN);
@@ -259,10 +269,9 @@ add_extended_key_usage(cms_context *cms, int modsign_only, void *extHandle)
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not encode extended key usage");
 
-	rc = wrap_in_seq(cms, &wrapped, values, modsign_only);
+	rc = wrap_in_seq(cms, &wrapped, values, modsign_eku);
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not encode extended key usage");
-
 
 	status = CERT_AddExtension(extHandle, SEC_OID_X509_EXT_KEY_USAGE,
 					&wrapped, PR_FALSE, PR_TRUE);
@@ -297,7 +306,7 @@ static int
 add_extensions_to_crq(cms_context *cms, CERTCertificateRequest *crq,
 			int is_ca, int is_self_signed, SECKEYPublicKey *pubkey,
 			SECKEYPublicKey *spubkey,
-			char *url, int modsign_only)
+			char *url, int modsign_eku)
 {
 	void *mark = PORT_ArenaMark(cms->arena);
 
@@ -322,7 +331,7 @@ add_extensions_to_crq(cms_context *cms, CERTCertificateRequest *crq,
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not generate certificate extensions");
 
-	rc = add_extended_key_usage(cms, modsign_only, extHandle);
+	rc = add_extended_key_usage(cms, modsign_eku, extHandle);
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not generate certificate extensions");
 
@@ -472,7 +481,7 @@ int main(int argc, char *argv[])
 {
 	int is_ca = 0;
 	int is_self_signed = -1;
-	int modsign_only = 0;
+	int modsign_eku = MODSIGN_EKU_NONE;
 	char *tokenname = "NSS Certificate DB";
 	char *signer = NULL;
 	char *nickname = NULL;
@@ -529,14 +538,14 @@ int main(int argc, char *argv[])
 		{.longName = "kernel",
 		 .shortName = 'k',
 		 .argInfo = POPT_ARG_VAL|POPT_ARGFLAG_OR,
-		 .arg = &modsign_only,
-		 .val = 1,
+		 .arg = &modsign_eku,
+		 .val = MODSIGN_EKU_KERNEL,
 		 .descrip = "Generate a kernel-signing certificate" },
 		{.longName = "module",
 		 .shortName = 'm',
 		 .argInfo = POPT_ARG_VAL|POPT_ARGFLAG_OR,
-		 .arg = &modsign_only,
-		 .val = 2,
+		 .arg = &modsign_eku,
+		 .val = MODSIGN_EKU_MODULE,
 		 .descrip = "Generate a module-signing certificate" },
 		{.longName = "nickname",
 		 .shortName = 'n',
@@ -608,10 +617,12 @@ int main(int argc, char *argv[])
 	/*
 	 * Scenarios that are okay (x == valid combination)
 	 *
-	 *         is_ca        is_self_signed       pubkey
-	 * i_c     x            x                    x
-	 * i_s_s   x            x                    o
-	 * pubkey  x            o                    o
+	 *		is_ca   is_self_signed  pubkey	modules	kernel
+	 * i_c		x       x               x	o	o
+	 * i_s_s	x       x               o	o	o
+	 * pubkey	x       o               x	x	x
+	 * modules	o	x		x	x	x
+	 * kernel	o	x		x	x	x
 	 */
 
 	if (is_self_signed == -1)
@@ -646,8 +657,14 @@ int main(int argc, char *argv[])
 			liberr(1, "could not allocate cms context");
 	}
 
-	if (modsign_only < 1 || modsign_only > 2)
+	if (is_ca) {
+		if (modsign_eku != MODSIGN_EKU_NONE)
+			errx(1, "CA certificates cannot have kernel or module signing credentials.");
+		modsign_eku = MODSIGN_EKU_CA;
+	} else if (modsign_eku != MODSIGN_EKU_KERNEL
+		   && modsign_eku != MODSIGN_EKU_MODULE) {
 		errx(1, "either --kernel or --module must be used");
+	}
 
 	SECStatus status = NSS_InitReadWrite(dbdir);
 	if (status != SECSuccess)
@@ -738,7 +755,7 @@ int main(int argc, char *argv[])
 	crq = CERT_CreateCertificateRequest(name, spki, &attributes);
 
 	rc = add_extensions_to_crq(cms, crq, is_ca, is_self_signed, pubkey,
-					spubkey, url, modsign_only);
+					spubkey, url, modsign_eku);
 	if (rc < 0)
 		exit(1);
 
