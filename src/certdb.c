@@ -27,21 +27,23 @@ add_db_file(pesigcheck_context *ctx, db_specifier which, const char *dbfile,
 	    db_f_type type)
 {
 	dblist *db = calloc(1, sizeof (dblist));
+	int errno_guard;
 
 	if (!db)
 		return -1;
 
 	db->type = type;
 	db->fd = open(dbfile, O_RDONLY);
+	set_errno_guard_with_override(&errno_guard);
 	if (db->fd < 0) {
-		save_errno(free(db));
+		free(db);
 		return -1;
 	}
 
 	char *path = strdup(dbfile);
 	if (!path) {
-		save_errno(close(db->fd);
-			   free(db));
+		override_errno_guard(&errno_guard, errno);
+		free(db);
 		return -1;
 	}
 
@@ -49,17 +51,19 @@ add_db_file(pesigcheck_context *ctx, db_specifier which, const char *dbfile,
 	db->path = strdup(db->path);
 	free(path);
 	if (!db->path) {
-		save_errno(close(db->fd);
-			   free(db));
+		override_errno_guard(&errno_guard, errno);
+		close(db->fd);
+		free(db);
 		return -1;
 	}
 
 	struct stat sb;
 	int rc = fstat(db->fd, &sb);
 	if (rc < 0) {
-		save_errno(close(db->fd);
-			   free(db->path);
-			   free(db));
+		override_errno_guard(&errno_guard, errno);
+		close(db->fd);
+		free(db->path);
+		free(db);
 		return -1;
 	}
 	db->size = sb.st_size;
@@ -70,9 +74,10 @@ add_db_file(pesigcheck_context *ctx, db_specifier which, const char *dbfile,
 		size_t sz = 0;
 		rc = read_file(db->fd, (char **)&db->map, &sz);
 		if (rc < 0) {
-			save_errno(close(db->fd);
-				   free(db->path);
-				   free(db));
+			override_errno_guard(&errno_guard, errno);
+			close(db->fd);
+			free(db->path);
+			free(db);
 			return -1;
 		}
 	}
@@ -95,8 +100,10 @@ add_db_file(pesigcheck_context *ctx, db_specifier which, const char *dbfile,
 		db->datalen = db->size + sizeof(EFI_SIGNATURE_LIST) +
 			      sizeof(efi_guid_t);
 		db->data = calloc(1, db->datalen);
-		if (!db->data)
+		if (!db->data) {
+			override_errno_guard(&errno_guard, errno);
 			return -1;
+		}
 
 		certlist = (EFI_SIGNATURE_LIST *)db->data;
 		memcpy((void *)&certlist->SignatureType, &efi_x509, sizeof(efi_guid_t));
@@ -116,6 +123,7 @@ add_db_file(pesigcheck_context *ctx, db_specifier which, const char *dbfile,
 	db->next = *tmp;
 	*tmp = db;
 
+	override_errno_guard(&errno_guard, 0);
 	return 0;
 }
 

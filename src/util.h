@@ -11,9 +11,8 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <errno.h>
+#include <unistd.h>
 
 #include <libdpe/pe.h>
 
@@ -28,18 +27,10 @@
 #define xstrdup(s) ({ void *p_ = strdup(s); if (!p_) liberr(1, "Could not allocate memory"); p_; })
 #define xpfstat(path, fd, sb) ({ int rc_ = fstat(fd, sb); if (rc_ < 0) liberr(1, "Could not stat \"%s\"", path); })
 
-#define save_errno(x)					\
-	({						\
-		typeof (errno) __saved_errno = errno;	\
-		x;					\
-		errno = __saved_errno;			\
-	})
-#define save_pe_errno(x)					\
-	({							\
-		typeof (errno) __saved_errno = pe_errno();	\
-		x;						\
-		__libpe_seterrno(__saved_errno);		\
-	})
+#define saved_errno_0_ CONCATENATE(CONCATENATE(error_,__LINE__),_0_)
+#define saved_errno_1_ CONCATENATE(CONCATENATE(error_,__LINE__),_1_)
+#define save_pe_errno() \
+	for (int saved_errno_0_ = 0, saved_errno_1_ = pe_errno(); saved_errno_0_ < 1; saved_errno_0_++, __libdpe_seterrno(saved_errno_1_))
 
 #define conderr(cond, val, fmt, args...) ({				\
 		if (cond)						\

@@ -39,6 +39,7 @@
 
 #include "util.h"
 #include "cms_common.h"
+#include "errno-guard.h"
 #include "oid.h"
 
 enum {

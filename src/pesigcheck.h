@@ -18,6 +18,7 @@
 #include "certdb.h"
 
 #include "endian.h"
+#include "errno-guard.h"
 #include "oid.h"
 #include "wincert.h"
 #include "content_info.h"

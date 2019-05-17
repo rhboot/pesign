@@ -229,7 +229,9 @@ cms_context_alloc(cms_context **cmsp)
 
 	int rc = cms_context_init(cms);
 	if (rc < 0) {
-		save_errno(free(cms));
+		set_errno_guard();
+		xfree(cms);
+		cms = NULL;
 		return -1;
 	}
 	*cmsp = cms;
