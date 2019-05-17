@@ -602,28 +602,26 @@ find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 	}
 
 	CERTCertListNode *node = NULL;
-        for (node = CERT_LIST_HEAD(certlist); !CERT_LIST_END(node,certlist);
-						node = CERT_LIST_NEXT(node)) {
-		if (!strcmp(node->cert->subjectName, name))
+	for_each_cert(certlist, tmpnode) {
+		if (!strcmp(tmpnode->cert->subjectName, name)) {
+			node = tmpnode;
 			break;
+		}
 	}
 	/* If we're looking up the issuer of some cert, and the issuer isn't
 	 * in the database, we'll get back what is essentially a template
 	 * that's in NSS's cache waiting to be filled out.  We can't use that,
 	 * it'll just cause CERT_DupCertificate() to segfault. */
-	if (CERT_LIST_END(node, certlist)
-			|| !node->cert || !node->cert->derCert.data
-			|| !node->cert->derCert.len
-			|| !node->cert->derIssuer.data
-			|| !node->cert->derIssuer.len) {
+	if (!node || !node->cert || !node->cert->derCert.data
+	    || !node->cert->derCert.len
+	    || !node->cert->derIssuer.data
+	    || !node->cert->derIssuer.len) {
 		PK11_DestroySlotListElement(slots, &psle);
 		PK11_FreeSlotList(slots);
 		CERT_DestroyCertList(certlist);
 
 		return -1;
 	}
-
-
 
 	*cert = CERT_DupCertificate(node->cert);
 

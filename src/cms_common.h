@@ -23,6 +23,9 @@
 #define save_port_err() \
 	for (error_t saved_errno_0_ = 0, saved_errno_1_ = PORT_GetError(); saved_errno_0_ < 1; saved_errno_0_++, PORT_SetError(saved_errno_1_))
 
+#define for_each_cert(cl, node) \
+	for (CERTCertListNode *node = CERT_LIST_HEAD(cl); !CERT_LIST_END(node, cl); node = CERT_LIST_NEXT(node))
+
 #define cmserr(rv, cms, fmt, args...) ({					\
 		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt ": %s",	\
 			__FILE__, __func__, __LINE__, ## args,		\
