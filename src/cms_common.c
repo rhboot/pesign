@@ -338,7 +338,9 @@ unlock_nss_token(cms_context *cms)
 	PK11SlotListElement *psle = NULL;
 	psle = PK11_GetFirstSafe(slots);
 	if (!psle) {
-		save_port_err(PK11_FreeSlotList(slots));
+		save_port_err() {
+			PK11_FreeSlotList(slots);
+		}
 		cmsreterr(-1, cms, "could not get pk11 safe");
 	}
 
@@ -350,7 +352,9 @@ unlock_nss_token(cms_context *cms)
 	}
 
 	if (!psle) {
-		save_port_err(PK11_FreeSlotList(slots));
+		save_port_err() {
+			PK11_FreeSlotList(slots);
+		}
 		cms->log(cms, LOG_ERR, "could not find token \"%s\"",
 			cms->tokenname);
 		return -1;
@@ -394,7 +398,9 @@ find_certificate(cms_context *cms, int needs_private_key)
 	PK11SlotListElement *psle = NULL;
 	psle = PK11_GetFirstSafe(slots);
 	if (!psle) {
-		save_port_err(PK11_FreeSlotList(slots));
+		save_port_err() {
+			PK11_FreeSlotList(slots);
+		}
 		cmsreterr(-1, cms, "could not get pk11 safe");
 	}
 
@@ -406,7 +412,9 @@ find_certificate(cms_context *cms, int needs_private_key)
 	}
 
 	if (!psle) {
-		save_port_err(PK11_FreeSlotList(slots));
+		save_port_err() {
+			PK11_FreeSlotList(slots);
+		}
 		cms->log(cms, LOG_ERR, "could not find token \"%s\"",
 			cms->tokenname);
 		return -1;
@@ -427,9 +435,10 @@ find_certificate(cms_context *cms, int needs_private_key)
 	CERTCertList *certlist = NULL;
 	certlist = PK11_ListCertsInSlot(psle->slot);
 	if (!certlist) {
-		save_port_err(
+		save_port_err() {
 			PK11_DestroySlotListElement(slots, &psle);
-			PK11_FreeSlotList(slots));
+			PK11_FreeSlotList(slots);
+		}
 		cmsreterr(-1, cms, "could not get certificate list");
 	}
 
@@ -454,10 +463,11 @@ find_certificate(cms_context *cms, int needs_private_key)
 					&cbdata);
 	}
 	if (status != SECSuccess || cbdata.cert == NULL) {
-		save_port_err(
+		save_port_err() {
 			CERT_DestroyCertList(certlist);
 			PK11_DestroySlotListElement(slots, &psle);
-			PK11_FreeSlotList(slots));
+			PK11_FreeSlotList(slots);
+		}
 		cmsreterr(-1, cms, "could not find certificate in list");
 	}
 
@@ -490,7 +500,9 @@ find_slot_for_token(cms_context *cms, PK11SlotInfo **slot)
 	PK11SlotListElement *psle = NULL;
 	psle = PK11_GetFirstSafe(slots);
 	if (!psle) {
-		save_port_err(PK11_FreeSlotList(slots));
+		save_port_err() {
+			PK11_FreeSlotList(slots);
+		}
 		cmsreterr(-1, cms, "could not get pk11 safe");
 	}
 
@@ -502,7 +514,9 @@ find_slot_for_token(cms_context *cms, PK11SlotInfo **slot)
 	}
 
 	if (!psle) {
-		save_port_err(PK11_FreeSlotList(slots));
+		save_port_err() {
+			PK11_FreeSlotList(slots);
+		}
 		cms->log(cms, LOG_ERR, "could not find token \"%s\"",
 			cms->tokenname);
 		return -1;
@@ -543,7 +557,9 @@ find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 	PK11SlotListElement *psle = NULL;
 	psle = PK11_GetFirstSafe(slots);
 	if (!psle) {
-		save_port_err(PK11_FreeSlotList(slots));
+		save_port_err() {
+			PK11_FreeSlotList(slots);
+		}
 		cmsreterr(-1, cms, "could not get pk11 safe");
 	}
 
@@ -555,7 +571,9 @@ find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 	}
 
 	if (!psle) {
-		save_port_err(PK11_FreeSlotList(slots));
+		save_port_err() {
+			PK11_FreeSlotList(slots);
+		}
 		cms->log(cms, LOG_ERR, "could not find token \"%s\"",
 			cms->tokenname);
 		return -1;
@@ -576,9 +594,10 @@ find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 	CERTCertList *certlist = NULL;
 	certlist = PK11_ListCertsInSlot(psle->slot);
 	if (!certlist) {
-		save_port_err(
+		save_port_err() {
 			PK11_DestroySlotListElement(slots, &psle);
-			PK11_FreeSlotList(slots));
+			PK11_FreeSlotList(slots);
+		}
 		cmsreterr(-1, cms, "could not get certificate list");
 	}
 
@@ -1146,7 +1165,9 @@ wrap_in_seq(cms_context *cms, SECItem *der, SECItem *items, int num_items)
 	int rc = 0;
 	ret = SEC_ASN1EncodeItem(cms->arena, der, items, tmpl);
 	if (ret == NULL) {
-		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		save_port_err() {
+			PORT_ArenaRelease(cms->arena, mark);
+		}
 		cmsreterr(-1, cms, "could not encode set");
 	}
 	PORT_ArenaUnmark(cms->arena, mark);
@@ -1249,7 +1270,9 @@ generate_ava(cms_context *cms, SECItem *der, CERTAVA *certava)
 
 	oid = SECOID_FindOID(&certava->type);
 	if (!oid) {
-		save_port_err(PORT_FreeArena(arena, PR_TRUE));
+		save_port_err() {
+			PORT_FreeArena(arena, PR_TRUE);
+		}
 		cms->arena = real_arena;
 		cmsreterr(-1, cms, "could not find OID");
 	}
@@ -1267,7 +1290,9 @@ generate_ava(cms_context *cms, SECItem *der, CERTAVA *certava)
 	SECItem tmp;
 	ret = SEC_ASN1EncodeItem(arena, &tmp, &ava, AVATemplate);
 	if (ret == NULL) {
-		save_port_err(PORT_FreeArena(arena, PR_TRUE));
+		save_port_err() {
+			PORT_FreeArena(arena, PR_TRUE);
+		}
 		cms->arena = real_arena;
 		cmsreterr(-1, cms, "could not encode AVA");
 	}
@@ -1276,7 +1301,9 @@ generate_ava(cms_context *cms, SECItem *der, CERTAVA *certava)
 	der->len = tmp.len;
 	der->data = PORT_ArenaAlloc(real_arena, tmp.len);
 	if (!der->data) {
-		save_port_err(PORT_FreeArena(arena, PR_TRUE));
+		save_port_err() {
+			PORT_FreeArena(arena, PR_TRUE);
+		}
 		cms->arena = real_arena;
 		cmsreterr(-1, cms, "could not allocate AVA");
 	}
@@ -1467,3 +1494,5 @@ generate_keys(cms_context *cms, PK11SlotInfo *slot,
 		cmsreterr(-1, cms, "could not generate RSA keypair");
 	return 0;
 }
+
+// vim:fenc=utf-8:tw=75:noet

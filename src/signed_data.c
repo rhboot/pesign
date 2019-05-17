@@ -69,14 +69,18 @@ generate_certificate_list(cms_context *cms, SECItem ***certificate_list_p)
 
 	certificates = PORT_ArenaZAlloc(cms->arena, sizeof (SECItem *) * 3);
 	if (!certificates) {
-		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		save_port_err() {
+			PORT_ArenaRelease(cms->arena, mark);
+		}
 		cmsreterr(-1, cms, "could not allocate certificate list");
 	}
 	int i = 0;
 
 	certificates[i] = PORT_ArenaZAlloc(cms->arena, sizeof (SECItem));
 	if (!certificates[i]) {
-		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		save_port_err() {
+			PORT_ArenaRelease(cms->arena, mark);
+		}
 		cmsreterr(-1, cms, "could not allocate certificate entry");
 	}
 	SECITEM_CopyItem(cms->arena, certificates[i++], &cms->cert->derCert);
@@ -94,8 +98,9 @@ generate_certificate_list(cms_context *cms, SECItem ***certificate_list_p)
 				certificates[i] = PORT_ArenaZAlloc(cms->arena,
 							sizeof (SECItem));
 				if (!certificates[i]) {
-					save_port_err(
-						PORT_ArenaRelease(cms->arena, mark));
+					save_port_err() {
+						PORT_ArenaRelease(cms->arena, mark);
+					}
 					cmsreterr(-1, cms,"could not allocate "
 						"certificate entry");
 				}
@@ -263,7 +268,9 @@ generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 	void *mark = PORT_ArenaMark(cms->arena);
 
 	if (SEC_ASN1EncodeInteger(cms->arena, &sd.version, 1) == NULL) {
-		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		save_port_err() {
+			PORT_ArenaRelease(cms->arena, mark);
+		}
 		cms->ci_digest = NULL;
 		cmsreterr(-1, cms, "could not encode integer");
 	}
@@ -297,7 +304,9 @@ generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 	SECItem encoded = { 0, };
 	if (SEC_ASN1EncodeItem(cms->arena, &encoded, &sd, SignedDataTemplate)
 			== NULL) {
-		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		save_port_err() {
+			PORT_ArenaRelease(cms->arena, mark);
+		}
 		cms->ci_digest = NULL;
 		cmsreterr(-1, cms, "could not encode SignedData");
 	}
@@ -313,7 +322,9 @@ generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 	SECItem wrapper = { 0, };
 	if (SEC_ASN1EncodeItem(cms->arena, &wrapper, &sdw,
 			ContentInfoTemplate) == NULL) {
-		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		save_port_err() {
+			PORT_ArenaRelease(cms->arena, mark);
+		}
 		cms->ci_digest = NULL;
 		cmsreterr(-1, cms, "could not encode SignedData");
 	}
@@ -335,7 +346,9 @@ generate_authvar_signed_data(cms_context *cms, SECItem *sdp)
 	void *mark = PORT_ArenaMark(cms->arena);
 
 	if (SEC_ASN1EncodeInteger(cms->arena, &sd.version, 1) == NULL) {
-		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		save_port_err() {
+			PORT_ArenaRelease(cms->arena, mark);
+		}
 		cmsreterr(-1, cms, "could not encode integer");
 	}
 
@@ -364,7 +377,9 @@ generate_authvar_signed_data(cms_context *cms, SECItem *sdp)
 	SECItem encoded = { 0, };
 	if (SEC_ASN1EncodeItem(cms->arena, &encoded, &sd, SignedDataTemplate)
 			== NULL) {
-		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		save_port_err() {
+			PORT_ArenaRelease(cms->arena, mark);
+		}
 		cmsreterr(-1, cms, "could not encode SignedData");
 	}
 
@@ -379,7 +394,9 @@ generate_authvar_signed_data(cms_context *cms, SECItem *sdp)
 	SECItem wrapper = { 0, };
 	if (SEC_ASN1EncodeItem(cms->arena, &wrapper, &sdw,
 			ContentInfoTemplate) == NULL) {
-		save_port_err(PORT_ArenaRelease(cms->arena, mark));
+		save_port_err() {
+			PORT_ArenaRelease(cms->arena, mark);
+		}
 		cmsreterr(-1, cms, "could not encode SignedData");
 	}
 
@@ -387,3 +404,5 @@ generate_authvar_signed_data(cms_context *cms, SECItem *sdp)
 	PORT_ArenaUnmark(cms->arena, mark);
 	return 0;
 }
+
+// vim:fenc=utf-8:tw=75:noet

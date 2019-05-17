@@ -8,21 +8,20 @@
 #ifndef CMS_COMMON_H
 #define CMS_COMMON_H 1
 
-#include <errno.h>
 #include <cert.h>
 #include <secpkcs7.h>
+
+#include <errno.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 
-#define save_port_err(x)				\
-	({						\
-		int __saved_errno = PORT_GetError();	\
-		x;					\
-		PORT_SetError(__saved_errno);		\
-	})
+#include "util.h"
+
+#define save_port_err() \
+	for (error_t saved_errno_0_ = 0, saved_errno_1_ = PORT_GetError(); saved_errno_0_ < 1; saved_errno_0_++, PORT_SetError(saved_errno_1_))
 
 #define cmserr(rv, cms, fmt, args...) ({					\
 		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt ": %s",	\
@@ -162,3 +161,4 @@ typedef struct {
 } secuPWData;
 
 #endif /* CMS_COMMON_H */
+// vim:fenc=utf-8:tw=75:noet
