@@ -105,190 +105,67 @@ open_output(pesign_context *ctx)
 
 	Pe_Cmd cmd = ctx->outfd == STDOUT_FILENO ? PE_C_RDWR : PE_C_RDWR_MMAP;
 	ctx->outpe = pe_begin(ctx->outfd, cmd, NULL);
-	if (!ctx->outpe) {
-		fprintf(stderr, "pesign: could not load output file: %s\n",
-			pe_errmsg(pe_errno()));
-		exit(1);
-	}
+	conderrx(!ctx->outpe, 1, "could not load output file \"%s\": %s",
+                 ctx->outfile, pe_errmsg(pe_errno()));
 
 	pe_clearcert(ctx->outpe);
 }
 
-static void
-open_rawsig_input(pesign_context *ctx)
-{
-	if (!ctx->rawsig) {
-		fprintf(stderr, "pesign: No input file specified.\n");
-		exit(1);
-	}
+#define define_input_file(fname, name, descr)                           \
+        static void                                                     \
+        CAT3(open_, fname, _input)(pesign_context *ctx)                 \
+        {                                                               \
+                conderrx(!ctx->name, 1,                                 \
+                         "No input file specified for %s",              \
+                         descr);                                        \
+                ctx->CAT(name, fd) =                                    \
+                        open(ctx->name, O_RDONLY|O_CLOEXEC);            \
+                conderr(ctx->CAT(name, fd) < 0, 1,                      \
+                        "Error opening %s file \"%s\" for input",       \
+                        descr, ctx->name);                              \
+        }                                                               \
+        static void                                                     \
+        CAT3(close_, fname, _input)(pesign_context *ctx)                \
+        {                                                               \
+                close(ctx->CAT(name, fd));                              \
+                ctx->CAT(name, fd) = -1;                                \
+        }
 
-	ctx->rawsigfd = open(ctx->rawsig, O_RDONLY|O_CLOEXEC);
-	if (ctx->rawsigfd < 0) {
-		fprintf(stderr, "pesign: Error opening raw signature for input:"
-				" %m\n");
-		exit(1);
-	}
-}
+#define define_output_file(fname, name, descr)                          \
+        static void                                                     \
+        CAT3(open_, fname, _output)(pesign_context *ctx)                \
+        {                                                               \
+                conderrx(!ctx->name, 1,                                 \
+                         "No output file specified for %s.",            \
+                         descr);                                        \
+                                                                        \
+                if (access(ctx->name, F_OK) == 0 && ctx->force == 0)    \
+                        errx(1,                                         \
+                             "\"%s\" exists and --force was not given.",\
+                             ctx->name);                                \
+                                                                        \
+                ctx->CAT(name, fd) =                                    \
+                        open(ctx->name,                                 \
+                             O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,          \
+                             ctx->outmode);                             \
+                conderr(ctx->CAT(name, fd) < 0, 1,                      \
+                        "Error opening %s file \"%s\" for output",      \
+                        descr, ctx->name);                              \
+        }                                                               \
+        static void                                                     \
+        CAT3(close_, fname, _output)(pesign_context *ctx)               \
+        {                                                               \
+                close(ctx->CAT(name,fd));                               \
+                ctx->CAT(name,fd) = -1;                                 \
+        }
 
-static void
-close_rawsig_input(pesign_context *ctx)
-{
-	close(ctx->rawsigfd);
-	ctx->rawsigfd = -1;
-}
-
-static void
-open_sattr_input(pesign_context *ctx)
-{
-	if (!ctx->insattrs) {
-		fprintf(stderr, "pesign: No input file specified.\n");
-		exit(1);
-	}
-
-	ctx->insattrsfd = open(ctx->insattrs, O_RDONLY|O_CLOEXEC);
-	if (ctx->insattrsfd < 0) {
-		fprintf(stderr, "pesign: Error opening signed attributes "
-				"for input: %m\n");
-		exit(1);
-	}
-}
-
-static void
-close_sattr_input(pesign_context *ctx)
-{
-	close(ctx->insattrsfd);
-	ctx->insattrsfd = -1;
-}
-
-static void
-open_sattr_output(pesign_context *ctx)
-{
-	if (!ctx->outsattrs) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
-
-	if (access(ctx->outsattrs, F_OK) == 0 && ctx->force == 0) {
-		fprintf(stderr, "pesign: \"%s\" exists and --force "
-				"was not given.\n", ctx->outsattrs);
-		exit(1);
-	}
-
-	ctx->outsattrsfd = open(ctx->outsattrs,
-			O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
-			ctx->outmode);
-	if (ctx->outsattrsfd < 0) {
-		fprintf(stderr, "pesign: Error opening signed attributes "
-				"for output: %m\n");
-		exit(1);
-	}
-}
-
-static void
-close_sattr_output(pesign_context *ctx)
-{
-	close(ctx->outsattrsfd);
-	ctx->outsattrsfd = -1;
-}
-
-static void
-open_sig_input(pesign_context *ctx)
-{
-	if (!ctx->insig) {
-		fprintf(stderr, "pesign: No input file specified.\n");
-		exit(1);
-	}
-
-	ctx->insigfd = open(ctx->insig, O_RDONLY|O_CLOEXEC);
-	if (ctx->insigfd < 0) {
-		fprintf(stderr, "pesign: Error opening signature for input: "
-				"%m\n");
-		exit(1);
-	}
-}
-
-static void
-close_sig_input(pesign_context *ctx)
-{
-	close(ctx->insigfd);
-	ctx->insigfd = -1;
-}
-
-static void
-open_sig_output(pesign_context *ctx)
-{
-	if (!ctx->outsig) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
-
-	if (access(ctx->outsig, F_OK) == 0 && ctx->force == 0) {
-		fprintf(stderr, "pesign: \"%s\" exists and --force "
-				"was not given.\n", ctx->outsig);
-		exit(1);
-	}
-
-	ctx->outsigfd = open(ctx->outsig, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
-				ctx->outmode);
-	if (ctx->outsigfd < 0) {
-		fprintf(stderr, "pesign: Error opening signature for output: "
-				"%m\n");
-		exit(1);
-	}
-}
-
-static void
-close_sig_output(pesign_context *ctx)
-{
-	close(ctx->outsigfd);
-	ctx->outsigfd = -1;
-}
-
-static void
-open_pubkey_output(pesign_context *ctx)
-{
-	if (!ctx->outkey) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
-
-	if (access(ctx->outkey, F_OK) == 0 && ctx->force == 0) {
-		fprintf(stderr, "pesign: \"%s\" exists and --force "
-				"was not given.\n", ctx->outkey);
-		exit(1);
-	}
-
-	ctx->outkeyfd = open(ctx->outkey, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
-				ctx->outmode);
-	if (ctx->outkeyfd < 0) {
-		fprintf(stderr, "pesign: Error opening pubkey for output: "
-				"%m\n");
-		exit(1);
-	}
-}
-
-static void
-open_cert_output(pesign_context *ctx)
-{
-	if (!ctx->outcert) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
-
-	if (access(ctx->outcert, F_OK) == 0 && ctx->force == 0) {
-		fprintf(stderr, "pesign: \"%s\" exists and --force "
-				"was not given.\n", ctx->outcert);
-		exit(1);
-	}
-
-	ctx->outcertfd = open(ctx->outcert, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
-				ctx->outmode);
-	if (ctx->outcertfd < 0) {
-		fprintf(stderr, "pesign: Error opening certificate for output: "
-				"%m\n");
-		exit(1);
-	}
-}
+define_input_file(rawsig, rawsig, "raw signature");
+define_input_file(sattr, insattrs, "signed attributes");
+define_output_file(sattr, outsattrs, "signed attributes");
+define_input_file(sig, insig, "signature");
+define_output_file(sig, outsig, "signature");
+define_output_file(pubkey, outkey, "pubkey");
+define_output_file(cert, outcert, "certificate");
 
 static void
 check_inputs(pesign_context *ctx)
