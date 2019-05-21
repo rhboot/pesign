@@ -111,6 +111,7 @@ import_sig_input(pesign_context *ctx)
 {
 	unsigned char *map;
 	struct stat statbuf;
+	int rc;
 
 	if (!ctx->insig) {
 		fprintf(stderr, "pesign: No input file specified.\n");
@@ -124,23 +125,17 @@ import_sig_input(pesign_context *ctx)
 		exit(1);
 	}
 
-	if (fstat(ctx->insigfd, &statbuf)) {
-		fprintf(stderr, "pesign: Error on stat signature: %m\n");
-		exit(1);
-	}
+	rc = fstat(ctx->insigfd, &statbuf);
+	conderr(rc < 0, 1, "Could not fstat signature file \"%s\"",
+		ctx->insig);
 
 	/* Copy original module data */
 
 	map = mmap(NULL, ctx->inlength, PROT_READ, MAP_PRIVATE, ctx->infd, 0);
-	if (map == MAP_FAILED) {
-		fprintf(stderr, "pesign: Error mapping input: %m\n");
-		exit(1);
-	}
+	conderr(map == MAP_FAILED, 1, "Could not map kmod input");
 
-	if (write_file(ctx->outfd, map, ctx->inlength) < 0) {
-		fprintf(stderr, "pesign: failed to write module data: %m\n");
-		exit(1);
-	}
+	rc = write_file(ctx->outfd, map, ctx->inlength);
+	conderr(rc < 0, 1, "Failed to write module data");
 
 	munmap(map, ctx->inlength);
 
@@ -148,15 +143,11 @@ import_sig_input(pesign_context *ctx)
 
 	map = mmap(NULL, statbuf.st_size, PROT_READ, MAP_PRIVATE, ctx->insigfd,
 		   0);
-	if (map == MAP_FAILED) {
-		fprintf(stderr, "pesign: failed to map signature: %m\n");
-		exit(1);
-	}
+	conderr(map == MAP_FAILED, 1, "Could not map signature input \"%s\"",
+		ctx->insig);
 
-	if (write_file(ctx->outfd, map, statbuf.st_size) < 0) {
-		fprintf(stderr, "pesign: Error writing output: %m\n");
-		exit(1);
-	}
+	rc = write_file(ctx->outfd, map, statbuf.st_size);
+	conderr(rc < 0, 1, "Error writing output");
 
 	munmap(map, statbuf.st_size);
 }
@@ -169,20 +160,15 @@ handle_signing(pesign_context *ctx, int outfd, int attached)
 	ssize_t sig_len;
 
 	inmap = mmap(NULL, ctx->inlength, PROT_READ, MAP_PRIVATE, ctx->infd, 0);
-	if (inmap == MAP_FAILED) {
-		fprintf(stderr, "pesign: Error mapping input: %m\n");
-		exit(1);
-	}
+	conderrx(inmap == MAP_FAILED, 1, "Error mapping input kmod");
 
 	rc = kmod_generate_digest(ctx->cms_ctx, inmap, ctx->inlength);
 	if (rc < 0)
 		exit(1);
 
 	if (attached) {
-		if (write_file(outfd, inmap, ctx->inlength) < 0) {
-			fprintf(stderr, "pesign: failed to write module data: %m\n");
-			exit(1);
-		}
+		rc = write_file(outfd, inmap, ctx->inlength);
+		conderr(rc < 0, 1, "Failed to write module data");
 	}
 	munmap(inmap, ctx->inlength);
 
@@ -203,16 +189,10 @@ kmod_handle_action(pesign_context *ctxp, int action)
 		/* generate a signature and embed it in the module */
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
 			rc = find_certificate(ctxp->cms_ctx, 1);
-			if (rc < 0) {
-				fprintf(stderr, "pesign: Could not find "
-					"certificate %s\n",
-					ctxp->cms_ctx->certname);
-				exit(1);
-			}
-			if (ctxp->signum > ctxp->cms_ctx->num_signatures + 1) {
-				fprintf(stderr, "Invalid signature number.\n");
-				exit(1);
-			}
+			conderrx(rc < 0, 1, "Could not find certificate \"%s\"",
+				 ctxp->cms_ctx->certname);
+			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures + 1,
+				 1, "Invalid signature number.");
 
 			open_input(ctxp);
 			open_output(ctxp);
@@ -224,16 +204,10 @@ kmod_handle_action(pesign_context *ctxp, int action)
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:
 			rc = find_certificate(ctxp->cms_ctx, 1);
-			if (rc < 0) {
-				fprintf(stderr, "pesign: Could not find "
-					"certificate %s\n",
-					ctxp->cms_ctx->certname);
-				exit(1);
-			}
-			if (ctxp->signum > ctxp->cms_ctx->num_signatures + 1) {
-				fprintf(stderr, "Invalid signature number.\n");
-				exit(1);
-			}
+			conderrx(rc < 0, 1, "Could not find certificate \"%s\"",
+				 ctxp->cms_ctx->certname);
+			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures + 1,
+				 1, "Invalid signature number.");
 
 			open_input(ctxp);
 			open_sig_output(ctxp);
@@ -244,10 +218,8 @@ kmod_handle_action(pesign_context *ctxp, int action)
 
 		/* add a signature from a file */
 		case IMPORT_SIGNATURE:
-			if (ctxp->signum > ctxp->cms_ctx->num_signatures + 1) {
-				fprintf(stderr, "Invalid signature number.\n");
-				exit(1);
-			}
+			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures + 1,
+				 1, "Invalid signature number.");
 			open_input(ctxp);
 			open_output(ctxp);
 			import_sig_input(ctxp);
@@ -256,8 +228,8 @@ kmod_handle_action(pesign_context *ctxp, int action)
 			break;
 
 		default:
-			fprintf(stderr, "Incompatible flags (0x%08x): ",
-				action);
+			fprintf(stderr, "%s: Incompatible flags (0x%08x): ",
+				program_invocation_short_name, action);
 			for (int i = 1; i < FLAG_LIST_END; i <<= 1) {
 				if (action & i)
 					print_flag_name(stderr, i);
