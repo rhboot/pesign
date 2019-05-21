@@ -20,10 +20,22 @@ typedef enum {
 } file_format;
 
 typedef struct {
-	int infd;
-	int outfd;
-	char *infile;
-	char *outfile;
+	union {
+		int infd;
+		int inkmodfd;
+	};
+	union {
+		int outfd;
+		int outkmodfd;
+	};
+	union {
+		char *infile;
+		char *inkmod;
+	};
+	union {
+		char *outfile;
+		char *outkmod;
+	};
 	size_t inlength;
 	mode_t outmode;
 

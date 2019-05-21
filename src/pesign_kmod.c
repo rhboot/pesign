@@ -15,96 +15,10 @@
 #include "pesign_standalone.h"
 #include "file_kmod.h"
 
-static void
-open_input(pesign_context *ctx)
-{
-	struct stat statbuf;
-
-	if (!ctx->infile) {
-		fprintf(stderr, "pesign: No input file specified.\n");
-		exit(1);
-	}
-
-	ctx->infd = open(ctx->infile, O_RDONLY|O_CLOEXEC);
-	if (ctx->infd < 0) {
-		fprintf(stderr, "pesign: Error opening input: %m\n");
-		exit(1);
-	}
-
-	if (fstat(ctx->infd, &statbuf)) {
-		fprintf(stderr, "pesign: Error on stat input: %m\n");
-		exit(1);
-	}
-
-	ctx->outmode = statbuf.st_mode;
-	ctx->inlength = statbuf.st_size;
-}
-
-static void
-close_input(pesign_context *ctx)
-{
-	close(ctx->infd);
-	ctx->infd = -1;
-}
-
-static void
-open_output(pesign_context *ctx)
-{
-	if (!ctx->outfile) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
-
-	if (access(ctx->outfile, F_OK) == 0 && ctx->force == 0) {
-		fprintf(stderr, "pesign: \"%s\" exists and --force was "
-				"not given.\n", ctx->outfile);
-		exit(1);
-	}
-
-	ctx->outfd = open(ctx->outfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
-			ctx->outmode);
-	if (ctx->outfd < 0) {
-		fprintf(stderr, "pesign: Error opening output: %m\n");
-		exit(1);
-	}
-}
-
-static void
-close_output(pesign_context *ctx)
-{
-	close(ctx->outfd);
-	ctx->outfd = -1;
-}
-
-static void
-open_sig_output(pesign_context *ctx)
-{
-	if (!ctx->outsig) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
-
-	if (access(ctx->outsig, F_OK) == 0 && ctx->force == 0) {
-		fprintf(stderr, "pesign: \"%s\" exists and --force "
-				"was not given.\n", ctx->outsig);
-		exit(1);
-	}
-
-	ctx->outsigfd = open(ctx->outsig, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
-				ctx->outmode);
-	if (ctx->outsigfd < 0) {
-		fprintf(stderr, "pesign: Error opening signature for output: "
-				"%m\n");
-		exit(1);
-	}
-}
-
-static void
-close_sig_output(pesign_context *ctx)
-{
-	close(ctx->outsigfd);
-	ctx->outsigfd = -1;
-}
+define_input_file(kmod, inkmod, "kmod");
+define_output_file(kmod, outkmod, "kmod");
+define_output_file(sig, outsig, "signature");
+define_input_file(sig, insig, "signature");
 
 static void
 import_sig_input(pesign_context *ctx)
@@ -113,17 +27,7 @@ import_sig_input(pesign_context *ctx)
 	struct stat statbuf;
 	int rc;
 
-	if (!ctx->insig) {
-		fprintf(stderr, "pesign: No input file specified.\n");
-		exit(1);
-	}
-
-	ctx->insigfd = open(ctx->insig, O_RDONLY|O_CLOEXEC);
-	if (ctx->insigfd < 0) {
-		fprintf(stderr, "pesign: Error opening signature for input: "
-				"%m\n");
-		exit(1);
-	}
+	open_sig_input(ctx);
 
 	rc = fstat(ctx->insigfd, &statbuf);
 	conderr(rc < 0, 1, "Could not fstat signature file \"%s\"",
@@ -132,10 +36,10 @@ import_sig_input(pesign_context *ctx)
 	/* Copy original module data */
 
 	map = mmap(NULL, ctx->inlength, PROT_READ, MAP_PRIVATE, ctx->infd, 0);
-	conderr(map == MAP_FAILED, 1, "Could not map kmod input");
+	conderr(map == MAP_FAILED, 1, "Could not map kmod input file \"%s\"", ctx->inkmod);
 
 	rc = write_file(ctx->outfd, map, ctx->inlength);
-	conderr(rc < 0, 1, "Failed to write module data");
+	conderr(rc < 0, 1, "Failed to write module data to \"%s\"", ctx->outkmod);
 
 	munmap(map, ctx->inlength);
 
@@ -160,7 +64,7 @@ handle_signing(pesign_context *ctx, int outfd, int attached)
 	ssize_t sig_len;
 
 	inmap = mmap(NULL, ctx->inlength, PROT_READ, MAP_PRIVATE, ctx->infd, 0);
-	conderrx(inmap == MAP_FAILED, 1, "Error mapping input kmod");
+	conderr(inmap == MAP_FAILED, 1, "Could not map input kmod file \"%s\"", ctx->inkmod);
 
 	rc = kmod_generate_digest(ctx->cms_ctx, inmap, ctx->inlength);
 	if (rc < 0)
@@ -168,7 +72,7 @@ handle_signing(pesign_context *ctx, int outfd, int attached)
 
 	if (attached) {
 		rc = write_file(outfd, inmap, ctx->inlength);
-		conderr(rc < 0, 1, "Failed to write module data");
+		conderr(rc < 0, 1, "Failed to write module data to \"%s\"", ctx->outkmod);
 	}
 	munmap(inmap, ctx->inlength);
 
@@ -194,11 +98,13 @@ kmod_handle_action(pesign_context *ctxp, int action)
 			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures + 1,
 				 1, "Invalid signature number.");
 
-			open_input(ctxp);
-			open_output(ctxp);
+			open_kmod_input(ctxp);
+			proxy_fd_mode(ctxp->inkmodfd, ctxp->inkmod,
+				      &ctxp->outmode, &ctxp->inlength);
+			open_kmod_output(ctxp);
 			handle_signing(ctxp, ctxp->outfd, 1);
-			close_output(ctxp);
-			close_input(ctxp);
+			close_kmod_output(ctxp);
+			close_kmod_input(ctxp);
 			break;
 
 		/* generate a signature and save it in a separate file */
@@ -209,22 +115,26 @@ kmod_handle_action(pesign_context *ctxp, int action)
 			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures + 1,
 				 1, "Invalid signature number.");
 
-			open_input(ctxp);
+			open_kmod_input(ctxp);
+			proxy_fd_mode(ctxp->inkmodfd, ctxp->inkmod,
+				      &ctxp->outmode, &ctxp->inlength);
 			open_sig_output(ctxp);
 			handle_signing(ctxp, ctxp->outsigfd, 0);
 			close_sig_output(ctxp);
-			close_input(ctxp);
+			close_kmod_input(ctxp);
 			break;
 
 		/* add a signature from a file */
 		case IMPORT_SIGNATURE:
 			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures + 1,
 				 1, "Invalid signature number.");
-			open_input(ctxp);
-			open_output(ctxp);
+			open_kmod_input(ctxp);
+			proxy_fd_mode(ctxp->inkmodfd, ctxp->inkmod,
+				      &ctxp->outmode, &ctxp->inlength);
+			open_kmod_output(ctxp);
 			import_sig_input(ctxp);
-			close_input(ctxp);
-			close_output(ctxp);
+			close_kmod_input(ctxp);
+			close_kmod_output(ctxp);
 			break;
 
 		default:
@@ -238,3 +148,5 @@ kmod_handle_action(pesign_context *ctxp, int action)
 			exit(1);
 	}
 }
+
+// vim:fenc=utf-8:tw=75:noet

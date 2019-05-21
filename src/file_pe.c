@@ -91,54 +91,6 @@ open_output(pesign_context *ctx)
 	pe_clearcert(ctx->outpe);
 }
 
-#define define_input_file(fname, name, descr)                           \
-        static void                                                     \
-        CAT3(open_, fname, _input)(pesign_context *ctx)                 \
-        {                                                               \
-                conderrx(!ctx->name, 1,                                 \
-                         "No input file specified for %s",              \
-                         descr);                                        \
-                ctx->CAT(name, fd) =                                    \
-                        open(ctx->name, O_RDONLY|O_CLOEXEC);            \
-                conderr(ctx->CAT(name, fd) < 0, 1,                      \
-                        "Error opening %s file \"%s\" for input",       \
-                        descr, ctx->name);                              \
-        }                                                               \
-        static void                                                     \
-        CAT3(close_, fname, _input)(pesign_context *ctx)                \
-        {                                                               \
-                close(ctx->CAT(name, fd));                              \
-                ctx->CAT(name, fd) = -1;                                \
-        }
-
-#define define_output_file(fname, name, descr)                          \
-        static void                                                     \
-        CAT3(open_, fname, _output)(pesign_context *ctx)                \
-        {                                                               \
-                conderrx(!ctx->name, 1,                                 \
-                         "No output file specified for %s.",            \
-                         descr);                                        \
-                                                                        \
-                if (access(ctx->name, F_OK) == 0 && ctx->force == 0)    \
-                        errx(1,                                         \
-                             "\"%s\" exists and --force was not given.",\
-                             ctx->name);                                \
-                                                                        \
-                ctx->CAT(name, fd) =                                    \
-                        open(ctx->name,                                 \
-                             O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,          \
-                             ctx->outmode);                             \
-                conderr(ctx->CAT(name, fd) < 0, 1,                      \
-                        "Error opening %s file \"%s\" for output",      \
-                        descr, ctx->name);                              \
-        }                                                               \
-        static void                                                     \
-        CAT3(close_, fname, _output)(pesign_context *ctx)               \
-        {                                                               \
-                close(ctx->CAT(name,fd));                               \
-                ctx->CAT(name,fd) = -1;                                 \
-        }
-
 define_input_file(rawsig, rawsig, "raw signature");
 define_input_file(sattr, insattrs, "signed attributes");
 define_output_file(sattr, outsattrs, "signed attributes");

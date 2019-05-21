@@ -12,6 +12,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <libdpe/pe.h>
@@ -195,4 +197,67 @@ content_is_empty(uint8_t *data, ssize_t len)
 	return 1;
 }
 
+#define define_input_file(fname, name, descr)                           \
+        static void                                                     \
+        CAT3(open_, fname, _input)(pesign_context *ctx)                 \
+        {                                                               \
+                conderrx(!ctx->name, 1,                                 \
+                         "No input file specified for %s",              \
+                         descr);                                        \
+                ctx->CAT(name, fd) =                                    \
+                        open(ctx->name, O_RDONLY|O_CLOEXEC);            \
+                conderr(ctx->CAT(name, fd) < 0, 1,                      \
+                        "Error opening %s file \"%s\" for input",       \
+                        descr, ctx->name);                              \
+        }                                                               \
+        static void                                                     \
+        CAT3(close_, fname, _input)(pesign_context *ctx)                \
+        {                                                               \
+                close(ctx->CAT(name, fd));                              \
+                ctx->CAT(name, fd) = -1;                                \
+        }
+
+#define define_output_file(fname, name, descr)                          \
+        static void                                                     \
+        CAT3(open_, fname, _output)(pesign_context *ctx)                \
+        {                                                               \
+                conderrx(!ctx->name, 1,                                 \
+                         "No output file specified for %s.",            \
+                         descr);                                        \
+                                                                        \
+                if (access(ctx->name, F_OK) == 0 && ctx->force == 0)    \
+                        errx(1,                                         \
+                             "\"%s\" exists and --force was not given.",\
+                             ctx->name);                                \
+                                                                        \
+                ctx->CAT(name, fd) =                                    \
+                        open(ctx->name,                                 \
+                             O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,          \
+                             ctx->outmode);                             \
+                conderr(ctx->CAT(name, fd) < 0, 1,                      \
+                        "Error opening %s file \"%s\" for output",      \
+                        descr, ctx->name);                              \
+        }                                                               \
+        static void                                                     \
+        CAT3(close_, fname, _output)(pesign_context *ctx)               \
+        {                                                               \
+                close(ctx->CAT(name,fd));                               \
+                ctx->CAT(name,fd) = -1;                                 \
+        }
+
+static inline void
+proxy_fd_mode(int fd, char *infile, mode_t *outmode, size_t *inlength)
+{
+	struct stat statbuf;
+	int rc;
+
+	rc = fstat(fd, &statbuf);
+	conderr(rc < 0, 1, "Could not fstat \"%s\"", infile);
+	if (outmode)
+		*outmode = statbuf.st_mode;
+	if (inlength)
+		*inlength = statbuf.st_size;
+}
+
 #endif /* PESIGN_UTIL_H */
+// vim:fenc=utf-8:tw=75:noet
