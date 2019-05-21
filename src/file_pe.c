@@ -16,36 +16,23 @@
 static void
 open_input(pesign_context *ctx)
 {
-	if (!ctx->infile) {
-		fprintf(stderr, "pesign: No input file specified.\n");
-		exit(1);
-	}
+	conderrx(!ctx->infile, 1, "No input file specified.");
 
 	struct stat statbuf;
 	ctx->infd = open(ctx->infile, O_RDONLY|O_CLOEXEC);
 	stat(ctx->infile, &statbuf);
 	ctx->outmode = statbuf.st_mode;
 
-	if (ctx->infd < 0) {
-		fprintf(stderr, "pesign: Error opening input: %m\n");
-		exit(1);
-	}
+	conderr(ctx->infd < 0, 1, "Error opening input");
 
 	Pe_Cmd cmd = ctx->infd == STDIN_FILENO ? PE_C_READ : PE_C_READ_MMAP;
 	ctx->inpe = pe_begin(ctx->infd, cmd, NULL);
-	if (!ctx->inpe) {
-		fprintf(stderr, "pesign: could not load input file: %s\n",
-			pe_errmsg(pe_errno()));
-		exit(1);
-	}
+	conderrx(!ctx->inpe, 1, "could not load input file \"%s\": %s",
+		 ctx->infile, pe_errmsg(pe_errno()));
 
 	int rc = parse_signatures(&ctx->cms_ctx->signatures,
 				  &ctx->cms_ctx->num_signatures, ctx->inpe);
-	if (rc < 0) {
-		fprintf(stderr, "pesign: could not parse signature list in "
-			"EFI binary\n");
-		exit(1);
-	}
+	conderrx(rc < 0, 1, "could not parse signature list in EFI binary");
 }
 
 static void
@@ -76,23 +63,16 @@ close_output(pesign_context *ctx)
 static void
 open_output(pesign_context *ctx)
 {
-	if (!ctx->outfile) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
+	conderrx(!ctx->outfile, 1, "No output file specified.");
 
-	if (access(ctx->outfile, F_OK) == 0 && ctx->force == 0) {
-		fprintf(stderr, "pesign: \"%s\" exists and --force was "
-				"not given.\n", ctx->outfile);
-		exit(1);
-	}
+	if (access(ctx->outfile, F_OK) == 0 && ctx->force == 0)
+		errx(1, "\"%s\" exists and --force was not given.",
+		     ctx->outfile);
 
 	ctx->outfd = open(ctx->outfile, O_RDWR|O_CREAT|O_TRUNC|O_CLOEXEC,
 			ctx->outmode);
-	if (ctx->outfd < 0) {
-		fprintf(stderr, "pesign: Error opening output: %m\n");
-		exit(1);
-	}
+	conderr(ctx->outfd < 0, 1, "Error opening \"%s\" for output",
+		ctx->outfile);
 
 	size_t size;
 	char *addr;
@@ -106,7 +86,7 @@ open_output(pesign_context *ctx)
 	Pe_Cmd cmd = ctx->outfd == STDOUT_FILENO ? PE_C_RDWR : PE_C_RDWR_MMAP;
 	ctx->outpe = pe_begin(ctx->outfd, cmd, NULL);
 	conderrx(!ctx->outpe, 1, "could not load output file \"%s\": %s",
-                 ctx->outfile, pe_errmsg(pe_errno()));
+		 ctx->outfile, pe_errmsg(pe_errno()));
 
 	pe_clearcert(ctx->outpe);
 }
@@ -170,21 +150,11 @@ define_output_file(cert, outcert, "certificate");
 static void
 check_inputs(pesign_context *ctx)
 {
-	if (!ctx->infile) {
-		fprintf(stderr, "pesign: No input file specified.\n");
-		exit(1);
-	}
+	conderrx(!ctx->infile, 1, "No input file specified.");
+	conderrx(!ctx->outfile, 1, "No output file specified.");
 
-	if (!ctx->outfile) {
-		fprintf(stderr, "pesign: No output file specified.\n");
-		exit(1);
-	}
-
-	if (!strcmp(ctx->infile, ctx->outfile)) {
-		fprintf(stderr, "pesign: in-place file editing "
-				"is not yet supported\n");
-		exit(1);
-	}
+	conderrx(!strcmp(ctx->infile, ctx->outfile), 1,
+		 "in-place file editing is not yet supported.");
 }
 
 static void
@@ -219,12 +189,8 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 		case IMPORT_RAW_SIGNATURE|IMPORT_SATTRS:
 			check_inputs(ctxp);
 			rc = find_certificate(ctxp->cms_ctx, 0);
-			if (rc < 0) {
-				fprintf(stderr, "pesign: Could not find "
-					"certificate %s\n",
-					ctxp->cms_ctx->certname);
-				exit(1);
-			}
+			conderrx(rc < 0, 1, "Could not find certificate %s\n",
+				 ctxp->cms_ctx->certname);
 			open_rawsig_input(ctxp);
 			open_sattr_input(ctxp);
 			import_raw_signature(ctxp);
@@ -253,10 +219,8 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 		/* add a signature from a file */
 		case IMPORT_SIGNATURE:
 			check_inputs(ctxp);
-			if (ctxp->signum > ctxp->cms_ctx->num_signatures + 1) {
-				fprintf(stderr, "Invalid signature number.\n");
-				exit(1);
-			}
+			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures + 1,
+				 1, "Invalid signature number.");
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
@@ -272,23 +236,15 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			break;
 		case EXPORT_PUBKEY:
 			rc = find_certificate(ctxp->cms_ctx, 1);
-			if (rc < 0) {
-				fprintf(stderr, "pesign: Could not find "
-					"certificate %s\n",
-					ctxp->cms_ctx->certname);
-				exit(1);
-			}
+			conderrx(rc < 0, 1, "Could not find certificate %s",
+				 ctxp->cms_ctx->certname);
 			open_pubkey_output(ctxp);
 			export_pubkey(ctxp);
 			break;
 		case EXPORT_CERT:
 			rc = find_certificate(ctxp->cms_ctx, 0);
-			if (rc < 0) {
-				fprintf(stderr, "pesign: Could not find "
-					"certificate %s\n",
-					ctxp->cms_ctx->certname);
-				exit(1);
-			}
+			conderrx(rc < 0, 1, "Could not find certificate %s",
+				 ctxp->cms_ctx->certname);
 			open_cert_output(ctxp);
 			export_cert(ctxp);
 			break;
@@ -296,17 +252,12 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 		case EXPORT_SIGNATURE:
 			open_input(ctxp);
 			open_sig_output(ctxp);
-			if (ctxp->signum > ctxp->cms_ctx->num_signatures) {
-				fprintf(stderr, "Invalid signature number.\n");
-				exit(1);
-			}
+			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures,
+				 1, "Invalid signature number.");
 			if (ctxp->signum < 0)
 				ctxp->signum = 0;
-			if (ctxp->signum >= ctxp->cms_ctx->num_signatures) {
-				fprintf(stderr, "No valid signature #%d.\n",
-					ctxp->signum);
-				exit(1);
-			}
+			conderrx(ctxp->signum >= ctxp->cms_ctx->num_signatures,
+				 1, "No valid signature #%d.", ctxp->signum);
 			memcpy(&ctxp->cms_ctx->newsig,
 				ctxp->cms_ctx->signatures[ctxp->signum],
 				sizeof (ctxp->cms_ctx->newsig));
@@ -322,14 +273,12 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			if (ctxp->signum < 0 ||
-					ctxp->signum >=
-					ctxp->cms_ctx->num_signatures) {
-				fprintf(stderr, "Invalid signature number %d.  "
-					"Must be between 0 and %d.\n",
-					ctxp->signum,
-					ctxp->cms_ctx->num_signatures - 1);
-				exit(1);
+			if(ctxp->signum < 0 ||
+			   ctxp->signum >= ctxp->cms_ctx->num_signatures) {
+				warnx("Invalid signature number %d.",
+				      ctxp->signum);
+				errx(1, "Must be between 0 and %d.",
+				     ctxp->cms_ctx->num_signatures - 1);
 			}
 			remove_signature(ctxp);
 			close_output(ctxp);
@@ -352,12 +301,8 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:
 			rc = find_certificate(ctxp->cms_ctx, 1);
-			if (rc < 0) {
-				fprintf(stderr, "pesign: Could not find "
-					"certificate %s\n",
-					ctxp->cms_ctx->certname);
-				exit(1);
-			}
+			conderrx(rc < 0, 1, "Could not find certificate %s",
+				 ctxp->cms_ctx->certname);
 			open_input(ctxp);
 			open_sig_output(ctxp);
 			generate_digest(ctxp->cms_ctx, ctxp->inpe, 1);
@@ -368,16 +313,10 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
 			check_inputs(ctxp);
 			rc = find_certificate(ctxp->cms_ctx, 1);
-			if (rc < 0) {
-				fprintf(stderr, "pesign: Could not find "
-					"certificate %s\n",
-					ctxp->cms_ctx->certname);
-				exit(1);
-			}
-			if (ctxp->signum > ctxp->cms_ctx->num_signatures + 1) {
-				fprintf(stderr, "Invalid signature number.\n");
-				exit(1);
-			}
+			conderrx(rc < 0, 1, "Could not find certificate %s",
+				 ctxp->cms_ctx->certname);
+			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures + 1,
+				 1, "Invalid signature number.");
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
@@ -391,7 +330,8 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			close_output(ctxp);
 			break;
 		default:
-			fprintf(stderr, "Incompatible flags (0x%08x): ", action);
+			fprintf(stderr, "%s: Incompatible flags (0x%08x): ",
+				program_invocation_short_name, action);
 			for (int i = 1; i < FLAG_LIST_END; i <<= 1) {
 				if (action & i)
 					print_flag_name(stderr, i);
@@ -400,3 +340,5 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			exit(1);
 	}
 }
+
+// vim:fenc=utf-8:tw=75:noet
