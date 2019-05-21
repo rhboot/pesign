@@ -62,10 +62,7 @@ print_flag_name(FILE *f, int flag)
 static void
 check_name(authvar_context *ctx)
 {
-	if (!ctx->name || !*ctx->name) {
-		fprintf(stderr, "authvar: no name specified.\n");
-		exit(1);
-	}
+	conderrx(!ctx->name || !*ctx->name, 1, "no name specified.");
 }
 
 static void
@@ -74,19 +71,15 @@ check_value(authvar_context *ctx, int needed)
 	if ((!ctx->value || !*ctx->value) &&
 			(!ctx->valuefile || !*ctx->valuefile)) {
 		if (needed)
-			fprintf(stderr, "authvar: no value specified.\n");
+			warnx("no value specified.");
 		else
 			return;
 		exit(1);
 	}
 	if (ctx->value && *ctx->value && ctx->valuefile && *ctx->valuefile) {
-		if (needed)
-			fprintf(stderr, "authvar: --value and --valuefile "
-				"cannot be used together.\n");
-		else
-			fprintf(stderr,
-				"authvar: command does not take a value.\n");
-		exit(1);
+		conderrx(needed, 1,
+			 "--value and --valuefile cannot be used together.");
+		errx(1, "command does not take a value.");
 	}
 
 	if (ctx->value) {
@@ -98,28 +91,22 @@ static void
 open_input(authvar_context *ctx)
 {
 	struct stat sb;
+	int rc;
 
 	if (!ctx->valuefile)
 		return;
 
 	ctx->valuefd = open(ctx->valuefile, O_RDONLY|O_CLOEXEC);
-	if (ctx->valuefd < 0) {
-		fprintf(stderr, "authvar: Error opening valuefile: %m\n");
-		exit(1);
-	}
+	conderr(ctx->valuefd < 0, 1, "Error opening valuefile");
 
-	if (fstat(ctx->valuefd, &sb) < 0) {
-		fprintf(stderr, "authvar: Error mapping valuefile: %m\n");
-		exit(1);
-	}
+	rc = fstat(ctx->valuefd, &sb);
+	conderr(rc < 0, 1, "Error mapping valuefile");
+
 	ctx->value_size = sb.st_size;
 
 	ctx->value = (char *)mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE,
 			     ctx->valuefd, 0);
-	if (ctx->value == MAP_FAILED) {
-		fprintf(stderr, "authvar: Error mapping valuefile: %m\n");
-		exit(1);
-	}
+	conderr(ctx->value == MAP_FAILED, 1, "Error mapping valuefile");
 }
 
 #define EFIVAR_DIR "/sys/firmware/efi/efivars/"
@@ -129,16 +116,12 @@ generate_efivars_filename(authvar_context *ctx)
 {
 	char *guid = NULL;
 	int rc = efi_guid_to_str(&ctx->guid, &guid);
-	if (rc < 0) {
-		fprintf(stderr, "authvar: Couldn't convert guid to string: %m\n");
-		exit(1);
-	}
+	conderr(rc < 0, 1, "Couldn't convert guid to string");
+
 	char *filename = NULL;
 	rc = asprintf(&filename, "/sys/firmware/efi/efivars/%s-%s", ctx->name, guid);
-	if (rc < 0) {
-		fprintf(stderr, "authvar: can't make string: %m\n");
-		exit(1);
-	}
+	conderr(rc < 0, 1, "can't make string");
+
 	free(guid);
 	ctx->exportfile = filename;
 }
@@ -153,17 +136,13 @@ open_output(authvar_context *ctx)
 		generate_efivars_filename(ctx);
 		ctx->to_firmware = 1;
 	} else if (access(ctx->exportfile, F_OK) == 0) {
-		fprintf(stderr, "authvar: \"%s\" exists\n", ctx->exportfile);
-		exit(1);
+		errx(1, "\"%s\" exists", ctx->exportfile);
 	}
 
 	flags = O_CREAT|O_RDWR|O_CLOEXEC;
 	mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 	ctx->exportfd = open(ctx->exportfile, flags, mode);
-	if (ctx->exportfd < 0) {
-		fprintf(stderr, "authvar: Error opening exportfile: %m\n");
-		exit(1);
-	}
+	conderr(ctx->exportfd < 0, 1, "Error opening exportfile");
 }
 
 static int
@@ -220,14 +199,14 @@ show_signature_support(void)
 	rc = efi_get_variable(efi_guid_global, "SignatureSupport",
 			      &data, &data_size, &attrs);
 	if (rc < 0) {
-		fprintf(stderr, "Could not read \"SignatureSupport\" variable: %m\n");
+		warn("Could not read \"SignatureSupport\" variable");
 		return rc;
 	}
 	if (data_size == 0)
 		return 0;
 	if (data_size % sizeof(efi_guid_t) != 0) {
-		fprintf(stderr, "Invalid size %zd for \"SignatureSupport\" variable\n",
-			data_size);
+		warnx("Invalid size %zd for \"SignatureSupport\" variable",
+		      data_size);
 		errno = EINVAL;
 		return -1;
 	}
@@ -264,10 +243,7 @@ main(int argc, char *argv[])
 	setenv("NSS_DEFAULT_DB_TYPE", "sql", 0);
 
 	rc = authvar_context_init(ctxp);
-	if (rc < 0) {
-		fprintf(stderr, "Could not initialize context: %m\n");
-		exit(1);
-	}
+	conderr(rc < 0, 1, "Could not initialize context");
 
 	poptContext optCon;
 	struct poptOption options[] = {
@@ -372,12 +348,11 @@ main(int argc, char *argv[])
 	while ((rc = poptGetNextOpt(optCon)) > 0)
 		;
 
-	if (rc < -1)
-		errx(1, "Invalid argument: %s: %s\n",
-		     poptBadOption(optCon, 0), poptStrerror(rc));
+	conderrx(rc < -1, 1, "Invalid argument: %s: %s",
+		 poptBadOption(optCon, 0), poptStrerror(rc));
 
-	if (poptPeekArg(optCon))
-		errx(1, "Invalid Argument: \"%s\"\n", poptPeekArg(optCon));
+	conderrx(poptPeekArg(optCon), 1,
+		 "Invalid Argument: \"%s\"", poptPeekArg(optCon));
 
 	poptFreeContext(optCon);
 
@@ -390,18 +365,12 @@ main(int argc, char *argv[])
 
 	if ((action & GENERATE_APPEND) || (action & GENERATE_CLEAR) ||
 	    (action & GENERATE_SET)) {
-		if (!ctx.cms_ctx->certname || !*ctx.cms_ctx->certname) {
-			fprintf(stderr, "authvar: Require a certificate to sign\n");
-			exit(1);
-		}
+		if (!ctx.cms_ctx->certname || !*ctx.cms_ctx->certname)
+			errx(1, "Require a certificate to sign");
 	}
 
 	rc = find_namespace_guid(ctxp);
-	if (rc < 0) {
-		fprintf(stderr, "authvar: unable to find guid for \"%s\"\n",
-			ctx.namespace);
-		exit(1);
-	}
+	conderrx(rc < 0, 1, "unable to find guid for \"%s\"", ctx.namespace);
 
 	set_timestamp(ctxp, time_str);
 
@@ -414,46 +383,34 @@ main(int argc, char *argv[])
 		status = NSS_Init(certdir);
 	else
 		status = NSS_NoDB_Init(NULL);
-	if (status != SECSuccess) {
-		fprintf(stderr, "Could not initialize nss: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		exit(1);
-	}
+	conderrx(status != SECSuccess, 1, "Could not initialize nss: %s",
+		 PORT_ErrorToString(PORT_GetError()));
 
 	status = register_oids(ctxp->cms_ctx);
-	if (status != SECSuccess) {
-		fprintf(stderr, "Could not register OIDs\n");
-		exit(1);
-	}
+	conderrx(status != SECSuccess, 1, "Could not register OIDs");
 
 	ctxp->cms_ctx->tokenname = tokenname ?
 		PORT_ArenaStrdup(ctxp->cms_ctx->arena, tokenname) : NULL;
-	if (tokenname && !ctxp->cms_ctx->tokenname) {
-		fprintf(stderr, "could not allocate token name: %s\n",
-			PORT_ErrorToString(PORT_GetError()));
-		exit(1);
-	}
+	conderrx(tokenname && !ctxp->cms_ctx->tokenname, 1,
+		 "could not allocate token name: %s",
+		 PORT_ErrorToString(PORT_GetError()));
+
 	if (tokenname != origtoken)
 		free(tokenname);
 
 	if (action & SIGN) {
 		rc = find_certificate(ctx.cms_ctx, 1);
-		if (rc < 0) {
-			fprintf(stderr, "authvar: Could not find certificate "
-				"for \"%s\"\n", ctx.cms_ctx->certname);
-			exit(1);
-		}
+		errx(1, "Could not find certificate for \"%s\"",
+		     ctx.cms_ctx->certname);
 	}
 
 	switch (action) {
 	case NO_FLAGS:
-		fprintf(stderr, "authvar: No action specified\n");
-		exit(1);
+		errx(1, "No action specified");
 		break;
 	case SHOW_SIGNATURE_SUPPORT:
 		rc = show_signature_support();
-		if (rc < 0)
-			errx(1, "authvar: could not show support signatures");
+		conderrx(rc < 0, 1, "could not show support signatures");
 		break;
 	case GENERATE_APPEND|EXPORT|SIGN:
 	case GENERATE_APPEND|SET|SIGN:
@@ -465,10 +422,8 @@ main(int argc, char *argv[])
 		ctxp->timestamp.month = 0;
 
 		rc = generate_descriptor(ctxp);
-		if (rc < 0) {
-			fprintf(stderr, "authvar: unable to generate descriptor\n");
-			exit(1);
-		}
+		conderrx(rc < 0, 1, "unable to generate descriptor");
+
 		open_output(ctxp);
 		write_authvar(ctxp);
 		break;
@@ -478,10 +433,8 @@ main(int argc, char *argv[])
 		check_value(ctxp, 0);
 
 		rc = generate_descriptor(ctxp);
-		if (rc < 0) {
-			fprintf(stderr, "authvar: unable to generate descriptor\n");
-			exit(1);
-		}
+		conderrx(rc < 0, 1, "unable to generate descriptor");
+
 		open_output(ctxp);
 		write_authvar(ctxp);
 		break;
@@ -492,16 +445,14 @@ main(int argc, char *argv[])
 		open_input(ctxp);
 
 		rc = generate_descriptor(ctxp);
-		if (rc < 0) {
-			fprintf(stderr, "authvar: unable to generate descriptor\n");
-			exit(1);
-		}
+		conderrx(rc < 0, 1, "unable to generate descriptor");
+
 		open_output(ctxp);
 		write_authvar(ctxp);
 		break;
 	case IMPORT|SET:
 	case IMPORT|SIGN|SET:
-		fprintf(stderr, "authvar: not implemented\n");
+		warnx("not implemented");
 		/* fallthrough. */
 	case IMPORT|SIGN|EXPORT:
 	default:
