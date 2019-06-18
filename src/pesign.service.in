@@ -7,3 +7,6 @@ Type=forking
 PIDFile=/var/run/pesign.pid
 ExecStart=/usr/bin/pesign --daemonize
 ExecStartPost=@@LIBEXECDIR@@/pesign/pesign-authorize
+
+[Install]
+WantedBy=multi-user.target
