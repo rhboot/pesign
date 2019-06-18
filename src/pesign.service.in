@@ -6,3 +6,6 @@ PrivateTmp=true
 PIDFile=/var/run/pesign.pid
 ExecStart=/usr/bin/pesign --daemonize --nofork
 ExecStartPost=@@LIBEXECDIR@@/pesign/pesign-authorize
+
+[Install]
+WantedBy=multi-user.target
