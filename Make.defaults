@@ -28,7 +28,7 @@ OBJCOPY	?= $(CROSS_COMPILE)objcopy
 LD	?= $(CROSS_COMPILE)ld
 INSTALL	?= $(CROSS_COMPILE)install
 
-PKGS	=
+PKGS	= efivar nspr nss nss-util uuid
 
 HOSTARCH   = $(shell uname -m | sed s,i[3456789]86,ia32,)
 ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
