@@ -318,7 +318,7 @@ check_signature(pesigcheck_context *ctx, int *nreasons,
 			reason->type = SIGNATURE;
 			reason->sig.data = data;
 			reason->sig.len = datalen;
-			reason->type = siBuffer;
+			reason->sig.type = siBuffer;
 			nreason += 1;
 			is_invalid = true;
 		}
@@ -330,7 +330,7 @@ check_signature(pesigcheck_context *ctx, int *nreasons,
 			reason->type = SIGNATURE;
 			reason->sig.data = data;
 			reason->sig.len = datalen;
-			reason->type = siBuffer;
+			reason->sig.type = siBuffer;
 			nreason += 1;
 			has_valid_cert = true;
 		}
