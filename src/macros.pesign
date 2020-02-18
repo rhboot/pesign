@@ -9,7 +9,7 @@
 %__pesign_token %{nil}%{?pe_signing_token:-t "%{pe_signing_token}"}
 %__pesign_cert %{!?pe_signing_cert:"Red Hat Test Certificate"}%{?pe_signing_cert:"%{pe_signing_cert}"}
 
-%__pesign_client_token %{!?pe_signing_token:"Fedora Signer (OpenSC Card)"}%{?pe_signing_token:"%{pe_signing_token}"}
+%__pesign_client_token %{!?pe_signing_token:"OpenSC Card (Fedora Signer)"}%{?pe_signing_token:"%{pe_signing_token}"}
 %__pesign_client_cert %{!?pe_signing_cert:"/CN=Fedora Secure Boot Signer"}%{?pe_signing_cert:"%{pe_signing_cert}"}
 
 %_pesign /usr/bin/pesign
