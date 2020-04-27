@@ -1,10 +1,8 @@
+// SPDX-License-Identifier: GPLv2
 /*
- * fix_coverity.h
- * Copyright 2017 Peter Jones <pjones@redhat.com>
- *
- * Distributed under terms of the GPLv3 license.
+ * fix_coverity.h - coverity is a piece of junk and this helps
+ * Copyright Peter Jones <pjones@redhat.com>
  */
-
 #ifndef FIX_COVERITY_H
 #define FIX_COVERITY_H
 

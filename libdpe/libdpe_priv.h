@@ -1,20 +1,8 @@
+// SPDX-License-Identifier: GPLv2
 /*
- * Copyright 2011-2012 Red Hat, Inc.
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; version 2 of the License.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Author(s): Peter Jones <pjones@redhat.com>
+ * libdpe_priv.h - private types and helpers
+ * Copyright Peter Jones <pjones@redhat.com>
+ * Copyright Red Hat, Inc.
  */
 #ifndef LIBDPE_PRIV_H
 #define LIBDPE_PRIV_H 1
@@ -112,7 +100,7 @@ struct Pe {
 
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
-			
+
 			Pe_ScnList scns;
 		} pe32_obj;
 
@@ -125,7 +113,7 @@ struct Pe {
 
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
-			
+
 			Pe_ScnList scns;
 		} pe32_rom;
 
@@ -138,7 +126,7 @@ struct Pe {
 
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
-			
+
 			Pe_ScnList scns;
 		} pe32_exe;
 
@@ -151,7 +139,7 @@ struct Pe {
 
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
-			
+
 			Pe_ScnList scns;
 		} pe32plus_obj;
 
@@ -164,7 +152,7 @@ struct Pe {
 
 			Pe_ScnList *scns_last;
 			unsigned int scnincr;
-			
+
 			Pe_ScnList scns;
 		} pe32plus_exe;
 	} state;
