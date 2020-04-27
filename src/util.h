@@ -7,6 +7,8 @@
 #ifndef PESIGN_UTIL_H
 #define PESIGN_UTIL_H 1
 
+#include <err.h>
+#include <errno.h>
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -16,8 +18,15 @@
 #include <libdpe/pe.h>
 
 #include "compiler.h"
+#include "list.h"
 
-#define xfree(x) ({if (x) { free(x); x = NULL; }})
+#define xfree(x) ({ if (x) { free(x); x = NULL; } })
+#define xclose(fd) ({ if ((fd) >= 0) { close(fd); (fd) = -1; } })
+#define xopen(path, flags, args...) ({ int fd_ = open(path, flags, ## args); if (fd_ < 0) liberr(1, "Could not open file \"%s\"", arg); fd_; })
+#define xrealloc(o, s) ({ void *o_ = realloc(o, s); if (!o_) liberr(1, "Could not allocate %zd bytes", (size_t)s); o_; })
+#define xcalloc(n, s) ({ void *p_ = calloc(n, s); if (!p_) liberr(1, "Could not allocate %lu entries of %lu bytes", (unsigned long)n, (unsigned long)s); p_; })
+#define xstrdup(s) ({ void *p_ = strdup(s); if (!p_) liberr(1, "Could not allocate memory"); p_; })
+#define xpfstat(path, fd, sb) ({ int rc_ = fstat(fd, sb); if (rc_ < 0) liberr(1, "Could not stat \"%s\"", path); })
 
 #define save_errno(x)					\
 	({						\
@@ -32,16 +41,42 @@
 		__libpe_seterrno(__saved_errno);		\
 	})
 
+#define conderr(cond, val, fmt, args...) ({				\
+		if (cond)						\
+			err(val, fmt, ## args);				\
+	})
+#define conderrx(cond, val, fmt, args...) ({				\
+		if (cond)						\
+			errx(val, fmt, ## args);			\
+	})
+
+#define condwarn(cond, fmt, args...) ({					\
+		if (cond)						\
+			warn(fmt, ## args);				\
+	})
+#define condwarnx(cond, fmt, args...) ({				\
+		if (cond)						\
+			warnx(fmt, ## args);				\
+	})
+
 #define nsserr(rv, fmt, args...) ({					\
 		errx((rv), "%s:%s:%d: " fmt ": %s",			\
 			__FILE__, __func__, __LINE__, ##args,		\
 			PORT_ErrorToString(PORT_GetError()));		\
+	})
+#define condnsserr(cond, rv, fmt, args...) ({				\
+		if ((cond))						\
+			nsserr(rv, fmt, ## args);			\
 	})
 #define nssreterr(rv, fmt, args...) ({					\
 		fprintf(stderr, "%s:%s:%d: " fmt ": %s\n",		\
 			__FILE__, __func__, __LINE__, ##args,		\
 			PORT_ErrorToString(PORT_GetError()));		\
 		return rv;						\
+	})
+#define condnssreterr(cond, rv, fmt, args...) ({			\
+		if ((cond))						\
+			nssreterr(rv, fmt, ## args);			\
 	})
 #define liberr(rv, fmt, args...) ({					\
 		err((rv), "%s:%s:%d: " fmt,				\

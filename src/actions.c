@@ -304,11 +304,11 @@ parse_signature(pesign_context *ctx)
 		unsigned char *dertmp;
 		dertmp = ATOB_AsciiToData(base64, &derlen);
 
-		der = malloc(derlen);
+		der = xcalloc(1, derlen);
 		memmove(der, dertmp, derlen);
 		PORT_Free(dertmp);
 	} else {
-		der = malloc(siglen);
+		der = xcalloc(1, siglen);
 		memmove(der, sig, siglen);
 		derlen = siglen;
 	}
