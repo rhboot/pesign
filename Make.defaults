@@ -23,6 +23,12 @@ CC	:= $(if $(filter default,$(origin CC)),$(CROSS_COMPILE)gcc,$(CC))
 CCLD	:= $(if $(filter undefined,$(origin CCLD)),$(CC),$(CCLD))
 CFLAGS	?= -Og -g3 -pipe -fPIE -fstack-protector-all \
 	-fstack-clash-protection -fcf-protection=full
+DIAGFLAGS ?= -fmessage-length=0 \
+	     -fdiagnostics-color=always \
+	     -fdiagnostics-format=text \
+	     -fdiagnostics-show-cwe \
+	     -fanalyzer \
+	     -Wno-analyzer-malloc-leak
 AS	?= $(CROSS_COMPILE)as
 AR	?= $(CROSS_COMPILE)$(if $(filter $(CC),clang),llvm-ar,$(notdir $(CC))-ar)
 RANLIB	?= $(CROSS_COMPILE)$(if $(filter $(CC),clang),llvm-ranlib,$(notdir $(CC))-ranlib)
@@ -37,10 +43,11 @@ ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
 
 SOFLAGS	?= -shared
 clang_cflags =
-gcc_cflags = -Wmaybe-uninitialized -grecord-gcc-switches -flto -fplugin=annobin
+gcc_cflags = -Wmaybe-uninitialized -grecord-gcc-switches -flto -fplugin=annobin $(DIAGFLAGS)
 cflags	= $(CFLAGS) $(ARCH3264) \
 	-Wall -Wextra -Wsign-compare -Wno-unused-result \
 	-Wno-unused-function -Wno-missing-field-initializers \
+	-Wno-analyzer-malloc-leak \
 	-Werror -Wno-error=cpp -Wno-free-nonheap-object \
 	-std=gnu11 -fshort-wchar -fPIC -fno-strict-aliasing \
 	-D_GNU_SOURCE -DCONFIG_$(ARCH) -I${TOPDIR}/include \
@@ -81,4 +88,3 @@ ifeq ($(ARCH), x86_64)
     ARCH3264 := -m64
   endif
 endif
-
