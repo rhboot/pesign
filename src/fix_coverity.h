@@ -1,6 +1,6 @@
 /*
  * fix_coverity.h
- * Copyright 2017 Peter Jones <pjones@redhat.com>
+ * Copyright Peter Jones <pjones@redhat.com>
  *
  * Distributed under terms of the GPLv3 license.
  */

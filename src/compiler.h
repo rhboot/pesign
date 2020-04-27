@@ -1,8 +1,8 @@
+// SPDX-License-Identifier: GPLv2
 /*
- * compiler.h
- * Copyright 2019 Peter Jones <pjones@redhat.com>
+ * compiler.h - a bunch of helpers for compiler-related stuff
+ * Copyright Peter Jones <pjones@redhat.com>
  */
-
 #ifndef COMPILER_H_
 #define COMPILER_H_
 

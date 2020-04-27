@@ -1,22 +1,9 @@
+// SPDX-License-Identifier: GPLv2
 /*
- * Copyright 2012 Red Hat, Inc.
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; version 2 of the License.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Author(s): Peter Jones <pjones@redhat.com>
+ * varfile.c - implement storing variables in files
+ * Copyright Peter Jones <pjones@redhat.com>
+ * Copyright Red Hat, Inc.
  */
-
 #include "authvar.h"
 
 struct variable_operation {
@@ -47,13 +34,13 @@ vop_valid(struct variable_operation *vop)
 	if (!memcmp(&empty_guid, &vop->vendor_guid, sizeof(empty_guid)))
 not_ready:
 		return 0;
-	
+
 	if (vop->name_size == 0)
 		goto not_ready;
 
 	if (vop->data_size == 0)
 		goto not_ready;
-		
+
 	if (vop->attributes == 0)
 		goto not_ready;
 
