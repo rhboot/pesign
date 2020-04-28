@@ -60,6 +60,10 @@ long verbosity(void)
 	return *verbose;
 }
 
+enum {
+	POPT_RET_PWDB = 0x40000001
+};
+
 int
 main(int argc, char *argv[])
 {
@@ -82,6 +86,10 @@ main(int argc, char *argv[])
 	char *certname = NULL;
 	char *certdir = "/etc/pki/pesign";
 	char *signum = NULL;
+
+	secuPWData pwdata;
+
+	memset(&pwdata, 0, sizeof(pwdata));
 
 	setenv("NSS_DEFAULT_DB_TYPE", "sql", 0);
 
@@ -260,6 +268,12 @@ main(int argc, char *argv[])
 		 .arg = &check_vendor_cert,
 		 .val = 0,
 		 .descrip = "do not hash the .vendor_cert section." },
+		{.longName = "pwfile",
+		 .shortName = '\0',
+		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = &pwdata.data,
+		 .descrip = "file to read passwords from.",
+		 .argDescrip = "<pwfile>" },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND
@@ -274,8 +288,32 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	while ((rc = poptGetNextOpt(optCon)) > 0)
-		;
+	while ((rc = poptGetNextOpt(optCon)) > 0) {
+		switch (rc) {
+		case POPT_RET_PWDB:
+			dprintf("POPT_RET_PWDB:\"%s\"", pwdata.data ? pwdata.data : "(null)");
+			if (pwdata.source != PW_SOURCE_INVALID)
+				errx(1, "only one password/pin method can be used at a time");
+			if (pwdata.data == NULL)
+				errx(1, "--pwfile requires a file name as an argument");
+			pwdata.source = PW_FROMFILEDB;
+			pwdata.data = strdup(pwdata.data);
+			if (!pwdata.data)
+				err(1, "could not allocate memory");
+			continue;
+		}
+	}
+
+	dprintf("pwdata.source:%d %schecking for PESIGN_TOKEN_PIN",
+		pwdata.source,
+		pwdata.source == PW_SOURCE_INVALID ? "" : "not ");
+	if (pwdata.source == PW_SOURCE_INVALID && secure_getenv("PESIGN_TOKEN_PIN")) {
+		pwdata.source = PW_FROMENV;
+		pwdata.data = strdup(secure_getenv("PESIGN_TOKEN_PIN"));
+		if (!pwdata.data)
+			err(1, "could not allocate memory");
+	}
+	pwdata.orig_source = pwdata.source;
 
 	if (rc < -1) {
 		fprintf(stderr, "pesign: Invalid argument: %s: %s\n",
@@ -397,6 +435,9 @@ main(int argc, char *argv[])
 		}
 		exit(!is_help);
 	}
+
+	if (pwdata.source != PW_DEVICE)
+		cms_set_pw_data(ctxp->cms_ctx, &pwdata);
 
 	ctxp->cms_ctx->omit_vendor_cert = !check_vendor_cert;
 

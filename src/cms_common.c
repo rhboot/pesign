@@ -152,10 +152,30 @@ cms_context_fini(cms_context *cms)
 		cms->cert = NULL;
 	}
 
+	switch (cms->pwdata.source) {
+	case PW_SOURCE_INVALID:
+	case PW_PROMPT:
+	case PW_DEVICE:
+	case PW_FROMFILEDB:
+	case PW_FROMENV:
+	case PW_SOURCE_MAX:
+		break;
+	case PW_DATABASE:
+		xfree(cms->pwdata.data);
+		break;
+	case PW_PLAINTEXT:
+		memset(cms->pwdata.data, 0, strlen(cms->pwdata.data));
+		xfree(cms->pwdata.data);
+		break;
+	}
+	cms->pwdata.source = PW_SOURCE_INVALID;
+	cms->pwdata.orig_source = PW_SOURCE_INVALID;
+
 	if (cms->privkey) {
 		free(cms->privkey);
 		cms->privkey = NULL;
 	}
+
 
 	/* These were freed when the arena was destroyed */
 	if (cms->tokenname)
@@ -243,9 +263,35 @@ void cms_set_pw_callback(cms_context *cms, PK11PasswordFunc func)
 	cms->func = func;
 }
 
-void cms_set_pw_data(cms_context *cms, void *pwdata)
+void cms_set_pw_data(cms_context *cms, secuPWData *pwdata)
 {
-	cms->pwdata = pwdata;
+	ingress();
+
+	switch (cms->pwdata.source) {
+	case PW_SOURCE_INVALID:
+	case PW_PROMPT:
+	case PW_DEVICE:
+	case PW_SOURCE_MAX:
+		break;
+
+	case PW_FROMENV:
+	case PW_FROMFILEDB:
+	case PW_PLAINTEXT:
+		memset(cms->pwdata.data, 0, strlen(cms->pwdata.data));
+		xfree(cms->pwdata.data);
+		break;
+
+	case PW_DATABASE:
+		xfree(cms->pwdata.data);
+		break;
+	}
+	memmove(&cms->pwdata, pwdata, sizeof(*pwdata));
+
+	dprintf("pwdata:%p", pwdata);
+	dprintf("pwdata->source:%d", pwdata->source);
+	dprintf("pwdata->data:%p (\"%s\")", pwdata->data,
+		pwdata->data ? pwdata->data : "(null)");
+	egress();
 }
 
 int
@@ -268,24 +314,26 @@ set_digest_parameters(cms_context *cms, char *name)
 	return -1;
 }
 
-struct cbdata {
-	CERTCertificate *cert;
+struct validity_cbdata {
+	cms_context *cms;
 	PK11SlotListElement *psle;
-	secuPWData *pwdata;
+	PK11SlotInfo *slot;
+	CERTCertificate *cert;
 };
 
 static SECStatus
 is_valid_cert(CERTCertificate *cert, void *data)
 {
-	struct cbdata *cbdata = (struct cbdata *)data;
-
-	PK11SlotInfo *slot = cbdata->psle->slot;
-	void *pwdata = cbdata->pwdata;
-
+	struct validity_cbdata *cbd = (struct validity_cbdata *)data;
+	PK11SlotInfo *slot = cbd->slot;
 	SECKEYPrivateKey *privkey = NULL;
-	privkey = PK11_FindPrivateKeyFromCert(slot, cert, pwdata);
+
+	if (cert == NULL)
+		return SECFailure;
+
+	privkey = PK11_FindPrivateKeyFromCert(slot, cert, cbd->cms);
 	if (privkey != NULL) {
-		cbdata->cert = cert;
+		cbd->cert = CERT_DupCertificate(cert);
 		SECKEY_DestroyPrivateKey(privkey);
 		return SECSuccess;
 	}
@@ -295,9 +343,15 @@ is_valid_cert(CERTCertificate *cert, void *data)
 static SECStatus
 is_valid_cert_without_private_key(CERTCertificate *cert, void *data)
 {
-	struct cbdata *cbdata = (struct cbdata *)data;
-	if (cert) {
-		cbdata->cert = cert;
+	struct validity_cbdata *cbd = (struct validity_cbdata *)data;
+	PK11SlotInfo *slot = cbd->slot;
+	SECKEYPrivateKey *privkey = NULL;
+
+	if (cert == NULL)
+		return SECFailure;
+	privkey = PK11_FindPrivateKeyFromCert(slot, cert, cbd->cms);
+	if (privkey == NULL) {
+		cbd->cert = CERT_DupCertificate(cert);
 		return SECSuccess;
 	}
 	return SECFailure;
@@ -326,12 +380,10 @@ PK11_DestroySlotListElement(PK11SlotList *slots, PK11SlotListElement **psle)
 int
 unlock_nss_token(cms_context *cms)
 {
-	secuPWData pwdata_val = { 0, 0 };
-	void *pwdata = cms->pwdata ? cms->pwdata : &pwdata_val;
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
-	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, pwdata);
+	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, cms);
 	if (!slots)
 		cmsreterr(-1, cms, "could not get pk11 token list");
 
@@ -355,20 +407,21 @@ unlock_nss_token(cms_context *cms)
 		save_port_err() {
 			PK11_FreeSlotList(slots);
 		}
-		cms->log(cms, LOG_ERR, "could not find token \"%s\"",
-			cms->tokenname);
-		return -1;
+		nssreterr(-1, "Could not find token \"%s\"", cms->tokenname);
 	}
 
 	SECStatus status;
 	if (PK11_NeedLogin(psle->slot) &&
-			!PK11_IsLoggedIn(psle->slot, pwdata)) {
-		status = PK11_Authenticate(psle->slot, PR_TRUE, pwdata);
+			!PK11_IsLoggedIn(psle->slot, cms)) {
+		status = PK11_Authenticate(psle->slot, PR_TRUE, cms);
 		if (status != SECSuccess) {
-			PK11_DestroySlotListElement(slots, &psle);
-			PK11_FreeSlotList(slots);
-			cms->log(cms, LOG_ERR, "authentication failed for "
-				"token \"%s\"", cms->tokenname);
+			save_port_err() {
+				PK11_DestroySlotListElement(slots, &psle);
+				PK11_FreeSlotList(slots);
+				cms->log(cms, LOG_ERR,
+					 "authentication failed for token \"%s\"",
+					 cms->tokenname);
+			}
 			return -1;
 		}
 	}
@@ -381,17 +434,16 @@ unlock_nss_token(cms_context *cms)
 int
 find_certificate(cms_context *cms, int needs_private_key)
 {
+	struct validity_cbdata cbd;
 	if (!cms->certname || !*cms->certname) {
 		cms->log(cms, LOG_ERR, "no certificate name specified");
 		return -1;
 	}
 
-	secuPWData pwdata_val = { 0, 0 };
-	void *pwdata = cms->pwdata ? cms->pwdata : &pwdata_val;
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
-	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, pwdata);
+	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, cms);
 	if (!slots)
 		cmsreterr(-1, cms, "could not get pk11 token list");
 
@@ -415,19 +467,20 @@ find_certificate(cms_context *cms, int needs_private_key)
 		save_port_err() {
 			PK11_FreeSlotList(slots);
 		}
-		cms->log(cms, LOG_ERR, "could not find token \"%s\"",
-			cms->tokenname);
-		return -1;
+		nssreterr(-1, "Could not find token \"%s\"", cms->tokenname);
 	}
 
 	SECStatus status;
-	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, pwdata)) {
-		status = PK11_Authenticate(psle->slot, PR_TRUE, pwdata);
+	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, cms)) {
+		status = PK11_Authenticate(psle->slot, PR_TRUE, cms);
 		if (status != SECSuccess) {
-			PK11_DestroySlotListElement(slots, &psle);
-			PK11_FreeSlotList(slots);
-			cms->log(cms, LOG_ERR, "authentication failed for "
-				"token \"%s\"", cms->tokenname);
+			save_port_err() {
+				PK11_DestroySlotListElement(slots, &psle);
+				PK11_FreeSlotList(slots);
+				cms->log(cms, LOG_ERR,
+					 "authentication failed for token \"%s\"",
+					 cms->tokenname);
+			}
 			return -1;
 		}
 	}
@@ -447,35 +500,37 @@ find_certificate(cms_context *cms, int needs_private_key)
 		.len = strlen(cms->certname) + 1,
 		.type = siUTF8String,
 	};
-	struct cbdata cbdata = {
-		.cert = NULL,
-		.psle = psle,
-		.pwdata = pwdata,
-	};
+
+	cms->psle = psle;
+
+	cbd.cms = cms;
+	cbd.psle = psle;
+	cbd.slot = psle->slot;
+	cbd.cert = NULL;
 
 	if (needs_private_key) {
 		status = PK11_TraverseCertsForNicknameInSlot(&nickname,
-					psle->slot, is_valid_cert, &cbdata);
+					psle->slot, is_valid_cert, &cbd);
 	} else {
 		status = PK11_TraverseCertsForNicknameInSlot(&nickname,
 					psle->slot,
 					is_valid_cert_without_private_key,
-					&cbdata);
+					&cbd);
 	}
-	if (status != SECSuccess || cbdata.cert == NULL) {
-		save_port_err() {
-			CERT_DestroyCertList(certlist);
-			PK11_DestroySlotListElement(slots, &psle);
-			PK11_FreeSlotList(slots);
-		}
+	if (status == SECSuccess && cbd.cert != NULL) {
+		if (cms->cert)
+			CERT_DestroyCertificate(cms->cert);
+		cms->cert = CERT_DupCertificate(cbd.cert);
+	}
+
+	save_port_err() {
+		CERT_DestroyCertList(certlist);
+		PK11_DestroySlotListElement(slots, &psle);
+		PK11_FreeSlotList(slots);
+		cms->psle = NULL;
+	}
+	if (status != SECSuccess || cms->cert == NULL)
 		cmsreterr(-1, cms, "could not find certificate in list");
-	}
-
-	cms->cert = CERT_DupCertificate(cbdata.cert);
-
-	PK11_DestroySlotListElement(slots, &psle);
-	PK11_FreeSlotList(slots);
-	CERT_DestroyCertList(certlist);
 
 	return 0;
 }
@@ -488,12 +543,10 @@ find_slot_for_token(cms_context *cms, PK11SlotInfo **slot)
 		return -1;
 	}
 
-	secuPWData pwdata_val = { 0, 0 };
-	void *pwdata = cms->pwdata ? cms->pwdata : &pwdata_val;
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
-	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, pwdata);
+	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, cms);
 	if (!slots)
 		cmsreterr(-1, cms, "could not get pk11 token list");
 
@@ -517,19 +570,20 @@ find_slot_for_token(cms_context *cms, PK11SlotInfo **slot)
 		save_port_err() {
 			PK11_FreeSlotList(slots);
 		}
-		cms->log(cms, LOG_ERR, "could not find token \"%s\"",
-			cms->tokenname);
-		return -1;
+		nssreterr(-1, "Could not find token \"%s\"", cms->tokenname);
 	}
 
 	SECStatus status;
-	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, pwdata)) {
-		status = PK11_Authenticate(psle->slot, PR_TRUE, pwdata);
+	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, cms)) {
+		status = PK11_Authenticate(psle->slot, PR_TRUE, cms);
 		if (status != SECSuccess) {
-			PK11_DestroySlotListElement(slots, &psle);
-			PK11_FreeSlotList(slots);
-			cms->log(cms, LOG_ERR, "authentication failed for "
-				"token \"%s\"", cms->tokenname);
+			save_port_err() {
+				PK11_DestroySlotListElement(slots, &psle);
+				PK11_FreeSlotList(slots);
+				cms->log(cms, LOG_ERR,
+					 "authentication failed for token \"%s\"",
+					 cms->tokenname);
+			}
 			return -1;
 		}
 	}
@@ -545,12 +599,10 @@ find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 		return -1;
 	}
 
-	secuPWData pwdata_val = { 0, 0 };
-	void *pwdata = cms->pwdata ? cms->pwdata : &pwdata_val;
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
-	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, pwdata);
+	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, cms);
 	if (!slots)
 		cmsreterr(-1, cms, "could not get pk11 token list");
 
@@ -573,20 +625,23 @@ find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 	if (!psle) {
 		save_port_err() {
 			PK11_FreeSlotList(slots);
+			cms->log(cms, LOG_ERR, "could not find token \"%s\"",
+				 cms->tokenname);
 		}
-		cms->log(cms, LOG_ERR, "could not find token \"%s\"",
-			cms->tokenname);
 		return -1;
 	}
 
 	SECStatus status;
-	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, pwdata)) {
-		status = PK11_Authenticate(psle->slot, PR_TRUE, pwdata);
+	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, cms)) {
+		status = PK11_Authenticate(psle->slot, PR_TRUE, cms);
 		if (status != SECSuccess) {
-			PK11_DestroySlotListElement(slots, &psle);
-			PK11_FreeSlotList(slots);
-			cms->log(cms, LOG_ERR, "authentication failed for "
-				"token \"%s\"", cms->tokenname);
+			save_port_err() {
+				PK11_DestroySlotListElement(slots, &psle);
+				PK11_FreeSlotList(slots);
+				cms->log(cms, LOG_ERR,
+					 "authentication failed for token \"%s\"",
+					 cms->tokenname);
+			}
 			return -1;
 		}
 	}
@@ -1480,14 +1535,14 @@ generate_keys(cms_context *cms, PK11SlotInfo *slot,
 	};
 
 	SECStatus rv;
-	rv = PK11_Authenticate(slot, PR_TRUE, cms->pwdata);
+	rv = PK11_Authenticate(slot, PR_TRUE, cms);
 	if (rv != SECSuccess)
 		cmsreterr(-1, cms, "could not authenticate with pk11 service");
 
 	void *params = &rsaparams;
 	*privkey = PK11_GenerateKeyPair(slot, CKM_RSA_PKCS_KEY_PAIR_GEN,
 					params, pubkey, PR_TRUE, PR_TRUE,
-					cms->pwdata);
+					cms);
 	if (!*privkey)
 		cmsreterr(-1, cms, "could not generate RSA keypair");
 	return 0;

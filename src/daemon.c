@@ -224,8 +224,14 @@ malformed:
 	if (!pin)
 		goto oom;
 
+	secuPWData pwdata;
+
+	memset(&pwdata, 0, sizeof(pwdata));
+	pwdata.source = pwdata.orig_source = PW_PLAINTEXT;
+	pwdata.data = pin;
+
 	cms_set_pw_callback(ctx->cms, get_password_passthrough);
-	cms_set_pw_data(ctx->cms, pin);
+	cms_set_pw_data(ctx->cms, &pwdata);
 
 	rc = unlock_nss_token(ctx->cms);
 

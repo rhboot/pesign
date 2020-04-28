@@ -262,7 +262,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 			char *name = shdrs[i].name;
 			if (name && name[0] == '/')
 				name = get_str(pe, name + 1);
-			dprintf("section:\"%s\"\n", name);
+			dprintf("section:\"%s\"\n", name ? name : "(null)");
 			if (name && !strcmp(name, ".vendor_cert")) {
 				dprintf("skipping .vendor_cert section\n");
 				hashed_bytes += hash_size;

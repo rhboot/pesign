@@ -14,11 +14,15 @@
 #include <errno.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "util.h"
+#include "password.h"
 
 #define save_port_err() \
 	for (error_t saved_errno_0_ = 0, saved_errno_1_ = PORT_GetError(); saved_errno_0_ < 1; saved_errno_0_++, PORT_SetError(saved_errno_1_))
@@ -45,6 +49,44 @@ struct digest {
 	SECItem *pe_digest;
 };
 
+struct token_pass {
+	char *token;
+	char *pass;
+};
+
+struct pw_database {
+	struct token_pass *phrases;
+	size_t nphrases;
+};
+
+typedef enum {
+	// used only for bounds checking
+	PW_SOURCE_INVALID = 0,
+	// prompt the user (pwdata->data is NULL)
+	PW_PROMPT = 1,
+	// prompt the user to use a device (pwdata->data is NULL)
+	PW_DEVICE = 2,
+	// pwdata->data is plain text
+	PW_PLAINTEXT = 3,
+	// pwdata->data is a filename for a database
+	PW_FROMFILEDB = 4,
+	// pwdata->data is the database data
+	PW_DATABASE = 5,
+	// pwdata->data is the name of an environment variable
+	PW_FROMENV = 6,
+
+	// used only for bounds checking
+	PW_SOURCE_MAX
+} pw_source_t;
+
+typedef struct {
+	pw_source_t source;
+	pw_source_t orig_source;
+
+	struct pw_database pwdb;
+	char *data;
+} secuPWData;
+
 struct cms_context;
 
 typedef int (*cms_common_logger)(struct cms_context *, int priority,
@@ -57,8 +99,9 @@ typedef struct cms_context {
 	char *tokenname;
 	char *certname;
 	CERTCertificate *cert;
+	PK11SlotListElement *psle;
 	PK11PasswordFunc func;
-	void *pwdata;
+	secuPWData pwdata;
 
 	struct digest *digests;
 	int selected_digest;
@@ -145,23 +188,13 @@ extern SECOidTag digest_get_encryption_oid(cms_context *cms);
 extern SECOidTag digest_get_signature_oid(cms_context *cms);
 extern int digest_get_digest_size(cms_context *cms);
 extern void cms_set_pw_callback(cms_context *cms, PK11PasswordFunc func);
-extern void cms_set_pw_data(cms_context *cms, void *pwdata);
+extern void cms_set_pw_data(cms_context *cms, secuPWData *pwdata);
 
 extern int set_digest_parameters(cms_context *ctx, char *name);
 
 extern int generate_digest_begin(cms_context *cms);
 extern void generate_digest_step(cms_context *cms, void *data, size_t len);
 extern int generate_digest_finish(cms_context *cms);
-
-typedef struct {
-	enum {
-		PW_NONE = 0,
-		PW_FROMFILE = 1,
-		PW_PLAINTEXT = 2,
-		PW_EXTERNAL = 3
-	} source;
-	char *data;
-} secuPWData;
 
 #endif /* CMS_COMMON_H */
 // vim:fenc=utf-8:tw=75:noet

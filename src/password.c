@@ -6,14 +6,17 @@
  */
 #include "fix_coverity.h"
 
+#include <err.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 #include <termios.h>
 #include <unistd.h>
 
 #include "pesign.h"
 
 #include <seccomon.h>
+#include <secerr.h>
 #include <secitem.h>
 #include <secport.h>
 #include <pk11pub.h>
@@ -22,207 +25,324 @@
 #include <prerror.h>
 #include <prprf.h>
 
-static void echoOff(int fd)
+#include "list.h"
+
+static const char * const pw_source_names[] = {
+	[PW_SOURCE_INVALID] = "PW_SOURCE_INVALID",
+	[PW_PROMPT] = "PW_PROMPT",
+	[PW_DEVICE] = "PW_DEVICE",
+	[PW_PLAINTEXT] = "PW_PLAINTEXT",
+	[PW_FROMFILEDB] = "PW_FROMFILEDB",
+	[PW_DATABASE] = "PW_DATABASE",
+	[PW_FROMENV] = "PW_FROMENV",
+
+	[PW_SOURCE_MAX] = "PW_SOURCE_MAX"
+};
+
+static void
+print_prompt(FILE *in, FILE *out, char *prompt)
 {
-    if (isatty(fd)) {
+	int infd = fileno(in);
 	struct termios tio;
-	tcgetattr(fd, &tio);
+
+	if (!isatty(infd))
+		return;
+
+	fprintf(out, "%s", prompt);
+	fflush(out);
+
+	tcgetattr(infd, &tio);
 	tio.c_lflag &= ~ECHO;
-	tcsetattr(fd, TCSAFLUSH, &tio);
-    }
+	tcsetattr(infd, TCSAFLUSH, &tio);
 }
 
-static void echoOn(int fd)
+static inline char *
+get_env(const char *name)
 {
-    if (isatty(fd)) {
+	char *value;
+
+	value = secure_getenv(name);
+	if (value)
+		value = strdup(value);
+	return value;
+}
+
+static int
+read_password(FILE *in, FILE *out, char *buf, size_t bufsz)
+{
+	int infd = fileno(in);
 	struct termios tio;
-	tcgetattr(fd, &tio);
-	tio.c_lflag |= ECHO;
-	tcsetattr(fd, TCSAFLUSH, &tio);
-    }
+	char *ret;
+
+	ret = fgets(buf, bufsz, in);
+
+	if (isatty(infd)) {
+		fprintf(out, "\n");
+		fflush(out);
+
+		tcgetattr(infd, &tio);
+		tio.c_lflag |= ECHO;
+		tcsetattr(infd, TCSAFLUSH, &tio);
+	}
+	if (ret == NULL)
+		return -1;
+
+	buf[strlen(buf)-1] = '\0';
+	return 0;
 }
 
-static PRBool SEC_BlindCheckPassword(char *cp)
+static PRBool
+check_password(char *cp)
 {
-    if (cp != NULL) {
+	unsigned int i;
+
+	if (cp == NULL)
+		return PR_FALSE;
+
+	for (i = 0; cp[i] != 0; i++) {
+		if (!isprint(cp[i]))
+			return PR_FALSE;
+	}
+	if (i == 0)
+		return PR_FALSE;
 	return PR_TRUE;
-    }
-    return PR_FALSE;
 }
-
-static char *SEC_GetPassword(FILE *input, FILE *output, char *prompt,
-			       PRBool (*ok)(char *))
-{
-    int infd  = fileno(input);
-    int isTTY = isatty(infd);
-    char phrase[200] = {'\0'};      /* ensure EOF doesn't return junk */
-
-    for (;;) {
-	/* Prompt for password */
-	if (isTTY) {
-	    echoOff(infd);
-	    fprintf(output, "%s", prompt);
-            fflush (output);
-	}
-
-	fgets ( phrase, sizeof(phrase), input);
-
-	if (isTTY) {
-	    fprintf(output, "\n");
-	    echoOn(infd);
-	}
-
-	/* stomp on newline */
-	phrase[PORT_Strlen(phrase)-1] = 0;
-
-	/* Validate password */
-	if (!(*ok)(phrase)) {
-	    /* Not weird enough */
-	    if (!isTTY) return 0;
-	    fprintf(output, "Password must be at least 8 characters long with one or more\n");
-	    fprintf(output, "non-alphabetic characters\n");
-	    continue;
-	}
-	return (char*) PORT_Strdup(phrase);
-    }
-}
-
-static char consoleName[] = { "/dev/tty" };
 
 static char *
-SECU_GetPasswordString(void *arg UNUSED,
-		       char *prompt UNUSED)
+get_password(FILE *input, FILE *output, char *prompt, PRBool (*ok)(char *))
 {
-    char *p = NULL;
-    FILE *input, *output;
+	int infd = fileno(input);
+	char phrase[200];
+	size_t size = sizeof(phrase);
 
-    /* open terminal */
-    input = fopen(consoleName, "r");
-    if (input == NULL) {
-	fprintf(stderr, "Error opening input terminal %s for read\n",
-		consoleName);
-	return NULL;
-    }
+	ingress();
+	memset(phrase, 0, size);
 
-    output = fopen(consoleName, "w");
-    if (output == NULL) {
-	fclose(input);
-	fprintf(stderr, "Error opening output terminal %s for write\n",
-		consoleName);
-	return NULL;
-    }
+	while(true) {
+		int rc;
 
-    p = SEC_GetPassword (input, output, prompt, SEC_BlindCheckPassword);
+		print_prompt(input, output, prompt);
+		rc = read_password(input, output, phrase, size);
+		if (rc < 0)
+			return NULL;
 
-    fclose(input);
-    fclose(output);
+		if (!ok)
+			break;
 
-    return p;
+		if ((*ok)(phrase))
+			break;
+
+		if (!isatty(infd))
+			return NULL;
+		fprintf(output, "Password does not meet requirements.\n");
+		fflush(output);
+	}
+
+	egress();
+	return (char *)PORT_Strdup(phrase);
 }
 
-/*
- *  p a s s w o r d _ h a r d c o d e 
- *
- *  A function to use the password passed in the -f(pwfile) argument
- *  of the command line.  
- *  After use once, null it out otherwise PKCS11 calls us forever.?
- *
- */
+static char *
+SECU_GetPasswordString(void *arg UNUSED, char *prompt)
+{
+	char *ret;
+	ingress();
+	ret = get_password(stdin, stdout, prompt, check_password);
+	egress();
+	return ret;
+}
+
+static int token_pass_cmp(const void *tp0p, const void *tp1p)
+{
+	const struct token_pass * const tp0 = (const struct token_pass * const)tp0p;
+	const struct token_pass * const tp1 = (const struct token_pass * const)tp1p;
+	int rc;
+
+	if (!tp1->token || !tp0->token)
+		return tp1->token - tp0->token;
+	rc = strcmp(tp0->token, tp1->token);
+	if (rc == 0)
+		rc = strcmp(tp0->pass, tp1->pass);
+	return rc;
+}
+
+static int
+parse_pwfile_line(char *start, struct token_pass *tp)
+{
+	size_t span, escspan;
+	char *line = start;
+	size_t offset = 0;
+
+	span = strspn(line, whitespace_and_eol_chars);
+	dprintf("whitespace span is %zd", span);
+	if (span == 0 && line[span] == '\0')
+		return -1;
+	line += span;
+
+	tp->token = NULL;
+	tp->pass = line;
+
+	offset = 0;
+	do {
+		span = strcspn(line + offset, whitespace_and_eol_chars);
+		escspan = strescspn(line + offset);
+		if (escspan < span)
+			offset += escspan + 2;
+	} while(escspan < span);
+	span += offset;
+	dprintf("non-whitespace span is %zd", span);
+
+	if (line[span] == '\0') {
+		dprintf("returning %ld", (line + span) - start);
+		return (line + span) - start;
+	}
+	line[span] = '\0';
+
+	line += span + 1;
+	span = strspn(line, whitespace_and_eol_chars);
+	dprintf("whitespace span is %zd", span);
+	line += span;
+	tp->token = tp->pass;
+	tp->pass = line;
+
+	offset = 0;
+	do {
+		span = strcspn(line + offset, whitespace_and_eol_chars);
+		escspan = strescspn(line + offset);
+		if (escspan < span)
+			offset += escspan + 2;
+	} while(escspan < span);
+	span += offset;
+	dprintf("non-whitespace span is %zd", span);
+	if (line[span] != '\0')
+		line[span++] = '\0';
+
+	resolve_escapes(tp->token);
+	dprintf("Setting token pass %p to { %p, %p }", tp, tp->token, tp->pass);
+	dprintf("token:\"%s\"", tp->token);
+	dprintf("pass:\"%s\"", tp->pass);
+	dprintf("returning %ld", (line + span) - start);
+	return (line + span) - start;
+}
+
 static char *
 SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
 {
-    char* phrases, *phrase;
-    PRFileDesc *fd;
-    PRInt32 nb;
-    char *pwFile = arg;
-    int i;
-    const long maxPwdFileSize = 4096;
-    char* tokenName = NULL;
-    int tokenLen = 0;
+	cms_context *cms = (cms_context *)arg;
+	int fd;
+	char *file = NULL;
+	char *token_name = slot ? PK11_GetTokenName(slot) : NULL;
+	struct token_pass *phrases = NULL;
+	size_t nphrases = 0;
+	char *phrase = NULL;
+	char *start;
+	char *ret = NULL;
+	char *path;
 
-    if (!pwFile)
-	return 0;
+	ingress();
+	dprintf("token_name: %s", token_name);
+	path = cms->pwdata.data;
 
-    if (retry) {
-	return 0;  /* no good retrying - the files contents will be the same */
-    }
+	if (!path || retry)
+		goto err;
 
-    phrases = PORT_ZAlloc(maxPwdFileSize);
+	phrases = calloc(1, sizeof(struct token_pass));
+	if (!phrases)
+		goto err;
 
-    if (!phrases) {
-        return 0; /* out of memory */
-    }
- 
-    fd = PR_Open(pwFile, PR_RDONLY, 0);
-    if (!fd) {
-	fprintf(stderr, "No password file \"%s\" exists.\n", pwFile);
-        PORT_Free(phrases);
-	return NULL;
-    }
+	fd = open(path, O_RDONLY|O_CLOEXEC);
+	if (fd < 0) {
+		goto err_phrases;
+	} else {
+		size_t file_len = 0;
+		int rc;
+		rc = read_file(fd, &file, &file_len);
+		set_errno_guard();
+		close(fd);
 
-    nb = PR_Read(fd, phrases, maxPwdFileSize);
-  
-    PR_Close(fd);
+		if (rc < 0 || file_len < 1)
+			goto err_file;
+		file[file_len-1] = '\0';
+		dprintf("file_len:%zd", file_len);
+		dprintf("file:\"%s\"", file);
 
-    if (nb == 0) {
-        fprintf(stderr,"password file contains no data\n");
-        PORT_Free(phrases);
-        return NULL;
-    }
+		unbreak_line_continuations(file, file_len);
+	}
 
-    if (slot) {
-        tokenName = PK11_GetTokenName(slot);
-        if (tokenName) {
-            tokenLen = PORT_Strlen(tokenName);
-        }
-    }
-    i = 0;
-    do
-    {
-        int startphrase = i;
-        int phraseLen;
+	start = file;
+	while (start && start[0]) {
+		size_t span;
+		struct token_pass *new_phrases;
+		int rc;
+		char c;
 
-        /* handle the Windows EOL case */
-        while (phrases[i] != '\r' && phrases[i] != '\n' && i < nb) i++;
-        /* terminate passphrase */
-        phrases[i++] = '\0';
-        /* clean up any EOL before the start of the next passphrase */
-        while ( (i<nb) && (phrases[i] == '\r' || phrases[i] == '\n')) {
-            phrases[i++] = '\0';
-        }
-        /* now analyze the current passphrase */
-        phrase = &phrases[startphrase];
-        if (!tokenName)
-            break;
-        if (PORT_Strncmp(phrase, tokenName, tokenLen)) continue;
-        phraseLen = PORT_Strlen(phrase);
-        if (phraseLen < (tokenLen+1)) continue;
-        if (phrase[tokenLen] != ':') continue;
-        phrase = &phrase[tokenLen+1];
-        break;
+		new_phrases = reallocarray(phrases, nphrases + 1, sizeof(struct token_pass));
+		if (!new_phrases)
+			goto err_phrases;
+		phrases = new_phrases;
+		memset(&new_phrases[nphrases], 0, sizeof(struct token_pass));
 
-    } while (i<nb);
+		span = strspn(start, whitespace_and_eol_chars);
+		dprintf("whitespace span is %zd", span);
+		start += span;
+		span = strcspn(start, eol_chars);
+		dprintf("non-whitespace span is %zd", span);
 
-    phrase = PORT_Strdup((char*)phrase);
-    PORT_Free(phrases);
-    return phrase;
+		c = start[span];
+		start[span] = '\0';
+		dprintf("file:\"%s\"", file);
+		rc = parse_pwfile_line(start, &phrases[nphrases++]);
+		dprintf("parse_pwfile_line returned %d", rc);
+		if (rc < 0)
+			goto err_phrases;
+
+		if (c != '\0')
+			span++;
+		start += span;
+		dprintf("start is file[%ld] == '\\x%02hhx'", start - file, start[0]);
+	}
+
+	qsort(phrases, nphrases, sizeof(struct token_pass), token_pass_cmp);
+	cms->pwdata.source = PW_DATABASE;
+	xfree(cms->pwdata.data);
+	cms->pwdata.pwdb.phrases = phrases;
+	cms->pwdata.pwdb.nphrases = nphrases;
+
+	for (size_t i = 0; i < nphrases; i++) {
+		if (phrases[i].token == NULL || phrases[i].token[0] == '\0'
+		    || (token_name && !strcmp(token_name, phrases[i].token))) {
+			phrase = phrases[i].pass;
+			break;
+		}
+	}
+
+	if (phrase) {
+		ret = PORT_Strdup(phrase);
+		if (!ret)
+			errno = ENOMEM;
+	}
+
+err_file:
+	xfree(file);
+err_phrases:
+	xfree(phrases);
+err:
+	dprintf("ret:\"%s\"", ret ? ret : "(null)");
+	egress();
+	return ret;
 }
 
 char *
 get_password_passthrough(PK11SlotInfo *slot UNUSED,
 			 PRBool retry, void *arg)
 {
-	if (retry)
+	if (retry || !arg)
 		return NULL;
 
-	if (!arg)
-		return arg;
-
 	char *ret = strdup(arg);
-	if (!ret) {
-		fprintf(stderr, "Failed to allocate memory\n");
-		exit(1);
-	}
+	if (!ret)
+		err(1, "Could not allocate memory");
+
 	return ret;
 }
 
@@ -234,54 +354,126 @@ get_password_fail(PK11SlotInfo *slot UNUSED,
 	return NULL;
 }
 
+static bool
+can_prompt_again(secuPWData *pwdata)
+{
+	if (pwdata->orig_source == PW_PROMPT)
+		return true;
+
+	if (pwdata->source == PW_DEVICE)
+		return true;
+
+	return false;
+}
+
 char *
 SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 {
-    char prompt[255];
-    secuPWData *pwdata = (secuPWData *)arg;
-    secuPWData pwnull = { PW_NONE, 0 };
-    secuPWData pwxtrn = { PW_EXTERNAL, "external" };
-    char *pw;
+	char *prompt = NULL;
+	cms_context *cms = (cms_context *)arg;
+	secuPWData *pwdata;
+	secuPWData pwxtrn = { .source = PW_DEVICE, .orig_source = PW_DEVICE, .data = NULL };
+	char *pw;
+	int rc;
 
-    if (pwdata == NULL)
-	pwdata = &pwnull;
+	ingress();
 
-    if (PK11_ProtectedAuthenticationPath(slot)) {
-	pwdata = &pwxtrn;
-    }
-    if (retry && pwdata->source != PW_NONE) {
-	PR_fprintf(PR_STDERR, "Incorrect password/PIN entered.\n");
+	if (PK11_ProtectedAuthenticationPath(slot)) {
+		dprintf("prompting for PW_DEVICE data");
+		pwdata = &pwxtrn;
+	} else {
+		dprintf("using pwdata from cms");
+		pwdata = &cms->pwdata;
+	}
+
+	if (pwdata->source <= PW_SOURCE_INVALID ||
+	    pwdata->source >= PW_SOURCE_MAX ||
+	    pwdata->orig_source <= PW_SOURCE_INVALID ||
+	    pwdata->orig_source >= PW_SOURCE_MAX) {
+		dprintf("pwdata is invalid");
+		return NULL;
+	}
+
+	dprintf("pwdata:%p retry:%d", pwdata, retry);
+	dprintf("pwdata->source:%s (%d) orig:%s (%d)",
+		pw_source_names[pwdata->source], pwdata->source,
+		pw_source_names[pwdata->orig_source], pwdata->orig_source);
+	dprintf("pwdata->data:%p (\"%s\")", pwdata->data,
+		pwdata->data ? pwdata->data : "(null)");
+
+	if (retry) {
+		warnx("Incorrect password/PIN entered.");
+		if (!can_prompt_again(pwdata)) {
+			egress();
+			return NULL;
+		}
+	}
+
+	switch (pwdata->source) {
+	case PW_PROMPT:
+		rc = asprintf(&prompt, "Enter Password or Pin for \"%s\":",
+			      PK11_GetTokenName(slot));
+		if (rc < 0)
+			return NULL;
+		pw = SECU_GetPasswordString(NULL, prompt);
+		if (!pw)
+			return NULL;
+		free(prompt);
+
+		pwdata->source = PW_PLAINTEXT;
+		egress();
+		return pw;
+
+	case PW_DEVICE:
+		dprintf("pwdata->source:PW_DEVICE");
+		rc = asprintf(&prompt,
+			      "Press Enter, then enter PIN for \"%s\" on external device.\n",
+			      PK11_GetTokenName(slot));
+		if (rc < 0)
+			return NULL;
+		pw = SECU_GetPasswordString(NULL, prompt);
+		free(prompt);
+		return pw;
+
+	case PW_FROMFILEDB:
+	case PW_DATABASE:
+		dprintf("pwdata->source:%s", pw_source_names[pwdata->source]);
+		/* Instead of opening and closing the file every time, get the pw
+		 * once, then keep it in memory (duh).
+		 */
+		pw = SECU_FilePasswd(slot, retry, cms);
+		if (pw != NULL) {
+			pwdata->source = PW_PLAINTEXT;
+			pwdata->data = strdup(pw);
+		}
+		/* it's already been dup'ed */
+		egress();
+		return pw;
+
+	case PW_FROMENV:
+		dprintf("pwdata->source:PW_FROMENV");
+		if (!pwdata || !pwdata->data)
+			break;
+		pw = get_env(pwdata->data);
+		dprintf("env:%s pw:%s", pwdata->data, pw ? pw : "(null)");
+		pwdata->data = pw;
+		pwdata->source = PW_PLAINTEXT;
+		goto PW_PLAINTEXT;
+
+	PW_PLAINTEXT:
+	case PW_PLAINTEXT:
+		egress();
+		if (pwdata && pwdata->data)
+			return strdup(pwdata->data);
+		return NULL;
+
+	default:
+		break;
+	}
+
+	warnx("Password check failed: No password found.");
+	egress();
 	return NULL;
-    }
-
-    switch (pwdata->source) {
-    case PW_NONE:
-	sprintf(prompt, "Enter Password or Pin for \"%s\":",
-	                 PK11_GetTokenName(slot));
-	return SECU_GetPasswordString(NULL, prompt);
-    case PW_FROMFILE:
-	/* Instead of opening and closing the file every time, get the pw
-	 * once, then keep it in memory (duh).
-	 */
-	pw = SECU_FilePasswd(slot, retry, pwdata->data);
-	pwdata->source = PW_PLAINTEXT;
-	pwdata->data = PL_strdup(pw);
-	/* it's already been dup'ed */
-	return pw;
-    case PW_EXTERNAL:
-	sprintf(prompt,
-	        "Press Enter, then enter PIN for \"%s\" on external device.\n",
-		PK11_GetTokenName(slot));
-	(void) SECU_GetPasswordString(NULL, prompt);
-	/* Fall Through */
-    case PW_PLAINTEXT:
-	return PL_strdup(pwdata->data);
-    default:
-	break;
-    }
-
-    PR_fprintf(PR_STDERR, "Password check failed:  No password found.\n");
-    return NULL;
 }
 
 #if 0
@@ -294,28 +486,31 @@ readpw(PK11SlotInfo *slot UNUSED,
 {
 	struct termios sio, tio;
 	char line[LINE_MAX], *p;
+	char *ret;
 
+	ingress();
 	memset(line, '\0', sizeof (line));
 
 	if (tcgetattr(fileno(stdin), &sio) < 0) {
-		fprintf(stderr, "Could not read password from standard input.\n");
+		warnx("Could not read password from standard input.");
 		return NULL;
 	}
 	tio = sio;
 	tio.c_lflag &= ~ECHO;
 	if (tcsetattr(fileno(stdin), 0, &tio) < 0) {
-		fprintf(stderr, "Could not read password from standard input.\n");
+		warnx("Could not read password from standard input.");
 		return NULL;
 	}
 
 	fprintf(stdout, "Enter passphrase for private key: ");
-	if (fgets(line, sizeof(line), stdin) == NULL) {
-		fprintf(stdout, "\n");
-		tcsetattr(fileno(stdin), 0, &sio);
-		return NULL;
-	}
-	fprintf(stdout, "\n");
+	fflush(stdout);
+	ret = fgets(line, sizeof(line), stdin);
+	set_errno_guard();
 	tcsetattr(fileno(stdin), 0, &sio);
+	fprintf(stdout, "\n");
+	fflush(stdout);
+	if (ret == NULL)
+		return NULL;
 
 	p = line + strcspn(line, "\r\n");
 	if (p == NULL)
@@ -323,11 +518,14 @@ readpw(PK11SlotInfo *slot UNUSED,
 	if (p != NULL)
 		*p = '\0';
 
-	char *ret = strdup(line);
+	ret = strdup(line);
 	memset(line, '\0', sizeof (line));
 	if (!ret) {
-		fprintf(stderr, "Could not read passphrase.\n");
+		warnx("Could not read passphrase.");
 		return NULL;
 	}
+	egress();
 	return ret;
 }
+
+// vim:fenc=utf-8:tw=75:noet

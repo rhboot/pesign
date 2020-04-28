@@ -160,15 +160,14 @@ sign_blob(cms_context *cms, SECItem *sigitem, SECItem *sign_content)
 	if (!oid)
 		goto err;
 
-	PK11_SetPasswordFunc(cms->func ? cms->func : readpw);
-	SECKEYPrivateKey *privkey = PK11_FindKeyByAnyCert(cms->cert,
-				cms->pwdata ? cms->pwdata : NULL);
+	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
+	SECKEYPrivateKey *privkey = PK11_FindKeyByAnyCert(cms->cert, cms);
 	if (!privkey) {
 		cms->log(cms, LOG_ERR, "could not get private key: %s",
 			PORT_ErrorToString(PORT_GetError()));
 		goto err;
 	}
-	
+
 	SECItem *signature, tmp;
 	memset (&tmp, '\0', sizeof (tmp));
 
@@ -433,3 +432,5 @@ generate_authvar_signer_info(cms_context *cms, SpcSignerInfo *sip)
 err:
 	return -1;
 }
+
+// vim:fenc=utf-8:tw=75:noet
