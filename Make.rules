@@ -84,3 +84,15 @@ $(TOPDIR)/libdpe/%.a $(TOPDIR)/libdpe/% :
 define get-config =
 $(shell git config --local --get "$(NAME).$(1)")
 endef
+
+define removes
+	if [ -n "$(TARGETS)" ]; then rm -rfv $(TARGETS) ; fi
+	rm -rfv *.o *.a *.so .*.d
+	rm -rfv {vg,}core.[0123456789]*
+endef
+
+define descend
+	set -e ; for x in $(SUBDIRS) ; do \
+		$(MAKE) -C $$x $@ ; \
+	done
+endef

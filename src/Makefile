@@ -67,8 +67,8 @@ deps : $(ALL_SOURCES)
 		deps
 
 clean :
-	@rm -rfv *.o *.a *.so $(TARGETS)
-	@rm -rfv .*.d
+	@rm -rfv $(TARGETS)
+	@$(call removes)
 
 install_systemd: pesign.service
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(libdatadir)tmpfiles.d/
