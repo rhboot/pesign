@@ -8,6 +8,7 @@
 
 #include <err.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <limits.h>
 #include <popt.h>
 #include <stdio.h>
@@ -653,6 +654,10 @@ int main(int argc, char *argv[])
 	uuid_t serial_uuid;
 	int rc;
 	SECStatus status;
+	char *not_valid_before = NULL, *not_valid_after = NULL;
+	PRTime not_before = PR_Now();
+	PRTime not_after;
+	PRStatus prstatus;
 
 	cms_context *cms = NULL;
 
@@ -757,6 +762,20 @@ int main(int argc, char *argv[])
 		 .arg = &issuer,
 		 .descrip = "Issuer Common Name",
 		 .argDescrip = "<issuer-cn>" },
+		{.longName = "not-valid-before",
+		 .shortName = '\0',
+		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = &not_valid_before,
+		 .descrip = "\"Not Valid Before\" date",
+		 .argDescrip = "<date>",
+		},
+		{.longName = "not-valid-after",
+		 .shortName = '\0',
+		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = &not_valid_after,
+		 .descrip = "\"Not Valid After\" date",
+		 .argDescrip = "<date>",
+		},
 
 		/*
 		 * The features below here are hidden because they're not
@@ -969,9 +988,54 @@ int main(int argc, char *argv[])
 		if (errno == ERANGE && serial == ULLONG_MAX)
 			liberr(1, "invalid serial number");
 	}
+
+	if (not_valid_before) {
+		unsigned long timeul;
+		char *endptr;
+
+		errno = 0;
+		timeul = strtoul(not_valid_before, &endptr, 0);
+		dprintf("not_valid_before:%lu", timeul);
+		if (errno == 0 && endptr && *endptr == 0) {
+			dprintf("not_valid_before:%lu", timeul);
+			not_before = (PRTime)timeul * PR_USEC_PER_SEC;
+		} else {
+			prstatus = PR_ParseTimeString(not_valid_before,
+						PR_TRUE, &not_before);
+			conderrx(prstatus != PR_SUCCESS, 1,
+				 "could not parse date \"%s\"",
+				 not_valid_before);
+		}
+		dprintf("not_before:%"PRId64, not_before);
+	}
+
+	if (not_valid_after) {
+		unsigned long timeul;
+		char *endptr;
+
+		errno = 0;
+		dprintf("not_valid_after:%s", not_valid_after);
+		timeul = strtoul(not_valid_after, &endptr, 0);
+		dprintf("not_valid_after:%lu", timeul);
+		if (errno == 0 && endptr && *endptr == 0) {
+			dprintf("not_valid_after:%lu", timeul);
+			not_after = (PRTime)timeul * PR_USEC_PER_SEC;
+		} else {
+			prstatus = PR_ParseTimeString(not_valid_after, PR_TRUE,
+						      &not_after);
+			conderrx(prstatus != PR_SUCCESS, 1,
+				 "could not parse date \"%s\"",
+				 not_valid_after);
+		}
+	} else {
+		// Mon Jan 19 03:14:07 GMT 2037, aka 0x7fffffff minus 1 year.
+		time_t time = 0x7ffffffful - 60ul * 60 * 24 * 365;
+		dprintf("not_valid_after:%lu", time);
+		not_after = (PRTime)time * PR_USEC_PER_SEC;
+	}
+	dprintf("not_after:%"PRId64, not_after);
+
 	CERTValidity *validity = NULL;
-	PRTime not_before = time(NULL) * PR_USEC_PER_SEC;
-	PRTime not_after = not_before + (3650ULL * 86400ULL * PR_USEC_PER_SEC);
 	validity = CERT_CreateValidity(not_before, not_after);
 	if (!validity)
 		nsserr(1, "could not generate validity");
