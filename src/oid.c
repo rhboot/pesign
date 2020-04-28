@@ -59,17 +59,25 @@ static struct {
 SECStatus
 register_oids(cms_context *cms)
 {
+	int err = PORT_GetError();
+	PORT_SetError(0);
 	for (int i = 0; oids[i].oid != END_OID_LIST; i++) {
 		SECOidTag rc;
 		rc = SECOID_AddEntry(&oids[i].sod);
 		oids[i].sod.offset = rc;
 		if (rc == SEC_OID_UNKNOWN) {
-			cms->log(cms, LOG_ERR, "SECOid_AddEntry() failed: %s",
-				PORT_ErrorToString(PORT_GetError()));
-			return SECFailure;
+			cmsreterr(SECFailure, cms,
+				  "SECOid_AddEntry() failed: %s",
+				  PORT_ErrorToString(PORT_GetError()));
+		} else {
 		}
 	}
 
+	/*
+	 * SECOID_AddEntry() leaves the error status that it
+	 * used to look it up set.  This is very annoying.
+	 */
+	PORT_SetError(err);
 	return SECSuccess;
 }
 
