@@ -141,12 +141,18 @@ cms_context_init(cms_context *cms)
 
 	cms->selected_digest = -1;
 
+	INIT_LIST_HEAD(&cms->pk12_ins);
+	cms->pk12_out.fd = -1;
+	cms->db_out = cms->dbx_out = cms->dbt_out = -1;
+
 	return 0;
 }
 
 void
 cms_context_fini(cms_context *cms)
 {
+	struct list_head *n, *pos;
+
 	if (cms->cert) {
 		CERT_DestroyCertificate(cms->cert);
 		cms->cert = NULL;
@@ -176,6 +182,32 @@ cms_context_fini(cms_context *cms)
 		cms->privkey = NULL;
 	}
 
+	if (cms->db_out >= 0)
+		fsync(cms->db_out);
+	xclose(cms->db_out);
+	if (cms->dbx_out >= 0)
+		fsync(cms->dbx_out);
+	xclose(cms->dbx_out);
+	if (cms->dbt_out >= 0)
+		fsync(cms->dbt_out);
+	xclose(cms->dbt_out);
+	list_for_each_safe(pos, n, &cms->pk12_ins) {
+		pk12_file_t *file = list_entry(pos, pk12_file_t, list);
+
+		xfree(file->path);
+		if (file->fd >= 0) {
+			/*
+			 * This may or may not be writable...
+			 */
+			fsync(file->fd);
+			errno = 0;
+		}
+		xclose(file->fd);
+		xfree(file->pw);
+	}
+	xclose(cms->pk12_out.fd);
+	xfree(cms->pk12_out.path);
+	xfree(cms->pk12_out.pw);
 
 	/* These were freed when the arena was destroyed */
 	if (cms->tokenname)

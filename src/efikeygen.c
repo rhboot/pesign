@@ -41,6 +41,7 @@
 #include "cms_common.h"
 #include "errno-guard.h"
 #include "oid.h"
+#include "password.h"
 
 enum {
 	MODSIGN_EKU_NONE,
@@ -478,6 +479,153 @@ SEC_ASN1EncodeLongLong(PRArenaPool *poolp, SECItem *dest,
 	return dest;
 }
 
+static const struct {
+	mode_t mode;
+	int idx;
+	char c;
+} modebits[] = {
+	{S_IRUSR, 0, 'r'},
+	{S_IWUSR, 1, 'w'},
+	{S_IXUSR, 2, 'x'},
+	{S_ISUID, 2, 's'},
+	{S_IXUSR|S_ISUID, 2, 'S'},
+	{S_IRGRP, 3, 'r'},
+	{S_IWGRP, 4, 'w'},
+	{S_IXGRP, 5, 'x'},
+	{S_ISGID, 5, 's'},
+	{S_IXGRP|S_ISGID, 5, 'S'},
+	{S_IROTH, 6, 'r'},
+	{S_IWOTH, 7, 'w'},
+	{S_IXOTH, 8, 'x'},
+	{S_ISVTX, 8, 't'},
+	{S_IXOTH|S_ISVTX, 8, 'T'},
+	{0, 0, 0}
+};
+
+static void
+format_file_mode(mode_t mode, char modestr[10])
+{
+	for (unsigned int i = 0; modebits[i].mode != 0; i++) {
+		mode_t mask = ~modebits[i].mode;
+		if (~(mode & mask) == modebits[i].mode)
+			modestr[modebits[i].idx] = modebits[i].c;
+	}
+}
+
+static void
+enforce_file_mode(mode_t badmask, const char * filename, int fd)
+{
+	struct stat statbuf;
+	xpfstat(filename, fd, &statbuf);
+	if (!(statbuf.st_mode & badmask))
+		return;
+
+	char filemode[] = "---------";
+
+	close(fd);
+	format_file_mode(statbuf.st_mode, filemode);
+	errx(1, "Password file \"%s\" has unsafe file mode %s; not proceeding.",
+	     filename, filemode);
+}
+
+static void
+get_pw_env(pk12_file_t *file, const char *arg)
+{
+	if (!file)
+		errx(1, "--pk12-pw-env must be paired with --pk12-in or --pk12-out");
+	file->pw = secure_getenv(arg);
+	if (file->pw == NULL)
+		errx(1, "Environment variable \"%s\" is not set.", arg);
+	file->pw = xstrdup(file->pw);
+	if (!file->pw)
+		err(1, "Could not allocate memory");
+}
+
+static void
+get_pw_file(pk12_file_t *file, const char *arg)
+{
+	int fd;
+	int rc;
+	int errno_guard;
+	char *pw = NULL;
+	size_t pwsize = 0;
+
+	if (!file)
+		errx(1, "--pk12-pw-file must be paired with --pk12-in or --pk12-out");
+
+	fd = xopen(arg, O_RDONLY);
+	enforce_file_mode(0077, arg, fd);
+	rc = read_file(fd, &pw, &pwsize);
+	errno = 0;
+	set_errno_guard_with_override(&errno_guard);
+
+	close(fd);
+
+	if (rc < 0)
+		err(1, "Could not read \"%s\"", arg);
+	for (ssize_t i = pwsize; i >= 0; i--) {
+		switch (pw[i]) {
+		case '\r':
+		case '\n':
+			pw[i] = '\0';
+			/* fall through */
+		case '\0':
+			continue;
+		default:
+			break;
+		}
+	}
+	file->pw = pw;
+}
+
+void
+popt_callback(poptContext con UNUSED,
+	      enum poptCallbackReason reason UNUSED,
+	      const struct poptOption *opt,
+	      const char *arg, const void *data)
+{
+	cms_context *cms = (cms_context *)data;
+	static pk12_file_t *prev = NULL;
+	pk12_file_t *file = NULL;
+
+	if (!opt)
+		return;
+
+	switch (opt->shortName) {
+	case '\0':
+		if (!strcmp(opt->longName, "pk12-pw-env")) {
+			get_pw_env(prev, arg);
+		} else if (!strcmp(opt->longName, "pk12-pw-file")) {
+			get_pw_file(prev, arg);
+		} else {
+			errx(1,
+			     "Unknown option \"%s\" - how did it come to this?",
+			     opt->longName);
+		}
+		break;
+
+	case 'P':
+		file = xcalloc(1, sizeof(*file));
+		file->path = xstrdup(arg);
+		file->fd = xopen(arg, O_RDONLY);
+		list_add(&file->list, &cms->pk12_ins);
+		prev = file;
+		break;
+
+	case 'O':
+		file = &cms->pk12_out;
+		if (file->path)
+			errx(1, "pk12 output is already set to \"%s\"", file->path);
+		file->path = xstrdup(arg);
+		file->fd = xopen(arg, O_RDWR|O_CREAT|O_EXCL|O_CLOEXEC, 0600);
+		prev = file;
+		break;
+
+	default:
+		errx(1, "How did it come to this?");
+	}
+}
+
 static long verbose = 0;
 
 long verbosity(void)
@@ -499,8 +647,12 @@ int main(int argc, char *argv[])
 	char *serial_str = NULL;
 	char *issuer = NULL;
 	char *dbdir = "/etc/pki/pesign";
+	char *db_path = NULL, *dbx_path = NULL, *dbt_path = NULL;
+	char *kek_nickname = NULL;
 	unsigned long long serial = ULLONG_MAX;
 	uuid_t serial_uuid;
+	int rc;
+	SECStatus status;
 
 	cms_context *cms = NULL;
 
@@ -606,6 +758,59 @@ int main(int argc, char *argv[])
 		 .descrip = "Issuer Common Name",
 		 .argDescrip = "<issuer-cn>" },
 
+		/*
+		 * The features below here are hidden because they're not
+		 * really ready for consumption yet.
+		 */
+		{.longName = "pk12-in",
+		 .shortName = 'P',
+		 .argInfo = POPT_ARG_CALLBACK|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = (void *)popt_callback,
+		 .descrip = (void *)cms,
+		 .argDescrip = "<keydb.pk12>"},
+		{.longName = "pk12-out",
+		 .shortName = 'O',
+		 .argInfo = POPT_ARG_CALLBACK|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = (void *)popt_callback,
+		 .descrip = (void *)cms,
+		 .argDescrip = "<out.pk12>"},
+		{.longName = "pk12-pw-file",
+		 .shortName = '\0',
+		 .argInfo = POPT_ARG_CALLBACK|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = (void *)popt_callback,
+		 .descrip = (void *)cms,
+		 .argDescrip = "<file.pw>"},
+		{.longName = "pk12-pw-env",
+		 .shortName = '\0',
+		 .argInfo = POPT_ARG_CALLBACK|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = (void *)popt_callback,
+		 .descrip = (void *)cms,
+		 .argDescrip = "<ENVIRONMENT VARIABLE NAME>"},
+		{.longName = "kek-nickname",
+		 .shortName = 'K',
+		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = &kek_nickname,
+		 .descrip = "Nickname of the KEK signing key (defaults to same as signer)",
+		 .argDescrip = "<KEK nickname>"},
+		{.longName = "make-efi-db",
+		 .shortName = 'D',
+		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = &db_path,
+		 .descrip = "File to store a signed DB append in",
+		 .argDescrip = "<db.bin>"},
+		{.longName = "make-efi-dbx",
+		 .shortName = 'X',
+		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = &dbx_path,
+		 .descrip = "File to store a signed DBX append in",
+		 .argDescrip = "<dbx.bin>"},
+		{.longName = "make-efi-dbt",
+		 .shortName = 'T',
+		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = &dbt_path,
+		 .descrip = "File to store a signed DBT append in",
+		 .argDescrip = "<dbt.bin>"},
+
 		/* automatic stuff */
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
@@ -614,9 +819,13 @@ int main(int argc, char *argv[])
 
 	setenv("NSS_DEFAULT_DB_TYPE", "sql", 0);
 
+	rc = cms_context_alloc(&cms);
+	if (rc < 0)
+		liberr(1, "could not allocate cms context");
+
 	optCon = poptGetContext("pesign", argc, (const char **)argv, options,0);
 
-	int rc = poptReadDefaultConfig(optCon, 0);
+	rc = poptReadDefaultConfig(optCon, 0);
 	if (rc < 0 && !(rc == POPT_ERROR_ERRNO && errno == ENOENT))
 		errx(1, "poptReadDefaultConfig failed: %s",
 			poptStrerror(rc));
@@ -662,19 +871,15 @@ int main(int argc, char *argv[])
 	if (!is_self_signed && !signer)
 		errx(1, "signing certificate is required");
 
-	rc = cms_context_alloc(&cms);
-	if (rc < 0)
-		liberr(1, "could not allocate cms context");
-
 	if (tokenname) {
 		cms->tokenname = strdup(tokenname);
 		if (!cms->tokenname)
-			liberr(1, "could not allocate cms context");
+			err(1, "could not allocate cms context");
 	}
 	if (signer) {
 		cms->certname = strdup(signer);
 		if (!cms->certname)
-			liberr(1, "could not allocate cms context");
+			err(1, "could not allocate cms context");
 	}
 
 	if (is_ca) {
@@ -686,7 +891,18 @@ int main(int argc, char *argv[])
 		errx(1, "either --kernel or --module must be used");
 	}
 
-	SECStatus status = NSS_InitReadWrite(dbdir);
+	if (!strcmp(dbdir, "-") && list_empty(&cms->pk12_ins) && !is_self_signed)
+		errx(1, "'--dbdir -' requires either --pk12-in or --self-sign.");
+
+	PK11_SetPasswordFunc(cms->func ? cms->func : readpw);
+	if (strcmp(dbdir, "-")) {
+		if (cms->pk12_out.fd >= 0)
+			status = NSS_Init(dbdir);
+		else
+			status = NSS_InitReadWrite(dbdir);
+	} else {
+		status = NSS_NoDB_Init(dbdir);
+	}
 	if (status != SECSuccess)
 		nsserr(1, "could not initialize NSS");
 	atexit((void (*)(void))NSS_Shutdown);

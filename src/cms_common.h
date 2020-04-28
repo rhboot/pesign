@@ -49,6 +49,13 @@ struct digest {
 	SECItem *pe_digest;
 };
 
+typedef struct pk12_file {
+	char *path;
+	int fd;
+	char *pw;
+	struct list_head list;
+} pk12_file_t;
+
 struct token_pass {
 	char *token;
 	char *pass;
@@ -102,6 +109,10 @@ typedef struct cms_context {
 	PK11SlotListElement *psle;
 	PK11PasswordFunc func;
 	secuPWData pwdata;
+
+	list_t pk12_ins;
+	pk12_file_t pk12_out;
+	int db_out, dbx_out, dbt_out;
 
 	struct digest *digests;
 	int selected_digest;
