@@ -318,4 +318,4 @@ error:
 	return -1;
 }
 
-/* vim:fenc=utf-8:sw=8:sts=8:noet */
+// vim:fenc=utf-8:tw=75:noet

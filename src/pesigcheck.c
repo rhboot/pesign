@@ -529,3 +529,5 @@ main(int argc, char *argv[])
 
 	return (rc < 0);
 }
+
+// vim:fenc=utf-8:tw=75:noet
