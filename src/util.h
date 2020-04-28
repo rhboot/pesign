@@ -12,8 +12,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <libdpe/pe.h>
@@ -258,6 +259,17 @@ proxy_fd_mode(int fd, char *infile, mode_t *outmode, size_t *inlength)
 	if (inlength)
 		*inlength = statbuf.st_size;
 }
+
+extern long verbosity(void);
+
+#define dprintf_(tv, file, func, line, fmt, args...) ({struct timeval tv; gettimeofday(&tv, NULL); warnx("%ld.%lu %s:%s():%d: " fmt, tv.tv_sec, tv.tv_usec, file, func, line, ##args); })
+#if defined(PESIGN_DEBUG)
+#define dprintf(fmt, args...) dprintf_(CAT(CAT(CAT(tv_,__COUNTER__),__LINE__),_), __FILE__, __func__, __LINE__, fmt, ##args)
+#else
+#define dprintf(fmt, args...) ({ if (verbosity() > 1) dprintf_(CAT(CAT(CAT(tv_,__COUNTER__),__LINE__),_), __FILE__, __func__, __LINE__, fmt, ##args); 0; })
+#endif
+#define ingress() dprintf("ingress");
+#define egress() dprintf("egress");
 
 #endif /* PESIGN_UTIL_H */
 // vim:fenc=utf-8:tw=75:noet

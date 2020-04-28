@@ -478,6 +478,13 @@ SEC_ASN1EncodeLongLong(PRArenaPool *poolp, SECItem *dest,
 	return dest;
 }
 
+static long verbose = 0;
+
+long verbosity(void)
+{
+	return verbose;
+}
+
 int main(int argc, char *argv[])
 {
 	int is_ca = 0;
@@ -572,6 +579,18 @@ int main(int argc, char *argv[])
 		 .arg = &serial_str,
 		 .descrip = "Serial number (default: random)",
 		 .argDescrip = "<serial>" },
+		{.longName = "verbose",
+		 .shortName = 'v',
+		 .argInfo = POPT_ARG_VAL,
+		 .arg = &verbose,
+		 .val = 1,
+		 .descrip = "Be more verbose" },
+		{.longName = "debug",
+		 .shortName = '\0',
+		 .argInfo = POPT_ARG_VAL|POPT_ARG_LONG|POPT_ARGFLAG_OPTIONAL,
+		 .arg = &verbose,
+		 .val = 2,
+		 .descrip = "Be very verbose" },
 
 		/* hidden things */
 		{.longName = "pubkey",
@@ -856,3 +875,5 @@ int main(int argc, char *argv[])
 	NSS_Shutdown();
 	return 0;
 }
+
+// vim:fenc=utf-8:tw=75:noet

@@ -51,6 +51,15 @@ print_flag_name(FILE *f, int flag)
 	}
 }
 
+static long *verbose;
+
+long verbosity(void)
+{
+	if (!verbose)
+		return 0;
+	return *verbose;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -81,6 +90,7 @@ main(int argc, char *argv[])
 		fprintf(stderr, "Could not initialize context: %m\n");
 		exit(1);
 	}
+	verbose = &ctxp->verbose;
 
 	poptContext optCon;
 	struct poptOption options[] = {
@@ -221,10 +231,17 @@ main(int argc, char *argv[])
 		 .descrip = "don't fork when daemonizing" },
 		{.longName = "verbose",
 		 .shortName = 'v',
-		 .argInfo = POPT_ARG_VAL,
+		 .argInfo = POPT_ARG_VAL|POPT_ARG_LONG|POPT_ARGFLAG_OPTIONAL,
 		 .arg = &ctxp->verbose,
 		 .val = 1,
+		 .descrip = "be more verbose" },
+		{.longName = "debug",
+		 .shortName = '\0',
+		 .argInfo = POPT_ARG_VAL|POPT_ARG_LONG|POPT_ARGFLAG_OPTIONAL,
+		 .arg = &ctxp->verbose,
+		 .val = 2,
 		 .descrip = "be very verbose" },
+
 		{.longName = "padding",
 		 .shortName = 'P',
 		 .argInfo = POPT_ARG_VAL,

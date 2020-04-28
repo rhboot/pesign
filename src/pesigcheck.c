@@ -371,6 +371,15 @@ callback(poptContext con UNUSED,
 	}
 }
 
+static long *verbose;
+
+long verbosity(void)
+{
+	if (!verbose)
+		return 0;
+	return *verbose;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -421,10 +430,16 @@ main(int argc, char *argv[])
 		 .descrip = "return only; no text output." },
 		{.longName = "verbose",
 		 .shortName = 'v',
-		 .argInfo = POPT_BIT_SET,
+		 .argInfo = POPT_ARG_VAL|POPT_ARG_LONG|POPT_ARGFLAG_OPTIONAL,
 		 .arg = &ctx.verbose,
 		 .val = 1,
 		 .descrip = "print reasons for success and failure." },
+		{.longName = "debug",
+		 .shortName = '\0',
+		 .argInfo = POPT_ARG_VAL|POPT_ARG_LONG|POPT_ARGFLAG_OPTIONAL,
+		 .arg = &ctxp->verbose,
+		 .val = 2,
+		 .descrip = "be very verbose" },
 		{.longName = "no-system-db",
 		 .shortName = 'n',
 		 .argInfo = POPT_ARG_INT,
@@ -460,6 +475,7 @@ main(int argc, char *argv[])
 		fprintf(stderr, "pesigcheck: Could not initialize context: %m\n");
 		exit(1);
 	}
+	verbose = &ctxp->verbose;
 
 	optCon = poptGetContext("pesigcheck", argc, (const char **)argv,
 				options,0);

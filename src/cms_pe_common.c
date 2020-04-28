@@ -29,12 +29,6 @@
 #include <secerr.h>
 #include <certt.h>
 
-#if 1
-#define dprintf(fmt, ...)
-#else
-#define dprintf(fmt, args...) printf(fmt, ## args)
-#endif
-
 static int
 check_pointer_and_size(Pe *pe, void *ptr, size_t size)
 {

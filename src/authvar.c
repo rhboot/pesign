@@ -226,6 +226,15 @@ show_signature_support(void)
 	return 0;
 }
 
+static long *verbose;
+
+long verbosity(void)
+{
+	if (!verbose)
+		return 0;
+	return *verbose;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -333,6 +342,18 @@ main(int argc, char *argv[])
 		 .arg = &ctx.cms_ctx->certname,
 		 .descrip = "sign variable with certificate <nickname>",
 		 .argDescrip = "<nickname>" },
+		{.longName = "verbose",
+		 .shortName = 'v',
+		 .argInfo = POPT_ARG_VAL|POPT_ARG_LONG|POPT_ARGFLAG_OPTIONAL,
+		 .arg = &ctxp->verbose,
+		 .val = 1,
+		 .descrip = "be more verbose" },
+		{.longName = "debug",
+		 .shortName = '\0',
+		 .argInfo = POPT_ARG_VAL|POPT_ARG_LONG|POPT_ARGFLAG_OPTIONAL,
+		 .arg = &ctxp->verbose,
+		 .val = 2,
+		 .descrip = "be very verbose" },
 		POPT_AUTOALIAS
 		POPT_AUTOHELP
 		POPT_TABLEEND

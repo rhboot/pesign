@@ -8,6 +8,8 @@
 #define AUTHVAR_CONTEXT_H 1
 
 typedef struct {
+	long verbose;
+
 	char *namespace;
 	efi_guid_t guid;
 	char *name;
