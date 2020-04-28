@@ -17,7 +17,6 @@
 #include "cms_common.h"
 #include "wincert.h"
 #include "authvar_context.h"
-#include "siglist.h"
 #include "endian.h"
 #include "ucs2.h"
 #include "varfile.h"
