@@ -1,14 +1,9 @@
-*~
-*.o
-*.so
-*.a
-*.efi
 pesign
 authvar
 ms
 client
 efikeygen
-efisiglist
+efidbtool
 pesigcheck
 peverify
 pesign.service

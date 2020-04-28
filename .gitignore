@@ -1,8 +1,14 @@
 .*.d
 .*.P
 .*.sw?
+.sw?
+*~
 *.a
+*.bin
+*.C
 *.E
+*.efi
+*.o
 *.so
 /*.auth
 /*.crt
