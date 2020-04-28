@@ -7,6 +7,7 @@
 #ifndef AUTHVAR_H
 #define AUTHVAR_H 1
 
+#include <efivar.h>
 #include <efisec.h>
 
 #include <libdpe/libdpe.h>

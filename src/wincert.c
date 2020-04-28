@@ -6,10 +6,7 @@
  */
 #include "pesign.h"
 
-struct cert_list_entry {
-	win_certificate wc;
-	uint8_t data[];
-};
+typedef win_certificate_pkcs_signed_data_t cert_list_entry_t;
 
 static int
 generate_cert_list(SECItem **signatures, int num_signatures,
@@ -17,7 +14,7 @@ generate_cert_list(SECItem **signatures, int num_signatures,
 {
 	size_t cl_size = 0;
 	for (int i = 0; i < num_signatures; i++) {
-		cl_size += sizeof (win_certificate);
+		cl_size += sizeof (win_certificate_header_t);
 		cl_size += signatures[i]->len;
 		cl_size += ALIGNMENT_PADDING(cl_size, 8);
 	}
@@ -33,14 +30,14 @@ generate_cert_list(SECItem **signatures, int num_signatures,
 		/* pe-coff 8.2 adds some text that says each cert list
 		 * entry is 8-byte aligned, so that means we need to align
 		 * them here. */
-		struct cert_list_entry *cle = (struct cert_list_entry *)data;
-		cle->wc.length = signatures[i]->len +
-			sizeof (win_certificate);
-		cle->wc.revision = WIN_CERT_REVISION_2_0;
-		cle->wc.cert_type = WIN_CERT_TYPE_PKCS_SIGNED_DATA;
+		cert_list_entry_t *cle = (cert_list_entry_t *)data;
+		cle->hdr.length = signatures[i]->len +
+			sizeof (win_certificate_header_t);
+		cle->hdr.revision = WIN_CERT_REVISION_2_0;
+		cle->hdr.cert_type = WIN_CERT_TYPE_PKCS_SIGNED_DATA;
 		memcpy(&cle->data[0], signatures[i]->data,
 					signatures[i]->len);
-		data += sizeof (win_certificate) + signatures[i]->len;
+		data += sizeof (win_certificate_header_t) + signatures[i]->len;
 		data += ALIGNMENT_PADDING(signatures[i]->len, 8);
 	}
 
@@ -146,11 +143,11 @@ done:
 		return 0;
 
 	while (1) {
-		win_certificate *tmpcert;
+		win_certificate_header_t *tmpcert;
 		if (n + sizeof (*tmpcert) >= size)
 			goto done;
 
-		tmpcert = (win_certificate *)((uint8_t *)certs + n);
+		tmpcert = (win_certificate_header_t *)((uint8_t *)certs + n);
 
 		if ((intptr_t)tmpcert > (intptr_t)((intptr_t)map + map_size))
 			return -1;
@@ -259,7 +256,7 @@ get_total_sigspace_size(cms_context *cms, Pe *pe, SECItem *sig)
 	/* at this point ret is any amount of padding we need plus any number
 	 * of previous entries.  Add the amount for this entry, which *doesn't*
 	 * yet include any padding. */
-	ret += sizeof(win_certificate);
+	ret += sizeof(win_certificate_header_t);
 	ret += sig->len;
 
 	/* and finally, the spec actually says:

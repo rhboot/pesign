@@ -9,6 +9,7 @@
 
 #include "fix_coverity.h"
 
+#include <efivar.h>
 #include <efisec.h>
 
 #include <libdpe/libdpe.h>

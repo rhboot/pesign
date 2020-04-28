@@ -7,6 +7,9 @@
 #ifndef AUTHVAR_CONTEXT_H
 #define AUTHVAR_CONTEXT_H 1
 
+#include <efivar.h>
+#include <efisec.h>
+
 typedef struct {
 	long verbose;
 
@@ -29,7 +32,7 @@ typedef struct {
 	int   exportfd;
 	uint8_t to_firmware;
 
-	win_cert_uefi_guid_t *authinfo;
+	win_certificate_uefi_guid_t *authinfo;
 
 	cms_context *cms_ctx;
 } authvar_context;

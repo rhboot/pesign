@@ -8,6 +8,7 @@
 #define pesigcheck_CONTEXT_H 1
 
 #include <cert.h>
+#include <efivar.h>
 #include <secpkcs7.h>
 
 enum {
