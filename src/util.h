@@ -22,6 +22,8 @@
 #include "compiler.h"
 #include "list.h"
 
+extern size_t HIDDEN page_size;
+
 #define xfree(x) ({ if (x) { free(x); x = NULL; } })
 #define xclose(fd) ({ if ((fd) >= 0) { close(fd); (fd) = -1; } })
 #define xopen(path, flags, args...) ({ int fd_ = open(path, flags, ## args); if (fd_ < 0) liberr(1, "Could not open file \"%s\"", arg); fd_; })
@@ -95,16 +97,17 @@
 
 static inline int UNUSED
 read_file(int fd, char **bufp, size_t *lenptr) {
-    int alloced = 0, size = 0, i = 0;
+    size_t alloced = 0, size = 0;
+    ssize_t i = 0;
     char * buf = NULL;
 
     do {
 	size += i;
-	if ((size + 1024) > alloced) {
-	    alloced += 4096;
-	    buf = realloc(buf, alloced + 1);
+	if ((size + (page_size >> 2)) > alloced) {
+	    alloced += page_size;
+	    buf = realloc(buf, ALIGN_UP(alloced + 1, page_size));
 	}
-    } while ((i = read(fd, buf + size, 1024)) > 0);
+    } while ((i = read(fd, buf + size, page_size >> 2)) > 0);
 
     if (i < 0) {
         free(buf);

@@ -17,7 +17,7 @@ COMMON_SOURCES = cms_common.c content_info.c \
 		 password.c \
 		 signed_data.c signer_info.c \
 		 text.c \
-		 ucs2.c
+		 ucs2.c util.c
 COMMON_PE_SOURCES = wincert.c cms_pe_common.c
 AUTHVAR_SOURCES = authvar.c authvar_context.c
 CLIENT_SOURCES = pesign_context.c actions.c client.c
