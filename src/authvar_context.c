@@ -119,6 +119,10 @@ generate_descriptor(authvar_context *ctx)
 	/* sign the digest */
 	memset(&sd_der, '\0', sizeof(sd_der));
 	rc = generate_authvar_signed_data(ctx->cms_ctx, &sd_der);
+	ctx->cms_ctx->authbuf = NULL;
+	ctx->cms_ctx->authbuf_len = 0;
+	free(buf);
+
 	if (rc < 0)
 		cmsreterr(-1, ctx->cms_ctx, "could not create signed data");
 
