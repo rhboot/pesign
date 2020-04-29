@@ -11,7 +11,7 @@ pe_getdatadir(Pe *pe, data_directory **dd)
 {
 	int rc = -1;
 
-	if (!dd) {
+	if (!pe || !dd) {
 		__libpe_seterrno(PE_E_INVALID_INDEX);
 		return rc;
 	}

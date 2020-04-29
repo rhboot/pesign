@@ -143,6 +143,9 @@ __libpe_read_mmapped_file(int fildes, void *map_address, size_t maxsize,
 		case PE_K_PE_EXE:
 			return file_read_pe_exe(fildes, map_address, p_ident,
 						maxsize, cmd, parent);
+		case PE_K_MZ:
+			errno = ENOSYS;
+			return NULL;
 		default:
 			break;
 	}
