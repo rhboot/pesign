@@ -446,11 +446,12 @@ remove_signature(pesign_context *p_ctx)
 	cms_context *ctx = p_ctx->cms_ctx;
 
 	free(ctx->signatures[p_ctx->signum]->data);
+	free(ctx->signatures[p_ctx->signum]);
 	if (p_ctx->signum != ctx->num_signatures - 1)
-		memmove(ctx->signatures[p_ctx->signum],
-			ctx->signatures[p_ctx->signum+1],
-			sizeof(SECItem) *
-				(ctx->num_signatures - 1));
+		memmove(&ctx->signatures[p_ctx->signum],
+			&ctx->signatures[p_ctx->signum+1],
+			sizeof(SECItem*) *
+				(ctx->num_signatures - p_ctx->signum - 1));
 
 	ctx->num_signatures--;
 }
