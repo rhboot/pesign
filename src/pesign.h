@@ -9,6 +9,8 @@
 
 #include "fix_coverity.h"
 
+#include <efisec.h>
+
 #include <libdpe/libdpe.h>
 #include <libdpe/pe.h>
 
@@ -17,7 +19,6 @@
 #include "pesign_context.h"
 
 #include "daemon.h"
-#include "efitypes.h"
 #include "actions.h"
 #include "endian.h"
 #include "oid.h"

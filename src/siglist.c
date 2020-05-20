@@ -6,14 +6,14 @@
  */
 #include "fix_coverity.h"
 
+#include <efisec.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/param.h>
-#include <errno.h>
 
-#include "efitypes.h"
 #include "siglist.h"
 
 struct efi_signature_data {

@@ -7,10 +7,11 @@
 #ifndef AUTHVAR_H
 #define AUTHVAR_H 1
 
+#include <efisec.h>
+
 #include <libdpe/libdpe.h>
 #include <libdpe/pe.h>
 
-#include "efitypes.h"
 #include "util.h"
 #include "cms_common.h"
 #include "wincert.h"

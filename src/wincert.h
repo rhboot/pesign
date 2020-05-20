@@ -8,14 +8,7 @@
 #ifndef PESIGN_WINCERT_H
 #define PESIGN_WINCERT_H 1
 
-#include "efitypes.h"
-
-#define WIN_CERT_TYPE_PKCS_SIGNED_DATA	0x0002
-#define WIN_CERT_TYPE_EFI_PKCS115	0x0EF0
-#define WIN_CERT_TYPE_EFI_GUID		0x0EF1
-
-#define WIN_CERT_REVISION_1_0	0x0100
-#define WIN_CERT_REVISION_2_0	0x0200
+#include <efisec.h>
 
 typedef struct win_certificate {
 	uint32_t length;

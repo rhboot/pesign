@@ -6,6 +6,7 @@
  */
 #include "fix_coverity.h"
 
+#include <efisec.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -19,7 +20,6 @@
 #include <sys/mman.h>
 
 #include "util.h"
-#include "efitypes.h"
 #include "siglist.h"
 
 struct hash_param {

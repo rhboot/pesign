@@ -7,11 +7,12 @@
 #ifndef PESIGN_H
 #define PESIGN_H 1
 
+#include <efisec.h>
+
 #include <libdpe/libdpe.h>
 #include <libdpe/pe.h>
 
 #include "util.h"
-#include "efitypes.h"
 #include "cms_common.h"
 #include "pesigcheck_context.h"
 #include "certdb.h"
