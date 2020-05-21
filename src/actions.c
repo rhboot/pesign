@@ -55,8 +55,8 @@ insert_signature(cms_context *cms, int signum)
 		sizeof (SECItem *) * (cms->num_signatures + 1));
 	if (!signatures) {
 err:
-		cms->log(cms, LOG_ERR, "insert signature: could not allocate "
-					"memory: %m");
+		cms->log(cms, LOG_ERR,
+			 "insert signature: could not allocate memory: %m");
 		exit(1);
 	}
 	cms->signatures = signatures;
@@ -67,6 +67,9 @@ err:
 	}
 
 	SECItem *newsig = malloc(sizeof (*newsig));
+	if (!newsig)
+		goto err;
+
 	memcpy(newsig, sig, sizeof (*newsig));
 	newsig->data = malloc(sig->len);
 	if (!newsig->data)
@@ -280,10 +283,8 @@ parse_signature(pesign_context *ctx)
 	size_t siglen = 0;
 
 	rc = read_file(ctx->insigfd, &sig, &siglen);
-	if (rc < 0) {
-		fprintf(stderr, "pesign: could not read signature.\n");
-		exit(1);
-	}
+	if (rc < 0)
+		liberr(1, "pesign: could not read signature");
 
 	unsigned char *der;
 	unsigned int derlen;
@@ -293,10 +294,8 @@ parse_signature(pesign_context *ctx)
 	if (base64) {
 		base64 += strlen(sig_begin_marker);
 		char *end = strstr(base64, sig_end_marker);
-		if (!end) {
-			fprintf(stderr, "pesign: Invalid signature.\n");
-			exit(1);
-		}
+		if (!end)
+			liberr(1, "pesign: Invalid signature");
 
 		derlen = end - base64;
 		base64[derlen] = '\0';
