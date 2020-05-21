@@ -21,7 +21,7 @@ EFI_ARCHES ?= aa64 ia32 x64
 PKG_CONFIG ?= $(CROSS_COMPILE)pkg-config
 CC	:= $(if $(filter default,$(origin CC)),$(CROSS_COMPILE)gcc,$(CC))
 CCLD	:= $(if $(filter undefined,$(origin CCLD)),$(CC),$(CCLD))
-CFLAGS	?= -Og -g3 -pipe -fPIE -fstack-protector-all \
+CFLAGS	?= -O2 -g3 -pipe -fPIE -fstack-protector-all \
 	-fstack-clash-protection -fcf-protection=full
 DIAGFLAGS ?= -fmessage-length=0 \
 	     -fdiagnostics-color=always \
