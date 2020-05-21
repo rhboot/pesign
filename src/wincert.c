@@ -367,9 +367,16 @@ err:
 	if (signatures) {
 		for (i = 0; i < nsigs; i++) {
 			if (signatures[i]) {
-				if (signatures[i]->data)
+				if (signatures[i]->data) /* <-- see below */
 					free(signatures[i]->data);
 				free(signatures[i]);
+				/*
+				 * in gcc-10.1.1-1.fc32 , -fanalyzer believes the test
+				 * above is a use-after free.  I really don't see how,
+				 * but this somehow convinces it there's nothing wrong
+				 * there.
+				 */
+				signatures[i] = NULL;
 			}
 		}
 		free(signatures);
