@@ -13,7 +13,7 @@ struct cert_list_entry {
 
 static int
 generate_cert_list(SECItem **signatures, int num_signatures,
-		void **cert_list, size_t *cert_list_size)
+		   void **cert_list, size_t *cert_list_size)
 {
 	size_t cl_size = 0;
 	for (int i = 0; i < num_signatures; i++) {
@@ -50,9 +50,15 @@ generate_cert_list(SECItem **signatures, int num_signatures,
 static int
 implant_cert_list(Pe *pe, void *cert_list, size_t cert_list_size)
 {
+	if (!pe) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	int rc = pe_alloccert(pe, cert_list_size);
 	if (rc < 0)
 		return rc;
+
 	return pe_populatecert(pe, cert_list, cert_list_size);
 }
 
@@ -61,6 +67,11 @@ finalize_signatures(SECItem **sigs, int num_sigs, Pe *pe)
 {
 	void *clist = NULL;
 	size_t clist_size = 0;
+
+	if (!pe) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	if (generate_cert_list(sigs, num_sigs,
 				&clist, &clist_size) < 0)
@@ -77,6 +88,11 @@ finalize_signatures(SECItem **sigs, int num_sigs, Pe *pe)
 int
 cert_iter_init(cert_iter *iter, Pe *pe)
 {
+	if (!pe) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	iter->pe = pe;
 	iter->n = 0;
 	iter->certs = 0;
