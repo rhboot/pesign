@@ -5,6 +5,7 @@
  * Copyright Red Hat, Inc.
  */
 #include <unistd.h>
+
 #include "libdpe_priv.h"
 
 int
@@ -12,6 +13,11 @@ pe_clearcert(Pe *pe)
 {
 	int rc;
 	data_directory *dd = NULL;
+
+	if (!pe) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	rc = pe_getdatadir(pe, &dd);
 	if (rc < 0)
@@ -30,6 +36,11 @@ pe_alloccert(Pe *pe, size_t size)
 {
 	int rc;
 	data_directory *dd = NULL;
+
+	if (!pe) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	pe_clearcert(pe);
 
@@ -57,6 +68,12 @@ pe_populatecert(Pe *pe, void *cert, size_t size)
 {
 	int rc;
 	data_directory *dd = NULL;
+
+	if (!pe) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	rc = pe_getdatadir(pe, &dd);
 	if (rc < 0)
 		return rc;

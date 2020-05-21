@@ -43,6 +43,11 @@ pe_fix_addresses(Pe *pe, int64_t offset)
 int
 pe_set_image_size(Pe *pe)
 {
+	if (!pe) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	uint32_t image_size = 0;
 	struct pe_hdr *pehdr = pe->state.pe.pehdr;
 	struct pe32plus_opt_hdr *opthdr = pe->state.pe32plus_exe.opthdr;
@@ -73,6 +78,11 @@ pe_set_image_size(Pe *pe)
 int
 pe_extend_file(Pe *pe, size_t size, uint32_t *new_space, int align)
 {
+	if (!pe) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	void *new = NULL;
 
 	if (align)
@@ -107,6 +117,10 @@ pe_shorten_file(Pe *pe, size_t size)
 {
 	void *new = NULL;
 
+	if (!pe) {
+		errno = EINVAL;
+		return -1;
+	}
 	new = mremap(pe->map_address, pe->maximum_size,
 		pe->maximum_size - size, 0);
 	if (new == MAP_FAILED) {
@@ -125,6 +139,11 @@ pe_shorten_file(Pe *pe, size_t size)
 int
 pe_freespace(Pe *pe, uint32_t offset, size_t size)
 {
+	if (!pe) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	void *addr = compute_mem_addr(pe, offset);
 	memset(addr, '\0', size);
 
