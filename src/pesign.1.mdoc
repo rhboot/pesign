@@ -1,0 +1,339 @@
+.Dd $Mdocdate: Jun 4 2020$
+.Dt PESIGN 1
+.Os Linux
+.Sh NAME
+.Nm pesign
+.Nd tool for signing UEFI applications
+.Sh SYNOPSIS
+.Nm
+.Bk -words
+.Cm Fl i Ar file
+.Op Fl o Ar file
+.Op Fl f
+.Op Fl n Ar directory
+.Op Fl t Ar token
+.Op Fl c Ar nickname
+.Op Fl u Ar number
+.Op Fl m Ar file
+.Op Fl e Ar file
+.Op Fl I Ar file
+.Op Fl E Ar file
+.Op Fl R Ar file
+.Op Fl K Ar file
+.Op Fl C Ar file
+.Op Fl a
+.Op Fl l
+.Op Fl S
+.Op Fl v
+.Ek
+\&
+.Ao
+.Fl s
+|
+.Fl D Op Fl N
+|
+.Fl r
+|
+.Ek
+.Bk -words
+.Fl h
+.Op Fl d Ar digest
+.Op Fl P | Fl p
+.Ek
+.Ac
+.Sh DESCRIPTION
+.Nm
+is a command line tool for manipulating signatures and cryptographic digests of
+UEFI applications.
+.Sh OPTIONS
+.Bl -tag
+.It Fl i Ar file | Fl Fl in Ar file
+Input PE
+.Ar file
+for signing
+.It Fl o Ar file | Fl Fl out Ar file
+Output PE
+.Ar file
+for signing
+.It Fl f | Fl Fl force
+Overwrite existing file specified with
+.Fl Fl out
+.It Fl n Ar directory | Fl Fl certdir Ar directory
+Use the NSS Database in
+.Ar directory
+.Po
+default:
+.Pa /etc/pki/pesign
+.Pc
+.It Fl t Ar token | Fl Fl token Ar token
+Use the NSS token named
+.Ar token
+.It Fl c Ar nickname | Fl Fl certificate Ar nickname
+Use the certificate called
+.Ar nickname
+in the NSS Database
+.It Fl u Ar number | Fl Fl signature-number Ar number
+Signature number, indexed from 0, for use with
+.Fl Fl remove-signature\fR,
+.Fl Fl export-signature\fR,
+or
+.Fl Fl show-signature
+.Po
+default: \fI0\fR
+.Pc
+.It Fl m Ar file | Fl Fl import-signature Ar file
+Import \fBAuthenticode\fR signature from
+.Ar file
+.It Fl e Ar file | Fl Fl export-signature Ar file
+Export \fBAuthenticode\fR signature to
+.Ar file
+.It Fl I Ar file | Fl Fl import-signed-attributes Ar file
+Import \fBPKCS-7\fR \fISignedAttributes\fR (with no signature) from
+.Ar file
+.It Fl E Ar file | Fl Fl export-signed-attributes Ar file
+Export \fBPKCS-7\fR \fISignedAttributes\fR (with no signature) to
+.Ar file
+.It Fl R Ar file | Fl Fl import-raw-signature Ar file
+Import signature digest from
+.Ar file
+.It Fl K Ar file | Fl Fl export-pubkey Ar file
+Export public key from the NSS Database specified by
+.Fl Fl token
+and
+.Fl Fl certificate
+to
+.Ar file
+.It Fl C Ar file | Fl Fl export-cert Ar file
+Export certificate from the NSS Database specified by
+.Fl Fl token
+and
+.Fl Fl certificate
+to
+.Ar file
+.It Fl a | Fl Fl ascii-armor
+When exporting certificates, encode them in \fIascii-armor\fR
+.It Fl l | Fl Fl list-signatures
+List signatures
+.It Fl S | Fl Fl show-signature
+Show information about signatures
+.It Fl v | Fl Fl verbose
+Be more verbose
+.It Fl s | Fl Fl sign
+Create a new signature
+.It Fl D | Fl Fl daemonize
+Run as a daemon
+.It Fl N | Fl Fl nofork
+Do not fork when daemonizing
+.Po
+daemon runs in foreground
+.Pc
+.It Fl r | Fl Fl remove-signature
+Remove signature
+.It Fl h | Fl Fl hash
+Display the \fBAuthenticode\fR hash of the binary
+.It Fl d Ar digest | Fl Fl digest-type Ar digest
+Use the cryptorgaphic
+.Ar digest
+with
+.Fl Fl hash
+.Po
+use
+.Ar help
+to list options
+.Pc
+.Po
+default: \fIsha256\fR
+.Pc
+.It Fl P | Fl Fl padding | Fl p | Fl Fl nopadding
+Do or do not pad the binary according to \fBPE 9.3\fR rules before signing or hashing
+.Po
+default:
+.Fl Fl padding
+.Pc
+
+Padding is recommended (and in many circumstances required) even for binaries
+which predate the current PE spec, and is enabled by default as of pesign 113.
+.El
+.Sh EXAMPLES
+
+.Ss Signing with the certificate and private key in individual files
+
+
+If you have a certificate file and private key file, the following steps
+may be used to sign a PE image:
+
+.Bd -literal -offset 1 -compact
+# Create a pkcs12 file from private key and certificate file.\p
+host:~$ \fBopenssl pkcs12 -export -out foo_key.p12 \e
+        -inkey signing_key.pem -in xyz_cert.x509.pem\fR
+
+# Import pkcs12 file into pesign db\p
+host:~$ \fBpk12util -i foo_key.p12 -d /etc/pki/pesign\fR
+
+# Do the signing\p
+host:~$ \fBpesign -c my-signing-cert -s \e
+        -i foo.unsigned.efi -o foo.signed.efi\fR
+.Ed
+
+Please note that this is just an example, and that recommended best practice
+is to always store private keys in a \fIFIPS 140-2\fR Hardware Security
+Module (HSM), level 2 or higher.
+.Ss Signing using an HSM
+
+
+If you have a key pair in your HSM and your HSM vendor provides a PKCS-11 library, you can use it with NSS directly:
+
+.Bd -literal -offset 1 -compact
+# Add the HSM PKCS-11 library to the NSS database\p
+host:~$ \fBmodutil -dbdir /etc/pki/pesign -add vendor-engine \e
+        -libfile /usr/lib64/pkcs11/vendor-engine.so\fR
+WARNING: Performing this operation while the browser is running
+could cause corruption of your security databases. If the browser
+is currently running, you should exit browser before continuing
+this operation. Type\p
+\(aqq <enter>\(aq to abort, or <enter> to continue: \fB<type enter here>\fR
+
+Module "vendor-engine" added to database.
+
+# List the added module\p
+host:~$ \fBmodutil -dbdir /etc/pki/pesign -list\fR
+-----------------------------------------------------------
+  1. NSS Internal PKCS #11 Module
+	   uri: pkcs11:library-manufacturer=Mozilla%20Foundation;library-description=NSS%20Internal%20Crypto%20Services;library-version=3.52
+	 slots: 2 slots attached
+	status: loaded
+
+	 slot: NSS Internal Cryptographic Services
+	token: NSS Generic Crypto Services
+	  uri: pkcs11:token=NSS%20Generic%20Crypto%20Services;manufacturer=Mozilla%20Foundation;serial=0000000000000000;model=NSS%203
+
+	 slot: NSS User Private Key and Certificate Services
+	token: NSS Certificate DB
+	  uri: pkcs11:token=NSS%20Certificate%20DB;manufacturer=Mozilla%20Foundation;serial=0000000000000000;model=NSS%203
+
+  2. opensc-pkcs11.so
+	library name: /usr/lib64/pkcs11/opensc-pkcs11.so
+	   uri: pkcs11:library-manufacturer=OpenSC%20Project;library-description=OpenSC%20smartcard%20framework;library-version=0.20
+	 slots: 1 slot attached
+	status: loaded
+
+	 slot: Generic Smart Card Reader Interface [Smart Card Reader Interf...
+	token: OpenSC Card (myorg-sb-signer)
+	  uri: pkcs11:token=OpenSC%20Card%20(myorg-sb-signer);manufacturer=OpenSC%20Project;serial=56516a130f35;model=PKCS%2315
+-----------------------------------------------------------
+
+# List certs in tokens\p
+host:~$ \fBcertutil -d /etc/pki/pesign \e
+        -h "OpenSC Card (myorg-sb-signer)" -L\fR
+Certificate Nickname                             Trust Attributes\p
+                                                 SSL,S/MIME,JAR/XPI\p
+
+Enter Password or Pin for "OpenSC Card (myorg-sb-signer)": \fB<type the PIN here>\fR\p
+OpenSC Card (myorg-sb-signer):/CN=My Org's SB Signer    u,u,u\p
+
+# Sign with private key in HSM
+host:~$ \fBpesign -t "OpenSC Card (myorg-sb-signer)" \e
+        -c "OpenSC Card (myorg-sb-signer):/CN=My Org's SB Signer" \e
+        -s -i foo.unsigned.efi -o foo.efi\fR
+.Ed
+.Ss Signing using an HSM with an OpenSSL Engine
+
+
+If you have a key pair in your HSM but can't access it directly, but do have
+access to the openssl command line tool configured with your vendor's
+libraries, you can still use
+.Nm
+to sign your PE binaries:
+
+.Bd -literal -offset 1 -compact
+
+# Import the public certificate into the NSS Database\p
+host:~$ \fBcertutil -d /etc/pki/pesign -A -n myorg-sb-signer \e
+        -t ,,u -i myorg-sb-signer.cer\fR
+
+# Export the PKCS-7 SignedAttributes section pesign generates\p
+host:~$ \fBpesign -i foo.unsigned.efi -E foo.sattrs.bin\fR
+
+# Generate a signature using OpenSSL\p
+host:~$ \fBopenssl dgst -sha256 -sign $KEY \e
+        --keyform ENGINE --engine $ENGINEID \e
+        -out foo.sattrs.sig foo.sattrs.bin\fR
+
+# Import the signature with the original SignedAttributes into
+# the PE binary
+host:~$ \fBpesign -c myorg-sb-signer \e
+        -R foo.sattrs.sig -I foo.sattrs.bin \e
+        -i foo.unsigned.efi -o foo.efi
+.Sh STANDARDS
+.Rs
+.%A B. Kaliski
+.%R RFC 2315
+.%B PKCS #7: Cryptographic Message Syntax v1.5
+.%I Internet Engineering Task Force
+.%D March 1998
+.%U https://tools.ietf.org/html/rfc2315\ \&
+.Re
+
+.Rs
+.%A K. Moriarty
+.%A M. Nyström
+.%A S. Parkinson
+.%A A. Rusch
+.%A M. Scott
+.%R RFC 7292
+.%B PKCS #12: Personal Information Exchange Syntax v1.1
+.%I Internet Engineering Task Force
+.%D July 2014
+.%U https://tools.ietf.org/html/rfc7292\ \&
+.Re
+
+.Rs
+.%A PKCS11 Technical Committee
+.%B PKCS#11: Cryptographic Token Interface Standard
+.%I OASIS
+.%U https://www.cryptsoft.com/pkcs11doc/
+.Re
+
+.Rs
+.%A M. Nyström
+.%B PKCS #15—A Cryptographic-Token Information Format Standard
+.%I RSA Laboratories
+.%D 1999
+.%U https://www.usenix.org/legacy/events/smartcard99/full_papers/nystrom/nystrom.pdf\ \&
+.Re
+
+.Rs
+.%B Portable Executable
+.%I Microsoft
+.%D August 26, 2019
+.%U https://docs.microsoft.com/en-us/windows/win32/debug/pe-format\ \&
+.Re
+
+.Rs
+.%B Windows Authenticode Portable Executable Signature Format
+.%I Microsoft
+.%D March 21, 2008
+.%U https://web.archive.org/web/20130518222430/http://download.microsoft.com/download/9/c/5/9c5b2167-8017-4bae-9fde-d599bac8184a/Authenticode_PE.docx\ \&
+.Re
+
+.Rs
+.%R FIPS 140-2
+.%B Federal Information Processing Standard 140-2
+.%Q National Institute of Standards and Technology
+.%I United States Department of Commerce
+.%U http://csrc.nist.gov/publications/PubsFIPS.html\ \&
+.Re
+.Sh SEE ALSO
+.Xr certutil 1 ,
+.Xr efikeygen 1 ,
+.Xr modutil 1 ,
+.Xr opensc-tool 1 ,
+.Xr openssl 1ssl ,
+.Xr openssl-dgst 1ssl ,
+.Xr pesign-client 1 ,
+.Xr pk12util 1 ,
+.Xr pkcs15-init 1 ,
+.LP
+.Sh AUTHORS
+.An Peter Jones
+.An Vikas Charak \fR(examples)

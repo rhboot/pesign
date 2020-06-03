@@ -1,0 +1,361 @@
+.Dd $Mdocdate: Jun 3 2020$
+.Dt EFIKEYGEN 1
+.Os Linux
+.Sh NAME
+.Nm efikeygen
+.Nd tool for generating keys for PE image signing for UEFI Secure Boot
+.Sh SYNOPSIS
+.Nm efikeygen
+.Bk -words
+.Ao
+.Fl C |
+.Fl k |
+.Fl m
+.Ac
+.Ek
+.Bk -words
+.Ao
+.Cm Fl S |
+.Cm Fl Fl signer Ar nickname
+.Ac
+.Ek
+.Cm Fl n Ar nickname
+.Cm Fl c Ar common_name
+.Op Fl u Ar url
+.Op Fl s Ar serial
+.Op Fl d Ar directory
+.Op Fl t Ar token
+.Ek
+.Sh DESCRIPTION
+.Nm
+is a command line tool for generating keys and certificates to be used with
+pesign.  These are standard X.509 certificates, and can potentially be
+generated with any certificate creation tool.
+.Nm
+generates certificates with sensible options set for a key to be used for PE
+image signing for UEFI Secure Boot.
+
+.Sh OPTIONS
+.Bl -tag
+.It Fl C | Fl Fl ca
+Create a CA certificate
+.It Fl k | Fl Fl kernel
+Create a kernel signing certificate
+.Pp
+Not to be used for CA certificates
+.It Fl m | Fl Fl module
+Create a module signing certificate
+.Pp
+Not to be used for CA certificates
+.It Fl S | Fl Fl self-sign
+Create a self-signed certificate
+.It Fl Fl signer Ar nickname
+Use the NSS certificate referred to by
+.Ar nickname
+as the issuing certificate
+.It Fl n Ar nickname | Fl nickname Ar nickname
+Set the new certificate nickname in the NSS database to
+.Ar nickname
+.It Fl c Ar common_name | Fl Fl common-name Ar common_name
+The X.509 Common Name for the generated certificate.  This should be in
+rfc2253 syntax, i.e.:\p
+.Qq CN=John Doe,OU=editing,O=New York Times,L=New York,ST=NY,C=US
+.It Fl u Ar url | Fl Fl url Ar url
+URL for information regarding this certificate and objects signed with it.
+.It Fl s Ar serial | Fl Fl serial Ar serial
+Serial number for use with this key.  A certificate is identified by its
+signer and its serial number, so it's best not to ever re-use this value
+with the same signer.  By default, this value will be generated at random.
+It is not recommended to use this option to override that.
+.It Fl d Ar directory | Fl Fl dbdir Ar directory
+The directory for the NSS key database\p
+.Po
+default:
+.Pa /etc/pki/pesign
+.Pc
+.It Fl t Ar token | Fl Fl token Ar token
+The NSS token name to use\p
+.Po
+default:
+.Pa pkcs11:token=NSS%20Certificate%20DB
+.Pc
+.El
+.Sh EXAMPLES
+.Ss YubiKey
+
+
+Here's how you create both a CA certificate and keypair and a kernel signing
+certificate and keypair, and import them into yubikey PIV devices:
+
+Generate some keys:
+
+.Bd -literal -offset 1 -compact
+# Create a new CA key
+host:~$ \fBefikeygen -C -n my-ca -S \e
+        -c "CN=CA Person,OU=My Org's CA,O=My Org" \e
+        -u https://myorg.example.com/ca/\fR
+
+# Create a kernel signing key
+host:~$ \fBefikeygen -n my-signer --signer my-ca -k \e
+        -c "CN=Secure Boot Signer,OU=My Org's CA,O=My Org" \e
+        -u https://myorg.example.com/ca/\fR
+.Ed
+
+Save the CA to a yubikey:
+
+.Bd -literal -offset 1 -compact
+# Save it in a PKCS-12 bundle\p
+host:~$ \fBpk12util -d /etc/pki/pesign -o myca.pk12 -n my-ca\fR\p
+Enter password for PKCS12 file: \fB<type a password here>\fR\p
+Re-enter password: \fB<type it again here>\fR\p
+pk12util: PKCS12 EXPORT SUCCESSFUL
+
+# Import the key into the yubikey
+host:~$ \fByubico-piv-tool -s 9c -a import-key -K PKCS12 \e
+        -c -i myca.pk12\fR\p
+Enter PEM pass phrase: \fB<type the same password here>\fR\p
+Successfully imported a new private key.\p
+
+# Import the certificate into the yubikey\p
+host:~$ \fByubico-piv-tool -s 9c -a import-certificate \e
+        -K PKCS12 -i myca.pk12\fR
+Enter PEM pass phrase: \fB<type the same password here>\fR\p
+Successfully imported a new certificate.\p
+
+# Remove the CA cert from the NSS database\p
+host:~$ \fBcertutil -d /etc/pki/pesign -D -n my-ca\fR\p
+.Ed
+
+Now switch yubikeys and import the kernel signer onto another one
+
+.Bd -literal -offset 1 -compact
+# Save it in a PKCS-12 bundle\p
+host:~$ \fBpk12util -d /etc/pki/pesign -o mysigner.pk12 -n my-signer\fR\p
+Enter password for PKCS12 file: \fB<type a password here>\fR\p
+Re-enter password: \fB<type it again here>\fR\p
+pk12util: PKCS12 EXPORT SUCCESSFUL\p
+
+# Import the key into the yubikey\p
+host:~$ \fByubico-piv-tool -s 9c -a import-key -K PKCS12 \e\p
+        -i mysigner.pk12\fR\p
+Enter PEM pass phrase: \fB<type the same password here>\fR\p
+Successfully imported a new private key.\p
+
+# Import the certificate into the yubikey\p
+host:~$ \fByubico-piv-tool -s 9c -a import-certificate \e\p
+        -K PKCS12 -i mysigner.pk12\fR\p
+Enter PEM pass phrase: \fB<type it again here>\fR\p
+Successfully imported a new certificate.\p
+
+# Remove the kernel signer from the NSS database\p
+host:~$ \fBcertutil -d /etc/pki/pesign -D -n my-signer\fR
+.Ed
+
+Once you have done this, you are prepared to sign binaries:
+
+.Bd -literal -offset 1 -compact
+# On each of these prompts, you have to enter the PIN for\p
+# the Yubikey.  This and the strange choice of names are\p
+# because PKCS-11 is horrible.  I'm sorry.\p
+host:~$ \fBpesign -s -t 'Secure Boot Signer' \e\p
+        -c "Certificate for Digital Signature" \e\p
+        -i shimx64.efi -o shimx64.signed.efi\fR\p
+Enter Password or Pin for "Secure Boot Signer": \fB<type the PIN here>\fR\p
+Enter passphrase for private key: \fB<type it again here>\fR\p
+Enter passphrase for private key: \fB<type it again here>\fR\p
+.Ed
+
+Now verify that it worked:
+
+.Bd -literal -offset 1 -compact
+host:~$ \fBpesign -i shimx64.signed.efi -l\fR\p
+---------------------------------------------\p
+certificate address is 0x7fbbae061468\p
+Content was not encrypted.\p
+Content is detached; signature cannot be verified.\p
+The signer's common name is Secure Boot Signer\p
+No signer email address.\p
+Signing time: Wed May 15, 2019\p
+There were certs or crls included.\p
+---------------------------------------------\p
+.Ed
+
+Yay!
+.Ss OpenSC (smart card)
+Here's how you create both a CA certificate and keypair
+and a kernel signing certificate and keypair, and import
+them into CardOS Smart Card devices supported by OpenSC:
+
+Optionally, format the card and initialize its PKCS15 data:
+
+.Bd -literal -offset 1 -compact
+# Format the card
+host:~$ \fBcardos-tool -f\fR\p
+Using reader with a card: Generic Smart Card Reader Interface [Smart Card Reader Interface] (20070818000000000) 00 00\p
+card in administrative state, ok\p
+
+# Initialize the card's PKCS15 data, set the Security Officer PIN and unlock
+# code.\p
+host:~$ \fBpkcs15-init -CT --so-pin $SOPIN --so-puk $SOPUK\fR\p
+Using reader with a card: Generic Smart Card Reader Interface [Smart Card Reader Interface] (20070818000000000) 00 00\p
+
+# Initialize the user PIN and unlock code, and label the token\p
+host:~$ \fBpkcs15-init -P -a 1 --pin $PIN --puk $PUK \e\p
+        --so-pin $SOPIN --so-puk $SOPUK \e\p
+        --label "myorg-sb-ca"\fR\p
+Using reader with a card: Generic Smart Card Reader Interface [Smart Card Reader Interface] (20070818000000000) 00 00\p
+.Ed
+
+Generate keys and certificates:
+
+.Bd -literal -offset 1 -compact
+# Create a new CA key and certificate\p
+host:~$ \fBefikeygen -C -n my-ca -S \e\p
+        -c "CN=My Org's Secure Boot CA,OU=My Org's CA,O=My Org" \e\p
+        -u https://myorg.example.com/ca/\fR
+
+# Create a kernel signing key and cert\p
+host:~$ \fBefikeygen -n my-signer --signer my-ca -k \e\p
+        -c "CN=My Org's SB Signer,OU=My Org's CA,O=My Org"\e\p
+        -u https://myorg.example.com/ca/\fR
+.Ed
+
+Get them onto the Smart Card
+
+.Bd -literal -offset 1 -compact
+# Save the CA key and certificate in a PKCS-12 bundle\p
+host:~$ \fBpk12util -d /etc/pki/pesign -o my-ca.p12 -n my-ca\fB\p
+Enter password for PKCS12 file: \fB<enter a password here>\fR\p
+Re-enter password: \fB<type it again here>\fR\p
+pk12util: PKCS12 EXPORT SUCCESSFUL
+
+# Import the PKCS-12 bundle onto the card\p
+host:~$ \fBpkcs15-init --store-private-key my-ca.p12 \e\p
+        --format pkcs12 --auth-id 01 \e\p
+        --pin $PIN --so-pin $SOPIN --so-puk $SOPUK\fR\p
+Using reader with a card: Generic Smart Card Reader Interface [Smart Card Reader Interface] (20070818000000000) 00 00\p
+Importing 1 certificates:\p
+   0: /CN=My Org's Secure Boot CA\p
+
+# List the contents:\p
+host:~$ \fBpkcs11-tool --module opensc-pkcs11.so -l --pin $PIN -O\fR\p
+Using slot 1 with a present token (0x1)\p
+Private Key Object; RSA\p
+  label:      Private Key\p
+  ID:         de61fac87e0315352e7b9a487377ace2f6354d9b\p
+  Usage:      sign\p
+Certificate Object, type = X.509 cert\p
+  label:      /CN=My Org's Secure Boot CA\p
+  ID:         de61fac87e0315352e7b9a487377ace2f6354d9b\p
+Public Key Object; RSA 2048 bits\p
+  label:      /CN=My Org's Secure Boot CA\p
+  ID:         de61fac87e0315352e7b9a487377ace2f6354d9b\p
+  Usage:      encrypt, verify
+
+# Check and make sure nss can see the card\p
+host:~$ \fBmodutil -dbdir /etc/pki/pesign/ -list\fR\p
+Listing of PKCS #11 Modules\p
+-----------------------------------------------------------\p
+  1. NSS Internal PKCS #11 Module\p
+     slots: 2 slots attached\p
+    status: loaded\p
+
+     slot: NSS Internal Cryptographic Services\p
+    token: NSS Generic Crypto Services\p
+
+     slot: NSS User Private Key and Certificate Services\p
+    token: NSS Certificate DB\p
+
+  2. opensc-pkcs11\p
+    library name: /usr/lib64/pkcs11/opensc-pkcs11.so\p
+     slots: 2 slots attached\p
+    status: loaded\p
+
+     slot: Virtual hotplug slot\p
+    token:\p
+
+     slot: Generic Smart Card Reader Interface [Smart Card Read...\p
+    token: OpenSC Card (myorg-sb-ca)\p
+-----------------------------------------------------------\p
+
+# Check and make sure NSS can see the certificate:\p
+host:~$ \fBcertutil -d /etc/pki/pesign -L \e\p
+        -h "OpenSC Card (myorg-sb-ca)"\fR\p
+Certificate Nickname                             Trust Attributes\p
+                                                 SSL,S/MIME,JAR/XPI\p
+
+Enter Password or Pin for "OpenSC Card (myorg-sb-ca)": \fB<type the PIN here>\fR\p
+OpenSC Card (myorg-sb-ca):/CN=My Org's Secure Boot CA    u,u,u\p
+
+# Remove the CA from the NSS database\p
+host:~$ \fBcertutil -d /etc/pki/pesign -D -n my-ca\fR\p
+.Ed
+
+Remember to switch cards and do the same thing with the signer, just as in the
+YubiKey example, then sign a binary with the signing key on a Smart Card and
+verify that it worked:
+
+.Bd -literal -offset 1 -compact
+# Sign the binary.  On each of these prompts, you have to enter\p
+# the PIN for the Smart Card.  This and the strange choice of\p
+# names are because PKCS-11 is horrible.  I'm sorry.\p
+host:~$ \fBpesign -s -t "OpenSC Card(myorg-sb-signer)" \e\p
+        -c "OpenSC Card (myorg-sb-signer):/CN=My Org's SB Signer"\e\p
+        -i shimx64.efi -o shimx64.signed.efi\fR\p
+Enter Password or Pin for "My Org's SB Signer": \fB<type the PIN here>\fR\p
+Enter passphrase for private key: \fB<type the PIN here>\fR\p
+Enter passphrase for private key: \fB<type the PIN here>\fR\p
+
+# Verify that it worked:\p
+host:~$ \fBpesign -i shimx64.signed.efi -l\fR\p
+---------------------------------------------\p
+certificate address is 0x7fbbae061468\p
+Content was not encrypted.\p
+Content is detached; signature cannot be verified.\p
+The signer's common name is My Org's SB Signer\p
+No signer email address.\p
+Signing time: Wed Jun 2, 2020\p
+There were certs or crls included.\p
+---------------------------------------------\p
+.Ed
+
+Yay!
+.Sh STANDARDS
+.Rs
+.%A B. Kaliski
+.%R RFC 2315
+.%B PKCS #7: Cryptographic Message Syntax v1.5
+.%I Internet Engineering Task Force
+.%D March 1998
+.%U https://tools.ietf.org/html/rfc2315\ \&
+.Re
+
+.Rs
+.%A K. Moriarty
+.%A M. Nyström
+.%A S. Parkinson
+.%A A. Rusch
+.%A M. Scott
+.%R RFC 7292
+.%B PKCS #12: Personal Information Exchange Syntax v1.1
+.%I Internet Engineering Task Force
+.%D July 2014
+.%U https://tools.ietf.org/html/rfc7292\ \&
+.Re
+
+.Rs
+.%A PKCS11 Technical Committee
+.%B PKCS#11: Cryptographic Token Interface Standard
+.%I OASIS
+.%U https://www.cryptsoft.com/pkcs11doc/
+.Re
+.Sh SEE ALSO
+.Xr certutil 1 ,
+.Xr modutil 1 ,
+.Xr opensc-tool 1 ,
+.Xr pesign 1 ,
+.Xr pk12util 1 ,
+.Xr pkcs15-init 1 ,
+.Xr yubico-piv-tool 1 ,
+.Sh AUTHORS
+.An Peter Jones

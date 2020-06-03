@@ -1,0 +1,63 @@
+.Dd $Mdocdate: Jun 4 2020$
+.Dt PESIGCHECK 1
+.Os Linux
+.Sh NAME
+.Nm pesigcheck
+.Nd tool for verifying UEFI applications
+.Sh SYNOPSIS
+.Nm pesigcheck
+.Cm Fl i Ar file
+.Op Fl n
+.Op Fl D Ar file
+.Op Fl X Ar file
+.Op Fl c Ar file
+.Op Fl q
+.Op Fl v
+.Sh DESCRIPTION
+.Nm
+is a command line tool for verifying the signature of UEFI applications.
+.Sh OPTIONS
+.Bl -tag
+.It Fl i Ar file | Fl Fl in Ar file
+PE binary
+.Ar file
+to be checked
+.It Fl n | Fl Fl no-system-db
+inhibit the use of DB and DBX from the running system
+.It Fl D Ar file | Fl Fl dbfile Ar file
+EFI Signature List or EFI variable
+.Ar file
+to be used as the allowed security database
+
+may be used more than once
+.It Fl X Ar file | Fl Fl dbxfile Ar file
+EFI Signature List or EFI variable
+.Ar file
+to be used as the blacklisted security database
+
+may be used more than once
+.It Fl c Ar file | Fl Fl certfile Ar file
+DER-encoded certificate
+Ar file
+to be added to the allowed security database
+
+may be used more than once
+.It Fl q | Fl Fl quiet
+be quieter
+.It Fl v | Fl Fl verbose
+be more verbose
+.El
+.Sh STANDARDS
+.Rs
+.%A UEFI Specification Working Group
+.%B Unified Extensible Firmware Interface (UEFI) Specification Version 2.8
+.%I Unified Extensible Firmware Interface Forum
+.%D March 2019
+.%U https://uefi.org/specifications\ \&
+.Re
+.Sh SEE ALSO
+.Xr authvar 1 ,
+.Xr pesign 1 ,
+.Xr efisigdb 1
+.Sh AUTHORS
+.An Peter Jones

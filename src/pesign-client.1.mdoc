@@ -1,0 +1,85 @@
+.Dd $Mdocdate: Jun 4 2020$
+.Dt PESIGN-CLIENT 1
+.Os Linux
+.Sh NAME
+.Nm pesign-client
+.Nd tool for signing UEFI applications with a \fBpesign\fR server
+.Sh SYNOPSIS
+.Nm pesign-client
+.Bk -words
+.Op Fl i Ar file
+.Op Fl o Ar file
+.Op Fl e Ar file
+.Op Fl t Ar token
+.Op Fl c Ar nickname
+.Ao
+.Op Fl k |
+.Op Fl q |
+.Op Fl s |
+.Op Fl u
+.Ac
+.Op Fl f Ar fd
+.Op Fl F Ar file
+.Ek
+.Sh DESCRIPTION
+.Nm
+is a command line tool for manipulating signatures and cryptographic digests of UEFI applications.
+.Sh OPTIONS
+.Bl -tag
+.It Fl i Ar file | Fl Fl infile Ar file
+The input binary
+.Ar file
+to be signed with
+.Fl Fl sign
+.It Fl o Ar file | Fl Fl outfile Ar file
+The output binary
+.Ar file
+to be signed with
+.Fl Fl sign
+.It Fl e Ar file | Fl Fl export Ar file
+Export signature from 
+.Fl Fl sign
+to
+.Ar file
+.It Fl t Ar token | Fl Fl token Ar token
+Sign using NSS token
+.Ar token
+.It Fl c Ar nickname | Fl Fl certificate Ar nickname
+Sign using NSS certificate
+.Ar nickname
+.It Fl k | Fl Fl kill
+Kill the \fBpesign\fR server
+.It Fl q | Fl Fl is-unlocked
+Query the lock status of the token specified by
+.Fl Fl token
+.It Fl s | Fl Fl sign
+Sign the file specified by
+.Fl Fl infile
+.It Fl u | Fl Fl unlock
+Unlock the token specified with
+.Fl Fl token
+using the PIN read from
+.Fl Fl pinfd
+or
+.Fl Fl pinfile ,
+or specified by
+.Ev PESIGN_TOKEN_PIN
+.It Fl f Ar fd | Fl Fl pinfd Ar fd
+File descriptor to read the PIN from for
+.Fl Fl unlock
+.It Fl F Ar file | Fl Fl pinfile Ar file
+File to read the PIN from for unlock
+.El
+.Sh ENVIRONMENT
+.Bl -tag
+.It Ev PESIGN_TOKEN_PIN
+PIN for use with
+.Fl Fl unlock
+for the token specified by
+.Fl fl token
+.El
+.Sh "SEE ALSO"
+.Xr pesign 1 ,
+.Xr certutil 1
+.Sh AUTHORS
+.An Peter Jones

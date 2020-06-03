@@ -7,7 +7,9 @@ include $(TOPDIR)/Make.defaults
 
 BINTARGETS=authvar client efikeygen efisiglist pesigcheck pesign pesign-rpmbuild-helper
 SVCTARGETS=pesign.sysvinit pesign.service
-TARGETS=$(BINTARGETS) $(SVCTARGETS)
+MAN1TARGETS=authvar.1 efikeygen.1 efisiglist.1 pesigcheck.1 pesign-client.1 pesign.1
+
+TARGETS=$(BINTARGETS) $(SVCTARGETS) $(MAN1TARGETS)
 
 all : deps $(TARGETS)
 
@@ -94,12 +96,7 @@ install :
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -m 644 pesign.popt $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(mandir)man1/
-	$(INSTALL) -m 644 pesign.1 $(INSTALLROOT)$(mandir)man1/
-	$(INSTALL) -m 644 pesign-client.1 $(INSTALLROOT)$(mandir)man1/
-	$(INSTALL) -m 644 efikeygen.1 $(INSTALLROOT)$(mandir)man1/
-	$(INSTALL) -m 644 pesigcheck.1 $(INSTALLROOT)$(mandir)man1/
-	$(INSTALL) -m 644 authvar.1 $(INSTALLROOT)$(mandir)man1/
-	$(INSTALL) -m 644 efisiglist.1 $(INSTALLROOT)$(mandir)man1/
+	$(INSTALL) -m 644 $(MAN1TARGETS) $(INSTALLROOT)$(mandir)man1/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(libexecdir)/pesign/

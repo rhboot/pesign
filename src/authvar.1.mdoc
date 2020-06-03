@@ -1,0 +1,132 @@
+.Dd $Mdocdate: Jun 4 2020$
+.Dt AUTHVAR 1
+.Os Linux
+.Sh NAME
+.Nm authvar
+.Nd handles authenticated variables for pesign
+.Sh SYNOPSIS
+.Nm
+.Bk -words
+.Ao
+.Fl a |
+.Fl c |
+.Fl s
+.Ac
+.Ek
+.Bk -words
+.Cm Fl N Ar {guid}
+.Cm Fl n Ar name
+.Ek
+.Bk -words
+.Ao
+.Fl v Ar value |
+.Fl f Ar file
+.Ac
+.Ek
+.Bk -words
+.Op Fl t Ar time
+.Op Fl d Ar directory
+.Op Fl S Ar nickname
+.Op Fl i Ar file
+.Op Fl e Ar file
+.Ek
+.Sh DESCRIPTION
+.Nm
+is a command line utility for handling authenticated UEFI variables.
+.Sh OPTIONS
+.Bl -tag
+.It Fl a | Fl Fl append
+Append to variable
+.It Fl c | Fl Fl clear
+Clear variable
+.It Fl s | Fl Fl set
+set variable
+.It Fl N Ao {guid} | namespace Ac | Fl Fl namespace Ao {guid} | namespace Ac
+Variable is in
+.Ar namespace
+or
+.Ar {guid}
+.Po
+default:
+.Pa global
+.Pc
+
+Use
+.Fl N Ar help
+to list namespaces.
+.It Fl n Ar name | Fl Fl name Ar name
+Variable
+.Ar name
+.It Fl v Ar value | Fl Fl value Ar value
+Set or append
+.Ar value
+to variable
+.It Fl f Ar file | Fl Fl valuefile Ar file
+Read value from
+.Ar file
+.It Fl t Ar time | Fl Fl timestamp Ar time
+Timestamp for the variable
+.Po
+default:
+.Pa now
+.Pc
+.It Fl d Ar directory | Fl Fl certdir Ar directory
+Specify nss certificate database
+.Ar directory
+.Po
+default:
+.Pa /etc/pki/pesign
+.Pc
+.It Fl S Ar nickname | Fl Fl sign Ar nickname
+Sign variable with certificate
+.Ar nickname
+from the NSS database
+.It Fl i Ar file | Fl Fl import Ar file
+Import variable from
+.Ar file
+.It Fl e Ar file | Fl Fl export Ar file
+Export variable to
+.Ar file
+instead of setting it in firmware
+.Sh STANDARDS
+.Rs
+.%A B. Kaliski
+.%R RFC 2315
+.%B PKCS #7: Cryptographic Message Syntax v1.5
+.%I Internet Engineering Task Force
+.%D March 1998
+.%U https://tools.ietf.org/html/rfc2315\ \&
+.Re
+
+.Rs
+.%A K. Moriarty
+.%A M. Nyström
+.%A S. Parkinson
+.%A A. Rusch
+.%A M. Scott
+.%R RFC 7292
+.%B PKCS #12: Personal Information Exchange Syntax v1.1
+.%I Internet Engineering Task Force
+.%D July 2014
+.%U https://tools.ietf.org/html/rfc7292\ \&
+.Re
+
+.Rs
+.%A PKCS11 Technical Committee
+.%B PKCS#11: Cryptographic Token Interface Standard
+.%I OASIS
+.%U https://www.cryptsoft.com/pkcs11doc/\ \&
+.Re
+
+.Rs
+.%A UEFI Specification Working Group
+.%B Unified Extensible Firmware Interface (UEFI) Specification Version 2.8
+.%I Unified Extensible Firmware Interface Forum
+.%D March 2019
+.%U https://uefi.org/specifications\ \&
+.Re
+.Sh "SEE ALSO"
+.Xr pesign 1 ,
+.Xr certutil 1
+.Sh AUTHORS
+.An Peter Jones
