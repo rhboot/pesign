@@ -179,9 +179,11 @@ add_key_usage(cms_context *cms, void *extHandle, int is_ca)
 	SECItem bitStringValue;
 
 	if (is_ca) {
-		usage = KU_KEY_CERT_SIGN |
+		usage = KU_DIGITAL_SIGNATURE |
+			KU_KEY_CERT_SIGN |
 			KU_CRL_SIGN;
 	} else {
+		return 0;
 		usage = KU_KEY_ENCIPHERMENT |
 			KU_DATA_ENCIPHERMENT |
 			KU_DIGITAL_SIGNATURE;
@@ -200,6 +202,7 @@ add_key_usage(cms_context *cms, void *extHandle, int is_ca)
 	return 0;
 }
 
+#if 0
 static int
 add_cert_type(cms_context *cms, void *extHandle, int is_ca)
 {
@@ -222,13 +225,14 @@ add_cert_type(cms_context *cms, void *extHandle, int is_ca)
 
 	return 0;
 }
+#endif
 
 static int
-add_basic_constraints(cms_context *cms, void *extHandle)
+add_basic_constraints(cms_context *cms, void *extHandle, int is_ca)
 {
 	CERTBasicConstraints basicConstraint;
 	basicConstraint.pathLenConstraint = CERT_UNLIMITED_PATH_CONSTRAINT;
-	basicConstraint.isCA = PR_TRUE;
+	basicConstraint.isCA = is_ca ? PR_TRUE : PR_FALSE;
 
 	SECStatus status;
 
@@ -250,11 +254,12 @@ add_basic_constraints(cms_context *cms, void *extHandle)
 static int
 add_extended_key_usage(cms_context *cms, int modsign_eku, void *extHandle)
 {
-	SECItem values[2];
+	SECItem values[3];
 	SECItem wrapped = { 0 };
 	SECStatus status;
 	SECOidTag tag;
 	int rc;
+	size_t nvals = 0;
 
 	if (modsign_eku == MODSIGN_EKU_CA)
 		return 0;
@@ -263,16 +268,19 @@ add_extended_key_usage(cms_context *cms, int modsign_eku, void *extHandle)
 	    && modsign_eku != MODSIGN_EKU_MODULE)
 		cmsreterr(-1, cms, "could not encode extended key usage");
 
-	rc = make_eku_oid(cms, &values[0], SEC_OID_EXT_KEY_USAGE_CODE_SIGN);
+	rc = make_eku_oid(cms, &values[nvals++], SEC_OID_EXT_KEY_USAGE_CODE_SIGN);
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not encode extended key usage");
 
-	tag = find_ms_oid_tag(SHIM_EKU_MODULE_SIGNING_ONLY);
-	rc = make_eku_oid(cms, &values[1], tag);
-	if (rc < 0)
-		cmsreterr(-1, cms, "could not encode extended key usage");
 
-	rc = wrap_in_seq(cms, &wrapped, values, modsign_eku);
+	if (modsign_eku == MODSIGN_EKU_MODULE) {
+		tag = find_ms_oid_tag(SHIM_EKU_MODULE_SIGNING_ONLY);
+		rc = make_eku_oid(cms, &values[nvals++], tag);
+		if (rc < 0)
+			cmsreterr(-1, cms, "could not encode extended key usage");
+	}
+
+	rc = wrap_in_seq(cms, &wrapped, values, nvals);
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not encode extended key usage");
 
@@ -323,12 +331,10 @@ add_extensions_to_crq(cms_context *cms, CERTCertificateRequest *crq,
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not generate certificate extensions");
 
-	if (is_ca) {
-		rc = add_basic_constraints(cms, extHandle);
-		if (rc < 0)
-			cmsreterr(-1, cms, "could not generate certificate "
-					"extensions");
-	}
+	rc = add_basic_constraints(cms, extHandle, is_ca);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not generate certificate "
+				"extensions");
 
 	rc = add_key_usage(cms, extHandle, is_ca);
 	if (rc < 0)
@@ -338,9 +344,11 @@ add_extensions_to_crq(cms_context *cms, CERTCertificateRequest *crq,
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not generate certificate extensions");
 
+#if 0
 	rc = add_cert_type(cms, extHandle, is_ca);
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not generate certificate extensions");
+#endif
 
 	if (is_self_signed)
 		rc = add_auth_key_id(cms, extHandle, pubkey);
