@@ -272,6 +272,12 @@ add_extended_key_usage(cms_context *cms, int modsign_eku, void *extHandle)
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not encode extended key usage");
 
+#if 0
+	tag = find_ms_oid_tag(SPC_UEFI_SB_CA);
+	rc = make_eku_oid(cms, &values[nvals++], tag);
+	if (rc < 0)
+		cmsreterr(-1, cms, "could not encode extended key usage");
+#endif
 
 	if (modsign_eku == MODSIGN_EKU_MODULE) {
 		tag = find_ms_oid_tag(SHIM_EKU_MODULE_SIGNING_ONLY);
