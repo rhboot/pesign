@@ -161,8 +161,14 @@ read_unmmapped_file(int fildes, size_t maxsize, Pe_Cmd cmd, Pe *parent)
 		struct {
 			struct mz_hdr mz;
 			struct pe_hdr pe;
+			union {
+				struct pe32_opt_hdr opt_hdr_32;
+				struct pe32plus_opt_hdr opt_hdr_64;
+			};
 		};
-		unsigned char raw[1];
+		unsigned char raw[sizeof(struct mz_hdr)
+				  + sizeof(struct pe_hdr)
+				  + sizeof(struct pe32plus_opt_hdr)];
 	} mem;
 
 	ssize_t nread = pread_retry (fildes, &mem.mz, sizeof(mem.mz), 0);
