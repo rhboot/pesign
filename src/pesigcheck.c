@@ -103,6 +103,8 @@ cert_matches_digest(pesigcheck_context *ctx, void *data, ssize_t datalen,
 	digest = content->data + content->len - pe_digest->len;
 	if (digest_out) {
 		digest_out->data = malloc(pe_digest->len);
+		if (!digest_out->data)
+			goto out;
 		digest_out->len = pe_digest->len;
 		digest_out->type = pe_digest->type;
 		memcpy(digest_out->data, digest, pe_digest->len);
