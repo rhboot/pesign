@@ -18,6 +18,8 @@ INSTALL	?= install
 CROSS_COMPILE	?=
 EFI_ARCHES ?= aa64 ia32 x64
 
+enabled = $(if $(filter undefined,$(origin $(1))),$(3),$(2))
+
 PKG_CONFIG ?= $(CROSS_COMPILE)pkg-config
 CC	:= $(if $(filter default,$(origin CC)),$(CROSS_COMPILE)gcc,$(CC))
 CCLD	:= $(if $(filter undefined,$(origin CCLD)),$(CC),$(CCLD))
@@ -28,7 +30,7 @@ DIAGFLAGS ?= -fmessage-length=0 \
 	     -fdiagnostics-format=text \
 	     -fdiagnostics-show-cwe \
 	     -fanalyzer \
-	     -Wno-analyzer-malloc-leak
+	     $(call enabled,ENABLE_LEAK_CHECKER,-Wno-analyzer-malloc-leak,)
 AS	?= $(CROSS_COMPILE)as
 AR	?= $(CROSS_COMPILE)$(if $(filter $(CC),clang),llvm-ar,$(notdir $(CC))-ar)
 RANLIB	?= $(CROSS_COMPILE)$(if $(filter $(CC),clang),llvm-ranlib,$(notdir $(CC))-ranlib)
@@ -43,7 +45,9 @@ ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
 
 SOFLAGS	?= -shared
 clang_cflags =
-gcc_cflags = -Wmaybe-uninitialized -grecord-gcc-switches -flto -fplugin=annobin $(DIAGFLAGS)
+gcc_cflags = -Wmaybe-uninitialized -grecord-gcc-switches -fplugin=annobin \
+             $(call enabled,ENABLE_LEAK_CHECKER,$(call enabled,ENABLE_LEAK_CHECKER_LTO,-flto,),) \
+	     $(DIAGFLAGS)
 cflags	= $(CFLAGS) $(ARCH3264) \
 	-Wall -Wextra -Wsign-compare -Wno-unused-result \
 	-Wno-unused-function -Wno-missing-field-initializers \

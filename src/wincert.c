@@ -8,6 +8,14 @@
 
 typedef win_certificate_pkcs_signed_data_t cert_list_entry_t;
 
+/*
+ * gcc's leak checker simply cannot believe that this code does not leak the
+ * allocation for data, either (bizarrely) on every iteration of the loop that
+ * fills it or when generate_cert_list() returns, even though the trace it
+ * gives you stops right before the call to free()
+ */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wanalyzer-malloc-leak"
 static int
 generate_cert_list(SECItem **signatures, int num_signatures,
 		   void **cert_list, size_t *cert_list_size)
@@ -81,6 +89,7 @@ finalize_signatures(SECItem **sigs, int num_sigs, Pe *pe)
 	free(clist);
 	return 0;
 }
+#pragma GCC diagnostic pop
 
 int
 cert_iter_init(cert_iter *iter, Pe *pe)
