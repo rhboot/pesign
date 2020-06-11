@@ -25,6 +25,7 @@
 #include <poll.h>
 #include <pwd.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -569,7 +570,7 @@ out:
 
 static void
 handle_signing(context *ctx, struct pollfd *pollfd, socklen_t size,
-	int attached)
+	       int attached, bool with_file_type)
 {
 	struct msghdr msg;
 	struct iovec iov;
@@ -593,8 +594,12 @@ oom:
 
 	n = recvmsg(pollfd->fd, &msg, MSG_WAITALL);
 
-	file_format = *((uint32_t *) buffer);
-	n -= sizeof(uint32_t);
+	if (with_file_type) {
+		file_format = *((uint32_t *) buffer);
+		n -= sizeof(uint32_t);
+	} else {
+		file_format = FORMAT_PE_BINARY;
+	}
 
 	pesignd_string *tn = (pesignd_string *)(buffer + sizeof(uint32_t));
 	if (n < (long long)sizeof(tn->size)) {
@@ -674,8 +679,9 @@ finish:
 	teardown_digests(ctx->cms);
 }
 
-static void
-handle_sign_attached(context *ctx, struct pollfd *pollfd, socklen_t size)
+static inline void
+handle_sign_helper(context *ctx, struct pollfd *pollfd, socklen_t size,
+		   int attached, bool with_file_type)
 {
 	int rc = cms_context_alloc(&ctx->cms);
 	if (rc < 0)
@@ -683,25 +689,34 @@ handle_sign_attached(context *ctx, struct pollfd *pollfd, socklen_t size)
 
 	steal_from_cms(ctx->backup_cms, ctx->cms);
 
-	handle_signing(ctx, pollfd, size, 1);
+	handle_signing(ctx, pollfd, size, attached, with_file_type);
 
 	hide_stolen_goods_from_cms(ctx->cms, ctx->backup_cms);
 	cms_context_fini(ctx->cms);
 }
 
 static void
+handle_sign_attached(context *ctx, struct pollfd *pollfd, socklen_t size)
+{
+	handle_sign_helper(ctx, pollfd, size, 1, false);
+}
+
+static void
+handle_sign_attached_with_file_type(context *ctx, struct pollfd *pollfd, socklen_t size)
+{
+	handle_sign_helper(ctx, pollfd, size, 1, true);
+}
+
+static void
 handle_sign_detached(context *ctx, struct pollfd *pollfd, socklen_t size)
 {
-	int rc = cms_context_alloc(&ctx->cms);
-	if (rc < 0)
-		return;
+	handle_sign_helper(ctx, pollfd, size, 0, false);
+}
 
-	steal_from_cms(ctx->backup_cms, ctx->cms);
-
-	handle_signing(ctx, pollfd, size, 0);
-
-	hide_stolen_goods_from_cms(ctx->cms, ctx->backup_cms);
-	cms_context_fini(ctx->cms);
+static void
+handle_sign_detached_with_file_type(context *ctx, struct pollfd *pollfd, socklen_t size)
+{
+	handle_sign_helper(ctx, pollfd, size, 0, true);
 }
 
 static void
@@ -733,6 +748,12 @@ cmd_table_t cmd_table[] = {
 		{ CMD_UNLOCK_TOKEN, handle_unlock_token, "unlock-token", 0 },
 		{ CMD_SIGN_ATTACHED, handle_sign_attached, "sign-attached", 0 },
 		{ CMD_SIGN_DETACHED, handle_sign_detached, "sign-detached", 0 },
+		{ CMD_SIGN_ATTACHED_WITH_FILE_TYPE,
+		  handle_sign_attached_with_file_type,
+		  "sign-attached-with-file-type", 0 },
+		{ CMD_SIGN_DETACHED_WITH_FILE_TYPE,
+		  handle_sign_detached_with_file_type,
+		  "sign-detached-with-file-type", 0 },
 		{ CMD_RESPONSE, NULL, "response",  0 },
 		{ CMD_IS_TOKEN_UNLOCKED, handle_is_token_unlocked,
 			"is-token-unlocked", 0 },
