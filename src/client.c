@@ -23,6 +23,7 @@
 #include <fcntl.h>
 #include <popt.h>
 #include <pwd.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -96,8 +97,8 @@ connect_to_server(void)
 static int32_t
 check_response(int sd, char **srvmsg);
 
-static void
-check_cmd_version(int sd, uint32_t command, char *name, int32_t version)
+static int
+check_cmd_version(int sd, uint32_t command, char *name, int32_t version, bool do_exit)
 {
 	struct msghdr msg;
 	struct iovec iov[1];
@@ -116,7 +117,7 @@ check_cmd_version(int sd, uint32_t command, char *name, int32_t version)
 	ssize_t n;
 	n = sendmsg(sd, &msg, 0);
 	if (n < 0) {
-		fprintf(stderr, "check-cmd-version: kill daemon failed: %m\n");
+		fprintf(stderr, "check-cmd-version: sendmsg failed: %m\n");
 		exit(1);
 	}
 
@@ -132,11 +133,17 @@ check_cmd_version(int sd, uint32_t command, char *name, int32_t version)
 
 	char *srvmsg = NULL;
 	int32_t rc = check_response(sd, &srvmsg);
-	if (rc < 0)
+
+	if (do_exit && rc < 0)
 		errx(1, "command \"%s\" not known by server", name);
-	if (rc != version)
+
+	if (do_exit && rc != version)
 		errx(1, "command \"%s\": client version %d, server version %d",
 			name, version, rc);
+
+	if (rc < 0)
+		return rc;
+	return rc == version;
 }
 
 static void
@@ -146,7 +153,7 @@ send_kill_daemon(int sd)
 	struct iovec iov;
 	pesignd_msghdr pm;
 
-	check_cmd_version(sd, CMD_KILL_DAEMON, "kill-daemon", 0);
+	check_cmd_version(sd, CMD_KILL_DAEMON, "kill-daemon", 0, true);
 
 	pm.version = PESIGND_VERSION;
 	pm.command = CMD_KILL_DAEMON;
@@ -288,7 +295,7 @@ unlock_token(int sd, char *tokenname, char *pin)
 
 	uint32_t size1 = pesignd_string_size(pin);
 
-	check_cmd_version(sd, CMD_UNLOCK_TOKEN, "unlock-token", 0);
+	check_cmd_version(sd, CMD_UNLOCK_TOKEN, "unlock-token", 0, true);
 
 	pm.version = PESIGND_VERSION;
 	pm.command = CMD_UNLOCK_TOKEN;
@@ -365,7 +372,7 @@ is_token_unlocked(int sd, char *tokenname)
 
 	uint32_t size0 = pesignd_string_size(tokenname);
 
-	check_cmd_version(sd, CMD_IS_TOKEN_UNLOCKED, "is-token-unlocked", 0);
+	check_cmd_version(sd, CMD_IS_TOKEN_UNLOCKED, "is-token-unlocked", 0, true);
 
 	pm.version = PESIGND_VERSION;
 	pm.command = CMD_IS_TOKEN_UNLOCKED;
@@ -464,6 +471,9 @@ static void
 sign(int sd, char *infile, char *outfile, char *tokenname, char *certname,
 	int attached, uint32_t format)
 {
+	int rc;
+	bool add_file_type;
+
 	int infd = open(infile, O_RDONLY);
 	if (infd < 0) {
 		fprintf(stderr, "pesign-client: could not open input file "
@@ -493,12 +503,28 @@ oom:
 		exit(1);
 	}
 
-	check_cmd_version(sd, attached ? CMD_SIGN_ATTACHED : CMD_SIGN_DETACHED,
-			attached ? "sign-attached" : "sign-detached", 0);
+	rc = check_cmd_version(sd,
+			       attached ? CMD_SIGN_ATTACHED_WITH_FILE_TYPE
+					: CMD_SIGN_DETACHED_WITH_FILE_TYPE,
+			       attached ? "sign-attached" : "sign-detached",
+			       0, format == FORMAT_KERNEL_MODULE);
+	if (rc >= 0) {
+		add_file_type = true;
+	} else {
+		add_file_type = false;
+		check_cmd_version(sd, attached ? CMD_SIGN_ATTACHED
+					       : CMD_SIGN_DETACHED,
+				  attached ? "sign-attached" : "sign-detached",
+				  0, true);
+	}
 
+	printf("add_file_type:%d\n", add_file_type);
 	pm->version = PESIGND_VERSION;
-	pm->command = attached ? CMD_SIGN_ATTACHED : CMD_SIGN_DETACHED;
-	pm->size = size0 + size1 + sizeof(format);
+	pm->command = attached ? (add_file_type ? CMD_SIGN_ATTACHED_WITH_FILE_TYPE
+						: CMD_SIGN_ATTACHED)
+			       : (add_file_type ? CMD_SIGN_DETACHED_WITH_FILE_TYPE
+						: CMD_SIGN_DETACHED);
+	pm->size = size0 + size1 + (add_file_type ? sizeof(format) : 0);
 	iov[0].iov_base = pm;
 	iov[0].iov_len = sizeof (*pm);
 
@@ -515,25 +541,31 @@ oom:
 	}
 
 	char *buffer;
-	buffer = malloc(size0 + size1);
+	buffer = malloc(pm->size);
 	if (!buffer)
 		goto oom;
 
-	iov[0].iov_base = &format;
-	iov[0].iov_len = sizeof(format);
+	int pos = 0;
+
+	if (add_file_type) {
+		iov[pos].iov_base = &format;
+		iov[pos].iov_len = sizeof(format);
+		pos++;
+	}
 
 	pesignd_string *tn = (pesignd_string *)buffer;
 	pesignd_string_set(tn, tokenname);
-	iov[1].iov_base = tn;
-	iov[1].iov_len = size0;
+	iov[pos].iov_base = tn;
+	iov[pos].iov_len = size0;
+	pos++;
 
 	pesignd_string *cn = pesignd_string_next(tn);
 	pesignd_string_set(cn, certname);
-	iov[2].iov_base = cn;
-	iov[2].iov_len = size1;
+	iov[pos].iov_base = cn;
+	iov[pos].iov_len = size1;
 
 	msg.msg_iov = iov;
-	msg.msg_iovlen = 3;
+	msg.msg_iovlen = add_file_type ? 3 : 2;
 
 	n = sendmsg(sd, &msg, 0);
 	if (n < 0) {
@@ -547,7 +579,7 @@ oom:
 	send_fd(sd, outfd);
 
 	char *srvmsg = NULL;
-	int rc = check_response(sd, &srvmsg);
+	rc = check_response(sd, &srvmsg);
 	if (rc < 0) {
 		fprintf(stderr, "pesign-client: signing failed: \"%s\"\n",
 			srvmsg);
