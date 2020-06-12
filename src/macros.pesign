@@ -45,14 +45,14 @@
       rm -rf ${sattrs} ${sattrs}.sig ${nss}				\
     elif [ "$(id -un)" == "kojibuilder" -a				\\\
            grep -q ID=fedora /etc/os-release -a				\\\
-           ! -S /var/run/pesign/socket ]; then				\
+           ! -S /run/pesign/socket ]; then				\
       echo "No socket even though this is kojibuilder" 1>&2		\
-      ls -ld /var/run/pesign 1>&2					\
-      ls -l /var/run/pesign/socket 1>&2					\
-      getfacl /var/run/pesign 1>&2					\
-      getfacl /var/run/pesign/socket 1>&2				\
+      ls -ld /run/pesign 1>&2					\
+      ls -l /run/pesign/socket 1>&2					\
+      getfacl /run/pesign 1>&2					\
+      getfacl /run/pesign/socket 1>&2				\
       exit 1								\
-    elif [ -S /var/run/pesign/socket ]; then				\
+    elif [ -S /run/pesign/socket ]; then				\
       %{_pesign_client} -t %{__pesign_client_token}			\\\
                         -c %{__pesign_client_cert}			\\\
                         %{-i} %{-o} %{-e} %{-s} %{-C}			\
