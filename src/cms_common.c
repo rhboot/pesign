@@ -164,6 +164,8 @@ cms_context_fini(cms_context *cms)
 	case PW_DEVICE:
 	case PW_FROMFILEDB:
 	case PW_FROMENV:
+	case PW_FROMFILE:
+	case PW_FROMFD:
 	case PW_SOURCE_MAX:
 		break;
 	case PW_DATABASE:
@@ -306,8 +308,16 @@ void cms_set_pw_data(cms_context *cms, secuPWData *pwdata)
 	case PW_SOURCE_MAX:
 		break;
 
-	case PW_FROMENV:
+	case PW_FROMFD:
+		if (cms->pwdata.intdata >= 0 &&
+		    !(pwdata->source == PW_FROMFD &&
+		      cms->pwdata.intdata == pwdata->intdata))
+			close(cms->pwdata.intdata);
+		break;
+
 	case PW_FROMFILEDB:
+	case PW_FROMENV:
+	case PW_FROMFILE:
 	case PW_PLAINTEXT:
 		memset(cms->pwdata.data, 0, strlen(cms->pwdata.data));
 		xfree(cms->pwdata.data);

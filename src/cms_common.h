@@ -80,6 +80,10 @@ typedef enum {
 	PW_DATABASE = 5,
 	// pwdata->data is the name of an environment variable
 	PW_FROMENV = 6,
+	// pwdata->data is the path of a file
+	PW_FROMFILE = 7,
+	// pwdata->intdata is a file descriptor
+	PW_FROMFD = 8,
 
 	// used only for bounds checking
 	PW_SOURCE_MAX
@@ -91,6 +95,7 @@ typedef struct {
 
 	struct pw_database pwdb;
 	char *data;
+	long intdata;
 } secuPWData;
 
 struct cms_context;

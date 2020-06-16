@@ -61,7 +61,10 @@ long verbosity(void)
 }
 
 enum {
-	POPT_RET_PWDB = 0x40000001
+	POPT_RET_PWDB = 0x40000001,
+	POPT_RET_ENV = 0x40000002,
+	POPT_RET_PINFD = 0x40000003,
+	POPT_RET_PINFILE = 0x40000004,
 };
 
 int
@@ -92,6 +95,7 @@ main(int argc, char *argv[])
 	secuPWData pwdata;
 
 	memset(&pwdata, 0, sizeof(pwdata));
+	pwdata.intdata = -1;
 
 	setenv("NSS_DEFAULT_DB_TYPE", "sql", 0);
 
@@ -266,7 +270,27 @@ main(int argc, char *argv[])
 		 .arg = &ctxp->verbose,
 		 .val = 2,
 		 .descrip = "be very verbose" },
-
+		{.longName = "pinfd",
+		 .shortName = '\0',
+		 .argInfo = POPT_ARG_INT,
+		 .arg = &pwdata.intdata,
+		 .val = POPT_RET_PINFD,
+		 .descrip = "read file descriptor for pin information",
+		 .argDescrip = "<file descriptor>" },
+		{.longName = "pinfile",
+		 .shortName = '\0',
+		 .argInfo = POPT_ARG_STRING,
+		 .arg = &pwdata.data,
+		 .val = POPT_RET_PINFILE,
+		 .descrip = "read named file for pin information",
+		 .argDescrip = "<pin file name>" },
+		{.longName = "pinenv",
+		 .shortName = '\0',
+		 .argInfo = POPT_ARG_STRING,
+		 .arg = &pwdata.data,
+		 .val = POPT_RET_ENV,
+		 .descrip = "read file descriptor for pin information",
+		 .argDescrip = "<file descriptor>" },
 		{.longName = "padding",
 		 .shortName = 'P',
 		 .argInfo = POPT_ARG_VAL,
@@ -289,6 +313,7 @@ main(int argc, char *argv[])
 		 .shortName = '\0',
 		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_DOC_HIDDEN,
 		 .arg = &pwdata.data,
+		 .val = POPT_RET_PWDB,
 		 .descrip = "file to read passwords from.",
 		 .argDescrip = "<pwfile>" },
 		POPT_AUTOALIAS
@@ -315,6 +340,47 @@ main(int argc, char *argv[])
 				errx(1, "--pwfile requires a file name as an argument");
 			pwdata.source = PW_FROMFILEDB;
 			pwdata.data = strdup(pwdata.data);
+			pwdata.intdata = -1;
+			if (!pwdata.data)
+				err(1, "could not allocate memory");
+			continue;
+
+		case POPT_RET_ENV:
+			dprintf("POPT_RET_ENV:\"%s\"", pwdata.data ? pwdata.data : "(null)");
+			if (pwdata.source != PW_SOURCE_INVALID)
+				errx(1, "only one password/pin method can be used at a time");
+			if (pwdata.data == NULL)
+				errx(1, "--pinenv requires an environment variable name as an argument");
+			pwdata.source = PW_FROMENV;
+			pwdata.data = strdup(pwdata.data);
+			pwdata.intdata = -1;
+			if (!pwdata.data)
+				err(1, "could not allocate memory");
+			continue;
+
+		case POPT_RET_PINFD:
+			dprintf("POPT_RET_PINFD:\"%s\"", pwdata.data ? pwdata.data : "(null)");
+			if (pwdata.source != PW_SOURCE_INVALID)
+				errx(1, "only one password/pin method can be used at a time");
+			if (pwdata.data == NULL)
+				errx(1, "--pinfd requires a file descriptor as an argument");
+			errno = 0;
+			pwdata.source = PW_FROMFD;
+			pwdata.intdata = strtol(pwdata.data, NULL, 0);
+			if ((pwdata.intdata == LONG_MIN || pwdata.intdata == LONG_MAX) && errno != 0)
+				err(1, "file descriptor needed, got \"%s\"", pwdata.data ? pwdata.data : "(null)");
+			pwdata.data = NULL;
+			continue;
+
+		case POPT_RET_PINFILE:
+			dprintf("POPT_RET_PINFILE:\"%s\"", pwdata.data ? pwdata.data : "(null)");
+			if (pwdata.source != PW_SOURCE_INVALID)
+				errx(1, "only one password/pin method can be used at a time");
+			if (pwdata.data == NULL)
+				errx(1, "--pinfile requires a file name as an argument");
+			pwdata.source = PW_FROMFILE;
+			pwdata.data = strdup(pwdata.data);
+			pwdata.intdata = -1;
 			if (!pwdata.data)
 				err(1, "could not allocate memory");
 			continue;
@@ -480,7 +546,6 @@ main(int argc, char *argv[])
 		free(certname);
 	if (digest_name && digest_name != orig_digest_name)
 		free(digest_name);
-
 
 	if (ctxp->sign) {
 		if (!ctxp->cms_ctx->certname) {

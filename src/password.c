@@ -35,6 +35,8 @@ static const char * const pw_source_names[] = {
 	[PW_FROMFILEDB] = "PW_FROMFILEDB",
 	[PW_DATABASE] = "PW_DATABASE",
 	[PW_FROMENV] = "PW_FROMENV",
+	[PW_FROMFILE] = "PW_FROMFILE",
+	[PW_FROMFD] = "PW_FROMFD",
 
 	[PW_SOURCE_MAX] = "PW_SOURCE_MAX"
 };
@@ -241,6 +243,12 @@ SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
 
 	ingress();
 	dprintf("token_name: %s", token_name);
+	if (cms->pwdata.source != PW_FROMFILEDB) {
+		cms->log(cms, LOG_ERR,
+			 "Got to %s() but no file is specified.\n",
+			 __func__);
+		goto err;
+	}
 	path = cms->pwdata.data;
 
 	if (!path || retry)
@@ -375,6 +383,7 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 	secuPWData pwxtrn = { .source = PW_DEVICE, .orig_source = PW_DEVICE, .data = NULL };
 	char *pw;
 	int rc;
+	FILE *in;
 
 	ingress();
 
@@ -400,6 +409,7 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 		pw_source_names[pwdata->orig_source], pwdata->orig_source);
 	dprintf("pwdata->data:%p (\"%s\")", pwdata->data,
 		pwdata->data ? pwdata->data : "(null)");
+	dprintf("pwdata->intdata:%ld", pwdata->intdata);
 
 	if (retry) {
 		warnx("Incorrect password/PIN entered.");
@@ -425,7 +435,6 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 		return pw;
 
 	case PW_DEVICE:
-		dprintf("pwdata->source:PW_DEVICE");
 		rc = asprintf(&prompt,
 			      "Press Enter, then enter PIN for \"%s\" on external device.\n",
 			      PK11_GetTokenName(slot));
@@ -442,10 +451,6 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 		 * once, then keep it in memory (duh).
 		 */
 		pw = SECU_FilePasswd(slot, retry, cms);
-		if (pw != NULL) {
-			pwdata->source = PW_PLAINTEXT;
-			pwdata->data = strdup(pw);
-		}
 		/* it's already been dup'ed */
 		egress();
 		return pw;
@@ -458,6 +463,31 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 		dprintf("env:%s pw:%s", pwdata->data, pw ? pw : "(null)");
 		pwdata->data = pw;
 		pwdata->source = PW_PLAINTEXT;
+		goto PW_PLAINTEXT;
+
+	case PW_FROMFILE:
+		dprintf("pwdata->source:PW_FROMFILE");
+		in = fopen(pwdata->data, "r");
+		if (!in)
+			return NULL;
+		pw = get_password(in, NULL, NULL, NULL);
+		fclose(in);
+		pwdata->source = PW_PLAINTEXT;
+		pwdata->data = pw;
+		goto PW_PLAINTEXT;
+
+	case PW_FROMFD:
+		dprintf("pwdata->source:PW_FROMFD");
+		rc = pwdata->intdata;
+		in = fdopen(pwdata->intdata, "r");
+		if (!in)
+			return NULL;
+		pw = get_password(in, NULL, NULL, NULL);
+		fclose(in);
+		close(rc);
+		pwdata->source = PW_PLAINTEXT;
+		pwdata->data = pw;
+		pwdata->intdata = -1;
 		goto PW_PLAINTEXT;
 
 	PW_PLAINTEXT:
