@@ -365,7 +365,10 @@ is_valid_cert(CERTCertificate *cert, void *data)
 
 	privkey = PK11_FindPrivateKeyFromCert(slot, cert, cbd->cms);
 	if (privkey != NULL) {
+		if (cbd->cert)
+			CERT_DestroyCertificate(cbd->cert);
 		cbd->cert = CERT_DupCertificate(cert);
+		CERT_DestroyCertificate(cert);
 		SECKEY_DestroyPrivateKey(privkey);
 		return SECSuccess;
 	}
@@ -383,8 +386,15 @@ is_valid_cert_without_private_key(CERTCertificate *cert, void *data)
 		return SECFailure;
 	privkey = PK11_FindPrivateKeyFromCert(slot, cert, cbd->cms);
 	if (privkey == NULL) {
+		if (cbd->cert)
+			CERT_DestroyCertificate(cbd->cert);
+		PORT_SetError(0);
 		cbd->cert = CERT_DupCertificate(cert);
+		CERT_DestroyCertificate(cert);
 		return SECSuccess;
+	} else {
+		SECKEY_DestroyPrivateKey(privkey);
+		CERT_DestroyCertificate(cert);
 	}
 	return SECFailure;
 }

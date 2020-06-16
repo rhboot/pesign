@@ -81,10 +81,12 @@ main(int argc, char *argv[])
 	int check_vendor_cert = 1;
 
 	char *digest_name = "sha256";
+	char *orig_digest_name = digest_name;
 	char *tokenname = "NSS Certificate DB";
 	char *origtoken = tokenname;
 	char *certname = NULL;
 	char *certdir = "/etc/pki/pesign";
+	char *orig_certdir = certdir;
 	char *signum = NULL;
 
 	secuPWData pwdata;
@@ -351,6 +353,7 @@ main(int argc, char *argv[])
 			fprintf(stderr, "invalid signature number: %m\n");
 			exit(1);
 		}
+		free(signum);
 	}
 
 	int action = 0;
@@ -475,6 +478,8 @@ main(int argc, char *argv[])
 	}
 	if (certname)
 		free(certname);
+	if (digest_name && digest_name != orig_digest_name)
+		free(digest_name);
 
 
 	if (ctxp->sign) {
@@ -509,6 +514,8 @@ main(int argc, char *argv[])
 					break;
 			}
 	}
+	if (certdir && certdir != orig_certdir)
+		free(certdir);
 	pesign_context_free(ctxp);
 
 	if (!daemon) {
