@@ -48,6 +48,7 @@ enum {
 	MODSIGN_EKU_NONE,
 	MODSIGN_EKU_KERNEL,
 	MODSIGN_EKU_MODULE,
+	MODSIGN_EKU_KEK,
 	MODSIGN_EKU_CA
 };
 
@@ -173,7 +174,7 @@ add_auth_key_id(cms_context *cms, void *extHandle, SECKEYPublicKey *pubkey)
 
 
 static int
-add_key_usage(cms_context *cms, void *extHandle, int is_ca)
+add_key_usage(cms_context *cms, void *extHandle, int is_ca, bool is_kek)
 {
 	SECCertificateUsage usage;
 	SECItem bitStringValue;
@@ -182,11 +183,12 @@ add_key_usage(cms_context *cms, void *extHandle, int is_ca)
 		usage = KU_DIGITAL_SIGNATURE |
 			KU_KEY_CERT_SIGN |
 			KU_CRL_SIGN;
-	} else {
-		return 0;
+	} else if (is_kek) {
 		usage = KU_KEY_ENCIPHERMENT |
 			KU_DATA_ENCIPHERMENT |
 			KU_DIGITAL_SIGNATURE;
+	} else {
+		return 0;
 	}
 
 	bitStringValue.data = (unsigned char *)&usage;
@@ -261,7 +263,8 @@ add_extended_key_usage(cms_context *cms, int modsign_eku, void *extHandle)
 	int rc;
 	size_t nvals = 0;
 
-	if (modsign_eku == MODSIGN_EKU_CA)
+	if (modsign_eku == MODSIGN_EKU_CA
+	    || modsign_eku == MODSIGN_EKU_KEK)
 		return 0;
 
 	if (modsign_eku != MODSIGN_EKU_KERNEL
@@ -321,8 +324,8 @@ add_auth_info(cms_context *cms, void *extHandle, char *url)
 
 static int
 add_extensions_to_crq(cms_context *cms, CERTCertificateRequest *crq,
-			int is_ca, int is_self_signed, SECKEYPublicKey *pubkey,
-			SECKEYPublicKey *spubkey,
+			int is_ca, bool is_kek, int is_self_signed,
+			SECKEYPublicKey *pubkey, SECKEYPublicKey *spubkey,
 			char *url, int modsign_eku)
 {
 	void *mark = PORT_ArenaMark(cms->arena);
@@ -342,7 +345,7 @@ add_extensions_to_crq(cms_context *cms, CERTCertificateRequest *crq,
 		cmsreterr(-1, cms, "could not generate certificate "
 				"extensions");
 
-	rc = add_key_usage(cms, extHandle, is_ca);
+	rc = add_key_usage(cms, extHandle, is_ca, is_kek);
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not generate certificate extensions");
 
@@ -714,6 +717,12 @@ int main(int argc, char *argv[])
 		 .descrip = "Generate a self-signed certificate" },
 
 		/* stuff about the generated key */
+		{.longName = "kek",
+		 .shortName = 'K',
+		 .argInfo = POPT_ARG_VAL|POPT_ARGFLAG_OR|POPT_ARGFLAG_DOC_HIDDEN,
+		 .arg = &modsign_eku,
+		 .val = MODSIGN_EKU_KEK,
+		 .descrip = "Generate a key to use as KEK" },
 		{.longName = "kernel",
 		 .shortName = 'k',
 		 .argInfo = POPT_ARG_VAL|POPT_ARGFLAG_OR,
@@ -920,7 +929,8 @@ int main(int argc, char *argv[])
 			errx(1, "CA certificates cannot have kernel or module signing credentials.");
 		modsign_eku = MODSIGN_EKU_CA;
 	} else if (modsign_eku != MODSIGN_EKU_KERNEL
-		   && modsign_eku != MODSIGN_EKU_MODULE) {
+		   && modsign_eku != MODSIGN_EKU_MODULE
+		   && modsign_eku != MODSIGN_EKU_KEK) {
 		errx(1, "either --kernel or --module must be used");
 	}
 
@@ -1068,8 +1078,10 @@ int main(int argc, char *argv[])
 	CERTCertificateRequest *crq = NULL;
 	crq = CERT_CreateCertificateRequest(name, spki, &attributes);
 
-	rc = add_extensions_to_crq(cms, crq, is_ca, is_self_signed, pubkey,
-					spubkey, url, modsign_eku);
+	rc = add_extensions_to_crq(cms, crq, is_ca,
+				   modsign_eku == MODSIGN_EKU_KEK,
+				   is_self_signed, pubkey,
+				   spubkey, url, modsign_eku);
 	if (rc < 0)
 		exit(1);
 
