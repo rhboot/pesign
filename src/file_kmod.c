@@ -72,8 +72,9 @@ kmod_write_signature(cms_context *cms, int outfd)
 					  digest_get_digest_oid(cms),
 					  digest, NULL, NULL);
 	if (!cinfo) {
-		cms->log(cms, LOG_ERR, "failed to create signed data: %s",
-			 PORT_ErrorToString(PORT_GetError()));
+		cms->log(cms, LOG_ERR, "failed to create signed data: %s (%s)",
+			 PORT_ErrorToString(PORT_GetError()),
+			 PORT_ErrorToName(PORT_GetError()));
 		return -1;
 	}
 

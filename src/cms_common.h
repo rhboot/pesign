@@ -37,8 +37,9 @@
 		exit(rv);						\
 	})
 #define cmsreterr(rv, cms, fmt, args...) ({				\
-		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt ": %s",	\
+		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt ":%s:%s",	\
 			__FILE__, __func__, __LINE__, ## args,		\
+			PORT_ErrorToName(PORT_GetError()),		\
 			PORT_ErrorToString(PORT_GetError()));		\
 		return rv;						\
 	})

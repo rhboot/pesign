@@ -47,15 +47,19 @@ print_prompt(FILE *in, FILE *out, char *prompt)
 	int infd = fileno(in);
 	struct termios tio;
 
+	ingress();
 	if (!isatty(infd))
 		return;
 
-	fprintf(out, "%s", prompt);
-	fflush(out);
+	if (out) {
+		fprintf(out, "%s", prompt);
+		fflush(out);
+	}
 
 	tcgetattr(infd, &tio);
 	tio.c_lflag &= ~ECHO;
 	tcsetattr(infd, TCSAFLUSH, &tio);
+	egress();
 }
 
 static inline char *
@@ -76,11 +80,14 @@ read_password(FILE *in, FILE *out, char *buf, size_t bufsz)
 	struct termios tio;
 	char *ret;
 
+	ingress();
 	ret = fgets(buf, bufsz, in);
 
 	if (isatty(infd)) {
-		fprintf(out, "\n");
-		fflush(out);
+		if (out) {
+			fprintf(out, "\n");
+			fflush(out);
+		}
 
 		tcgetattr(infd, &tio);
 		tio.c_lflag |= ECHO;
@@ -90,6 +97,7 @@ read_password(FILE *in, FILE *out, char *buf, size_t bufsz)
 		return -1;
 
 	buf[strlen(buf)-1] = '\0';
+	egress();
 	return 0;
 }
 
@@ -98,15 +106,23 @@ check_password(char *cp)
 {
 	unsigned int i;
 
-	if (cp == NULL)
+	ingress();
+	if (cp == NULL) {
+		egress();
 		return PR_FALSE;
+	}
 
 	for (i = 0; cp[i] != 0; i++) {
-		if (!isprint(cp[i]))
+		if (!isprint(cp[i])) {
+			egress();
 			return PR_FALSE;
+		}
 	}
-	if (i == 0)
+	if (i == 0) {
+		egress();
 		return PR_FALSE;
+	}
+	egress();
 	return PR_TRUE;
 }
 
@@ -123,7 +139,8 @@ get_password(FILE *input, FILE *output, char *prompt, PRBool (*ok)(char *))
 	while(true) {
 		int rc;
 
-		print_prompt(input, output, prompt);
+		if (prompt)
+			print_prompt(input, output, prompt);
 		rc = read_password(input, output, phrase, size);
 		if (rc < 0)
 			return NULL;
@@ -149,7 +166,8 @@ SECU_GetPasswordString(void *arg UNUSED, char *prompt)
 {
 	char *ret;
 	ingress();
-	ret = get_password(stdin, stdout, prompt, check_password);
+	ret = get_password(stdin, stdout, prompt, NULL);
+	dprintf("password:\"%s\"", ret ? ret : "(null)");
 	egress();
 	return ret;
 }

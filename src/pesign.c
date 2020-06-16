@@ -502,6 +502,16 @@ main(int argc, char *argv[])
 			        "NSS says \"%s\" errno says \"%m\"\n",
 			     PORT_ErrorToString(PORT_GetError()));
 		}
+		/*
+		 * At this point there is *often* an error set, but we
+		 * should not get here if it was really an error; one
+		 * example is PR_LOAD_LIBRARY_ERROR is often set by PKCS11
+		 * modules that aren't present or whose physical token
+		 * devices aren't available.
+		 *
+		 * Clear it.
+		 */
+		PORT_SetError(0);
 
 		status = register_oids(ctxp->cms_ctx);
 		if (status != SECSuccess) {

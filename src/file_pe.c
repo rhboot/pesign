@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <prerror.h>
 
 #include "pesign.h"
 #include "pesign_standalone.h"
@@ -131,6 +132,7 @@ void
 pe_handle_action(pesign_context *ctxp, int action, int padding)
 {
 	ssize_t sigspace = 0;
+	int err;
 	int rc;
 
 	switch (action) {
@@ -252,6 +254,9 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			break;
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:
+			err = PORT_GetError();
+			dprintf("PORT_GetError():%s:%s", PORT_ErrorToName(err), PORT_ErrorToString(err));
+			PORT_SetError(0);
 			rc = find_certificate(ctxp->cms_ctx, 1);
 			conderrx(rc < 0, 1, "Could not find certificate %s",
 				 ctxp->cms_ctx->certname);
@@ -264,6 +269,8 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 		/* generate a signature and embed it in the binary */
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
 			check_inputs(ctxp);
+			err = PORT_GetError();
+			dprintf("PORT_GetError():%s:%s", PORT_ErrorToName(err), PORT_ErrorToString(err));
 			rc = find_certificate(ctxp->cms_ctx, 1);
 			conderrx(rc < 0, 1, "Could not find certificate %s",
 				 ctxp->cms_ctx->certname);
