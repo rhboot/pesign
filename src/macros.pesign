@@ -27,6 +27,7 @@
   %{_libexecdir}/pesign/pesign-rpmbuild-helper				\\\
     "%{_target_cpu}"							\\\
     "%{_pesign}"							\\\
+    "%{_pesign_args}"							\\\
     "%{_pesign_client}"							\\\
     %{?__pesign_client_token:--client-token %{__pesign_client_token}}	\\\
     %{?__pesign_client_cert:--client-cert %{__pesign_client_cert}}	\\\
