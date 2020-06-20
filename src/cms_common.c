@@ -13,6 +13,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <syslog.h>
@@ -29,6 +30,8 @@
 #include <pk11pub.h>
 #include <secerr.h>
 #include <certt.h>
+
+#include "hex.h"
 
 struct digest_param {
 	char *name;
@@ -451,9 +454,74 @@ PK11_DestroySlotListElement(PK11SlotList *slots, PK11SlotListElement **psle)
 		*psle = PK11_GetNextSafe(slots, *psle, PR_FALSE);
 }
 
+static inline void
+unescape_html_in_place(char *s)
+{
+	size_t sz = strlen(s) + 1;
+	size_t pos = 0;
+	char *s1;
+
+	dprintf("unescaping pos:%zd sz:%zd \"%s\"", pos, sz, s);
+	do {
+		s1 = strchrnul(&s[pos], '%');
+		if (s1[0] == '\0')
+			break;
+		dprintf("s1 is \"%s\"", s1);
+		if ((size_t)(s1 - s) < (size_t)(sz - 3)) {
+			int c;
+
+			c = (hexchar_to_bin(s1[1]) << 4)
+			    | (hexchar_to_bin(s1[2]) & 0xf);
+			dprintf("replacing %%%c%c with 0x%02hhx", s1[1], s1[2], (char)c);
+			s1[0] = c;
+			memmove(&s1[1], &s1[3], sz - (&s1[3] - s));
+			sz -= 2;
+			pos = &s1[1] - s;
+			dprintf("new pos:%zd sz:%zd s:\"%s\"", pos, sz, s);
+		}
+	} while (pos < sz);
+}
+
+static inline void
+resolve_pkcs11_token_in_place(char *tokenname)
+{
+	char *ntn = tokenname;
+	size_t pos = 0;
+
+	while (*ntn) {
+		char *cp = strchrnul(ntn, ';');
+		char c = *cp;
+		*cp = '\0';
+
+		dprintf("ntn:\"%s\"", ntn);
+		if (!strncmp(&ntn[pos], "token=", 6)) {
+			ntn += 6;
+			memmove(tokenname, ntn, cp - ntn + 1);
+			break;
+		}
+
+		*cp = c;
+		ntn = cp + (c ? 1 : 0);
+	}
+	unescape_html_in_place(tokenname);
+	dprintf("token name is \"%s\"", tokenname);
+}
+
+#define resolve_token_name(tn) ({					\
+	char *s_ = tn;							\
+	if (!strncmp(tn, "pkcs11:", 7))	{				\
+		dprintf("provided token name is pkcs11 uri; parsing");	\
+		s_ = strdupa(tn+7);					\
+		resolve_pkcs11_token_in_place(s_);			\
+	}								\
+	s_;								\
+})
+
 int
 unlock_nss_token(cms_context *cms)
 {
+	char *tokenname = resolve_token_name(cms->tokenname);
+
 	dprintf("setting password function to %s", cms->func ? "cms->func" : "SECU_GetModulePassword");
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
@@ -461,6 +529,7 @@ unlock_nss_token(cms_context *cms)
 	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, cms);
 	if (!slots)
 		cmsreterr(-1, cms, "could not get pk11 token list");
+
 
 	PK11SlotListElement *psle = NULL;
 	psle = PK11_GetFirstSafe(slots);
@@ -472,7 +541,7 @@ unlock_nss_token(cms_context *cms)
 	}
 
 	while (psle) {
-		if (!strcmp(cms->tokenname, PK11_GetTokenName(psle->slot)))
+		if (!strcmp(tokenname, PK11_GetTokenName(psle->slot)))
 			break;
 
 		psle = PK11_GetNextSafe(slots, psle, PR_FALSE);
@@ -482,7 +551,7 @@ unlock_nss_token(cms_context *cms)
 		save_port_err() {
 			PK11_FreeSlotList(slots);
 		}
-		nssreterr(-1, "Could not find token \"%s\"", cms->tokenname);
+		nssreterr(-1, "Could not find token \"%s\"", tokenname);
 	}
 
 	SECStatus status;
@@ -496,7 +565,7 @@ unlock_nss_token(cms_context *cms)
 				PK11_FreeSlotList(slots);
 				cms->log(cms, LOG_ERR,
 					 "authentication failed for token \"%s\": %s",
-					 cms->tokenname, PORT_ErrorToString(err));
+					 tokenname, PORT_ErrorToString(err));
 			}
 			return -1;
 		}
@@ -510,6 +579,8 @@ unlock_nss_token(cms_context *cms)
 int
 find_certificate(cms_context *cms, int needs_private_key)
 {
+	char *tokenname = resolve_token_name(cms->tokenname);
+
 	struct validity_cbdata cbd;
 	if (!cms->certname || !*cms->certname) {
 		cms->log(cms, LOG_ERR, "no certificate name specified");
@@ -535,9 +606,9 @@ find_certificate(cms_context *cms, int needs_private_key)
 
 	while (psle) {
 		dprintf("looking for token \"%s\", got \"%s\"",
-			cms->tokenname, PK11_GetTokenName(psle->slot));
-		if (!strcmp(cms->tokenname, PK11_GetTokenName(psle->slot))) {
-			dprintf("found token \"%s\"", cms->tokenname);
+			tokenname, PK11_GetTokenName(psle->slot));
+		if (!strcmp(tokenname, PK11_GetTokenName(psle->slot))) {
+			dprintf("found token \"%s\"", tokenname);
 			break;
 		}
 
@@ -548,7 +619,7 @@ find_certificate(cms_context *cms, int needs_private_key)
 		save_port_err() {
 			PK11_FreeSlotList(slots);
 		}
-		nssreterr(-1, "Could not find token \"%s\"", cms->tokenname);
+		nssreterr(-1, "Could not find token \"%s\"", tokenname);
 	}
 
 	int errnum;
@@ -562,7 +633,7 @@ find_certificate(cms_context *cms, int needs_private_key)
 				PK11_FreeSlotList(slots);
 				cms->log(cms, LOG_ERR,
 					 "authentication failed for token \"%s\": %s",
-					 cms->tokenname, PORT_ErrorToString(errnum));
+					 tokenname, PORT_ErrorToString(errnum));
 			}
 			return -1;
 		}
@@ -645,6 +716,8 @@ find_slot_for_token(cms_context *cms, PK11SlotInfo **slot)
 		return -1;
 	}
 
+	char *tokenname = resolve_token_name(cms->tokenname);
+
 	dprintf("setting password function to %s", cms->func ? "cms->func" : "SECU_GetModulePassword");
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
@@ -663,7 +736,7 @@ find_slot_for_token(cms_context *cms, PK11SlotInfo **slot)
 	}
 
 	while (psle) {
-		if (!strcmp(cms->tokenname, PK11_GetTokenName(psle->slot)))
+		if (!strcmp(tokenname, PK11_GetTokenName(psle->slot)))
 			break;
 
 		psle = PK11_GetNextSafe(slots, psle, PR_FALSE);
@@ -673,7 +746,7 @@ find_slot_for_token(cms_context *cms, PK11SlotInfo **slot)
 		save_port_err() {
 			PK11_FreeSlotList(slots);
 		}
-		nssreterr(-1, "Could not find token \"%s\"", cms->tokenname);
+		nssreterr(-1, "Could not find token \"%s\"", tokenname);
 	}
 
 	SECStatus status;
@@ -686,7 +759,7 @@ find_slot_for_token(cms_context *cms, PK11SlotInfo **slot)
 				PK11_FreeSlotList(slots);
 				cms->log(cms, LOG_ERR,
 					 "authentication failed for token \"%s\": %s",
-					 cms->tokenname, PORT_ErrorToString(err));
+					 tokenname, PORT_ErrorToString(err));
 			}
 			return -1;
 		}
@@ -698,6 +771,8 @@ find_slot_for_token(cms_context *cms, PK11SlotInfo **slot)
 int
 find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 {
+	char *tokenname = resolve_token_name(cms->tokenname);
+
 	if (!name) {
 		cms->log(cms, LOG_ERR, "no certificate name specified");
 		return -1;
@@ -721,7 +796,7 @@ find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 	}
 
 	while (psle) {
-		if (!strcmp(cms->tokenname, PK11_GetTokenName(psle->slot)))
+		if (!strcmp(tokenname, PK11_GetTokenName(psle->slot)))
 			break;
 
 		psle = PK11_GetNextSafe(slots, psle, PR_FALSE);
@@ -731,7 +806,7 @@ find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 		save_port_err() {
 			PK11_FreeSlotList(slots);
 			cms->log(cms, LOG_ERR, "could not find token \"%s\"",
-				 cms->tokenname);
+				 tokenname);
 		}
 		return -1;
 	}
@@ -746,7 +821,7 @@ find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 				PK11_FreeSlotList(slots);
 				cms->log(cms, LOG_ERR,
 					 "authentication failed for token \"%s\": %s",
-					 cms->tokenname, PORT_ErrorToString(err));
+					 tokenname, PORT_ErrorToString(err));
 			}
 			return -1;
 		}
