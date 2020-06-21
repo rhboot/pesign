@@ -140,6 +140,9 @@ check_cmd_version(int sd, uint32_t command, char *name, int32_t version, bool do
 	char *srvmsg = NULL;
 	int32_t rc = check_response(sd, &srvmsg);
 
+	if (srvmsg)
+		free(srvmsg);
+
 	if (do_exit && rc < 0)
 		errx(1, "command \"%s\" not known by server", name);
 	if (do_exit && rc != version)

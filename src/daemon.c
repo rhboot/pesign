@@ -1190,8 +1190,10 @@ daemonize(cms_context *cms_ctx, char *certdir, int do_fork)
 			sleep(2);
 			return 0;
 		}
+		ctx.pid = pid;
+	} else {
+		ctx.pid = getpid();
 	}
-	ctx.pid = getpid();
 	write_pid_file(ctx.pid);
 	ctx.backup_cms->log(ctx.backup_cms, ctx.priority|LOG_NOTICE,
 		"pesignd starting (pid %d)", ctx.pid);

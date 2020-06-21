@@ -1560,8 +1560,7 @@ generate_name(cms_context *cms, SECItem *der, CERTName *certname)
 
 	while (rdns && (rdn = *rdns++) != NULL) {
 		CERTAVA **avas = rdn->avas;
-		CERTAVA *ava;
-		while (avas && (ava = *avas++) != NULL)
+		while (avas && ((*avas++) != NULL))
 			num_items++;
 	}
 
