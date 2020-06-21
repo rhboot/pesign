@@ -421,8 +421,8 @@ main(int argc, char *argv[])
 
 	if (action & SIGN) {
 		rc = find_certificate(ctx.cms_ctx, 1);
-		errx(1, "Could not find certificate for \"%s\"",
-		     ctx.cms_ctx->certname);
+		conderrx(rc < 0, 1, "Could not find certificate for \"%s\"",
+			 ctx.cms_ctx->certname);
 	}
 
 	switch (action) {
