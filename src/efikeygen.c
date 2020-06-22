@@ -91,11 +91,15 @@ bundle_signature(cms_context *cms, SECItem *sigder, SECItem *data,
 			 .len = data->len,
 			 .type = data->type
 		},
-		.sig = {.data = calloc(1, signature->len + 1),
+		.sig = {.data = NULL,
 			.len = signature->len + 1,
 			.type = signature->type
 		}
 	};
+
+	cert.sig.data = PORT_ArenaZAlloc(cms->arena, signature->len + 1);
+	if (!cert.sig.data)
+		cmsreterr(-1, cms, "Could not allocate signature bundle");
 
 	memcpy((void *)cert.sig.data + 1, signature->data, signature->len);
 
@@ -122,6 +126,7 @@ add_subject_key_id(cms_context *cms, void *extHandle, SECKEYPublicKey *pubkey)
 		cmsreterr(-1, cms, "could not encode subject key id extension");
 
 	SECItem *encoded = PK11_MakeIDFromPubKey(pubkey_der);
+	SECITEM_FreeItem(pubkey_der, PR_TRUE);
 	if (!encoded)
 		cmsreterr(-1, cms, "could not encode subject key id extension");
 
@@ -129,6 +134,7 @@ add_subject_key_id(cms_context *cms, void *extHandle, SECKEYPublicKey *pubkey)
 	 * wrapper for this... */
 	SECItem wrapped = { 0 };
 	int rc = generate_octet_string(cms, &wrapped, encoded);
+	SECITEM_FreeItem(encoded, PR_TRUE);
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not encode subject key id extension");
 
@@ -149,11 +155,13 @@ add_auth_key_id(cms_context *cms, void *extHandle, SECKEYPublicKey *pubkey)
 		cmserr(-1, cms, "could not encode CA Key ID extension");
 
 	SECItem *encoded = PK11_MakeIDFromPubKey(pubkey_der);
+	SECITEM_FreeItem(pubkey_der, PR_TRUE);
 	if (!encoded)
 		cmserr(-1, cms, "could not encode CA Key ID extension");
 
 	SECItem cspecific = { 0 };
 	int rc = make_context_specific(cms, 0, &cspecific, encoded);
+	SECITEM_FreeItem(encoded, PR_TRUE);
 	if (rc < 0)
 		cmsreterr(-1, cms, "could not encode subject key id extension");
 
@@ -375,6 +383,7 @@ add_extensions_to_crq(cms_context *cms, CERTCertificateRequest *crq,
 
 	CERT_FinishExtensions(extHandle);
 	CERT_FinishCertificateRequestAttributes(crq);
+	PORT_ArenaRelease(cms->arena, mark);
 	PORT_ArenaUnmark(cms->arena, mark);
 	return 0;
 }
@@ -656,7 +665,8 @@ int main(int argc, char *argv[])
 	int is_ca = 0;
 	int is_self_signed = -1;
 	int modsign_eku = MODSIGN_EKU_NONE;
-	char *tokenname = "NSS Certificate DB";
+	char *orig_tokenname = "NSS Certificate DB";
+	char *tokenname = orig_tokenname;
 	char *signer = NULL;
 	char *nickname = NULL;
 	char *pubfile = NULL;
@@ -664,7 +674,8 @@ int main(int argc, char *argv[])
 	char *url = NULL;
 	char *serial_str = NULL;
 	char *issuer = NULL;
-	char *dbdir = "/etc/pki/pesign";
+	char *orig_dbdir = "/etc/pki/pesign";
+	char *dbdir = orig_dbdir;
 	char *db_path = NULL, *dbx_path = NULL, *dbt_path = NULL;
 	char *kek_nickname = NULL;
 	unsigned long long serial = ULLONG_MAX;
@@ -675,6 +686,8 @@ int main(int argc, char *argv[])
 	PRTime not_before = PR_Now();
 	PRTime not_after;
 	PRStatus prstatus;
+	void *frees[50] = { NULL, };
+	int nfrees = 0;
 
 	cms_context *cms = NULL;
 
@@ -872,8 +885,23 @@ int main(int argc, char *argv[])
 		errx(1, "poptReadDefaultConfig failed: %s",
 			poptStrerror(rc));
 
-	while ((rc = poptGetNextOpt(optCon)) > 0)
-		;
+	while ((rc = poptGetNextOpt(optCon)) > 0) {
+		switch (rc) {
+		case 'c': frees[nfrees++] = cn; break;
+		case 'D': frees[nfrees++] = db_path; break;
+		case 'd': frees[nfrees++] = dbdir; break;
+		case 'i': frees[nfrees++] = issuer; break;
+		case 'K': frees[nfrees++] = kek_nickname; break;
+		case 'n': frees[nfrees++] = nickname; break;
+		case 'p': frees[nfrees++] = pubfile; break;
+		case 's': frees[nfrees++] = serial_str; break;
+		case 'T': frees[nfrees++] = dbt_path; break;
+		case 't': frees[nfrees++] = tokenname; break;
+		case 'u': frees[nfrees++] = url; break;
+		case 'X': frees[nfrees++] = dbx_path; break;
+		default: printf("rc is '%c' (0x%02hhx)\n", rc, rc); break;
+		}
+	}
 
 	if (rc < -1)
 		errx(1, "invalid argument: %s: %s",
@@ -913,16 +941,8 @@ int main(int argc, char *argv[])
 	if (!is_self_signed && !signer)
 		errx(1, "signing certificate is required");
 
-	if (tokenname) {
-		cms->tokenname = strdup(tokenname);
-		if (!cms->tokenname)
-			err(1, "could not allocate cms context");
-	}
-	if (signer) {
-		cms->certname = strdup(signer);
-		if (!cms->certname)
-			err(1, "could not allocate cms context");
-	}
+	cms->tokenname = tokenname;
+	cms->certname = signer;
 
 	if (is_ca) {
 		if (modsign_eku != MODSIGN_EKU_NONE)
@@ -1178,7 +1198,39 @@ int main(int argc, char *argv[])
 	if (status != SECSuccess)
 		nsserr(1, "could not import signature");
 
+	SECITEM_FreeItem(&sigder, PR_FALSE);
+	SECITEM_FreeItem(&signature, PR_FALSE);
+
+	if (privkey != sprivkey)
+		SECKEY_DestroyPrivateKey(sprivkey);
+	SECKEY_DestroyPrivateKey(privkey);
+	if (pubkey != spubkey)
+		SECKEY_DestroyPublicKey(spubkey);
+	SECKEY_DestroyPublicKey(pubkey);
+
+	SECKEY_DestroySubjectPublicKeyInfo(spki);
+
+	if (issuer || is_self_signed)
+		CERT_DestroyName(issuer_name);
+	CERT_DestroyName(name);
+	CERT_DestroyValidity(validity);
+
+	CERT_DestroyCertificateRequest(crq);
+
+	cms_context_fini(cms);
+
 	NSS_Shutdown();
+
+	if (signer)
+		free(signer);
+	if (not_valid_before)
+		free(not_valid_before);
+	if (not_valid_after)
+		free(not_valid_after);
+
+	for (int i = 0; i < nfrees; i++)
+		free(frees[i]);
+
 	return 0;
 }
 

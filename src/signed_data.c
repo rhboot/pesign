@@ -112,6 +112,7 @@ generate_certificate_list(cms_context *cms, SECItem ***certificate_list_p)
 	}
 
 	*certificate_list_p = certificates;
+	PORT_ArenaUnmark(cms->arena, mark);
 	return 0;
 }
 

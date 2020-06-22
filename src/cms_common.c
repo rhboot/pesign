@@ -530,7 +530,6 @@ unlock_nss_token(cms_context *cms)
 	if (!slots)
 		cmsreterr(-1, cms, "could not get pk11 token list");
 
-
 	PK11SlotListElement *psle = NULL;
 	psle = PK11_GetFirstSafe(slots);
 	if (!psle) {
@@ -765,6 +764,9 @@ find_slot_for_token(cms_context *cms, PK11SlotInfo **slot)
 		}
 	}
 	*slot = psle->slot;
+
+	PK11_DestroySlotListElement(slots, &psle);
+	PK11_FreeSlotList(slots);
 	return 0;
 }
 
