@@ -83,6 +83,34 @@ static SEC_ASN1Template SignedCertTemplate[] = {
 };
 
 static int
+add_trust(cms_context *cms, CERTIssuerAndSN *ias,
+	  const char *truststr)
+{
+	int rc;
+	CERTCertificate *cert;
+	CERTCertTrust trust;
+	SECStatus status;
+
+	memset(&trust, 0, sizeof(trust));
+
+	status = CERT_DecodeTrustString(&trust, truststr);
+	if (status != SECSuccess)
+		cmsreterr(-1, cms, "could not decode trust string");
+
+	rc = find_certificate_by_issuer_and_sn(cms, ias, &cert);
+	if (rc < 0)
+		cmsreterr(-1, cms, "Could not find certificate");
+
+	status = CERT_ChangeCertTrust(CERT_GetDefaultCertDB(), cert, &trust);
+	if (status != SECSuccess)
+		cmsreterr(-1, cms, "could not set trust for certificate");
+
+	CERT_DestroyCertificate(cert);
+
+	return 0;
+}
+
+static int
 bundle_signature(cms_context *cms, SECItem *sigder, SECItem *data,
 		SECOidTag oid, SECItem *signature)
 {
@@ -1197,6 +1225,13 @@ int main(int argc, char *argv[])
 				PR_FALSE);
 	if (status != SECSuccess)
 		nsserr(1, "could not import signature");
+
+	CERTIssuerAndSN ias;
+	memcpy(&ias.derIssuer, &cert->derIssuer, sizeof(ias.derIssuer));
+	memcpy(&ias.issuer, &cert->issuer, sizeof(ias.issuer));
+	memcpy(&ias.serialNumber, &cert->serialNumber, sizeof(ias.serialNumber));
+
+	add_trust(cms, &ias, is_ca ? ",,CTu" : ",,u");
 
 	SECITEM_FreeItem(&sigder, PR_FALSE);
 	SECITEM_FreeItem(&signature, PR_FALSE);
