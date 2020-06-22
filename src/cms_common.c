@@ -769,12 +769,18 @@ find_slot_for_token(cms_context *cms, PK11SlotInfo **slot)
 }
 
 int
-find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
+find_certificate_by_callback(cms_context *cms,
+			     find_cert_match_t *match, void *cbdata,
+			     CERTCertificate **cert)
 {
 	char *tokenname = resolve_token_name(cms->tokenname);
 
-	if (!name) {
-		cms->log(cms, LOG_ERR, "no certificate name specified");
+	if (!match) {
+		cms->log(cms, LOG_ERR, "no certificate match callback not specified");
+		return -1;
+	}
+	if (!cbdata) {
+		cms->log(cms, LOG_ERR, "no certificate callback data not specified");
 		return -1;
 	}
 
@@ -839,25 +845,29 @@ find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 
 	CERTCertListNode *node = NULL;
 	for_each_cert(certlist, tmpnode) {
-		if (!strcmp(tmpnode->cert->subjectName, name)) {
+		/* If we're looking up the issuer of some cert, and the
+		 * issuer isn't in the database, we'll get back what is
+		 * essentially a template that's in NSS's cache waiting to
+		 * be filled out.  We can't use that, it'll just cause
+		 * CERT_DupCertificate() to segfault. */
+		if (!tmpnode || !tmpnode->cert
+		    || !tmpnode->cert->derCert.data
+		    || !tmpnode->cert->derCert.len
+		    || !tmpnode->cert->derIssuer.data
+		    || !tmpnode->cert->derIssuer.len
+		    || !tmpnode->cert->serialNumber.data
+		    || !tmpnode->cert->serialNumber.len)
+			continue;
+
+		int rc = match(tmpnode->cert, cbdata);
+		if (rc == 0) {
 			node = tmpnode;
 			break;
 		}
 	}
-	/* If we're looking up the issuer of some cert, and the issuer isn't
-	 * in the database, we'll get back what is essentially a template
-	 * that's in NSS's cache waiting to be filled out.  We can't use that,
-	 * it'll just cause CERT_DupCertificate() to segfault. */
-	if (!node || !node->cert || !node->cert->derCert.data
-	    || !node->cert->derCert.len
-	    || !node->cert->derIssuer.data
-	    || !node->cert->derIssuer.len) {
-		PK11_DestroySlotListElement(slots, &psle);
-		PK11_FreeSlotList(slots);
-		CERT_DestroyCertList(certlist);
 
-		return -1;
-	}
+	if (!node)
+		cmsreterr(-1, cms, "Could not find certificate");
 
 	*cert = CERT_DupCertificate(node->cert);
 
@@ -866,6 +876,71 @@ find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
 	CERT_DestroyCertList(certlist);
 
 	return 0;
+
+}
+
+static int
+match_subject(CERTCertificate *cert, void *cbdatap)
+{
+	if (!cert->subjectName)
+		return 0;
+
+	if (!strcmp(cert->subjectName, (char *)cbdatap))
+		return 1;
+
+	return 0;
+}
+
+int
+find_named_certificate(cms_context *cms, char *name, CERTCertificate **cert)
+{
+	if (!name)
+		cmsreterr(-1, cms, "no subject name specified");
+
+	return find_certificate_by_callback(cms, match_subject, name, cert);
+}
+
+static int
+match_issuer_and_serial(CERTCertificate *cert, void *cbdatap)
+{
+	CERTIssuerAndSN *ias = cbdatap;
+	bool found = false;
+
+	if (ias->derIssuer.len == cert->derIssuer.len &&
+	    ias->derIssuer.len != 0) {
+		if (memcmp(ias->derIssuer.data, cert->derIssuer.data,
+			   ias->derIssuer.len))
+			return 0;
+		found = true;
+	}
+
+	if (!found) {
+		SECComparison seccomp;
+
+		seccomp = CERT_CompareName(&ias->issuer, &cert->issuer);
+		if (seccomp != SECEqual)
+			return 0;
+	}
+
+	if (ias->serialNumber.len != cert->serialNumber.len)
+		return 0;
+
+	if (memcmp(ias->serialNumber.data, cert->serialNumber.data,
+		   ias->serialNumber.len))
+		return 0;
+
+	return 1;
+}
+
+int
+find_certificate_by_issuer_and_sn(cms_context *cms,
+				  CERTIssuerAndSN *ias,
+				  CERTCertificate **cert)
+{
+	if (!ias)
+		cmsreterr(-1, cms, "invalid issuer and serial number");
+
+	return find_certificate_by_callback(cms, match_issuer_and_serial, &ias, cert);
 }
 
 int

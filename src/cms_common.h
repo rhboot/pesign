@@ -195,8 +195,17 @@ extern int generate_keys(cms_context *cms, PK11SlotInfo *slot,
 		SECKEYPrivateKey **privkey, SECKEYPublicKey **pubkey);
 extern int is_issuer_of(CERTCertificate *c0, CERTCertificate *c1);
 
+typedef int (find_cert_match_t)(CERTCertificate *cert, void *cbdata);
+extern int find_certificate_by_callback(cms_context *cms,
+					find_cert_match_t *match, void *cbdata,
+					CERTCertificate **cert);
+
 extern int find_named_certificate(cms_context *cms, char *name,
 				CERTCertificate **cert);
+extern int find_certificate_by_issuer_and_sn(cms_context *cms,
+					     CERTIssuerAndSN *ias,
+					     CERTCertificate **cert);
+
 extern int find_slot_for_token(cms_context *cms, PK11SlotInfo **slot);
 
 extern SECOidTag digest_get_digest_oid(cms_context *cms);
