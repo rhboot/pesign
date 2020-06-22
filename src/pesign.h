@@ -15,6 +15,7 @@
 #include <libdpe/pe.h>
 
 #include "util.h"
+#include "text.h"
 #include "cms_common.h"
 #include "pesign_context.h"
 
