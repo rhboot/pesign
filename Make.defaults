@@ -16,6 +16,7 @@ INSTALLROOT = $(DESTDIR)
 
 INSTALL	?= install
 CROSS_COMPILE	?=
+EFI_ARCHES ?= aa64 ia32 x64
 
 PKG_CONFIG = $(CROSS_COMPILE)pkg-config
 CC	:= $(if $(filter default,$(origin CC)),$(CROSS_COMPILE)gcc,$(CC))

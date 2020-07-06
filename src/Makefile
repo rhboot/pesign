@@ -5,7 +5,7 @@ include $(TOPDIR)/Make.version
 include $(TOPDIR)/Make.rules
 include $(TOPDIR)/Make.defaults
 
-BINTARGETS=authvar client efikeygen efisiglist pesigcheck pesign
+BINTARGETS=authvar client efikeygen efisiglist pesigcheck pesign pesign-rpmbuild-helper
 SVCTARGETS=pesign.sysvinit pesign.service
 TARGETS=$(BINTARGETS) $(SVCTARGETS)
 
@@ -48,6 +48,11 @@ pesigcheck : PKGS=efivar nss nspr popt
 pesign : $(call objects-of,$(PESIGN_SOURCES) $(COMMON_SOURCES) $(COMMON_PE_SOURCES))
 pesign : LDLIBS+=$(TOPDIR)/libdpe/libdpe.a
 pesign : PKGS=efivar nss nspr popt
+
+pesign-rpmbuild-helper: pesign-rpmbuild-helper.in
+	sed \
+		-e "s/@@EFI_ARCHES@@/$(EFI_ARCHES)/g" \
+		$^ > $@
 
 deps : PKGS=efivar nss nspr popt uuid
 deps : $(ALL_SOURCES)
@@ -94,6 +99,7 @@ install :
 	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(libexecdir)/pesign/
 	$(INSTALL) -m 750 pesign-authorize $(INSTALLROOT)$(libexecdir)/pesign/
+	$(INSTALL) -m 755 pesign-rpmbuild-helper $(INSTALLROOT)$(libexecdir)/pesign/
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pesign
 	$(INSTALL) -m 600 pesign-users $(INSTALLROOT)/etc/pesign/users
 	$(INSTALL) -m 600 pesign-groups $(INSTALLROOT)/etc/pesign/groups

@@ -6,7 +6,7 @@
 # %pesign -s -i shim.orig -o shim.efi
 # And magically get the right thing.
 
-%__pesign_token %{nil}%{?pe_signing_token:-t "%{pe_signing_token}"}
+%__pesign_token %{nil}%{?pe_signing_token:--token "%{pe_signing_token}"}
 %__pesign_cert %{!?pe_signing_cert:"Red Hat Test Certificate"}%{?pe_signing_cert:"%{pe_signing_cert}"}
 
 %__pesign_client_token %{!?pe_signing_token:"OpenSC Card (Fedora Signer)"}%{?pe_signing_token:"%{pe_signing_token}"}
@@ -24,54 +24,24 @@
 # -a <input ca cert filename>		# rhel only
 # -s 					# perform signing
 %pesign(i:o:C:e:c:n:a:s)						\
-  _pesign_nssdir=/etc/pki/pesign					\
-  if [ %{__pesign_cert} = "Red Hat Test Certificate" ]; then		\
-    _pesign_nssdir=/etc/pki/pesign-rh-test				\
-  fi									\
-  if [ -x %{_pesign} ] &&  						\\\
-       [ "%{_target_cpu}" == "x86_64" -o 				\\\
-         "%{_target_cpu}" == "aarch64" ]; then				\
-    if [ "0%{?rhel}" -ge "7" -a -f /usr/bin/rpm-sign ]; then		\
-      nss=$(mktemp -p $PWD -d)						\
-      echo > ${nss}/pwfile						\
-      certutil -N -d ${nss} -f ${nss}/pwfile				\
-      certutil -A -n "ca" -t "CT,C," -i %{-a*} -d ${nss}		\
-      certutil -A -n "signer" -t ",c," -i %{-c*} -d ${nss}		\
-      sattrs=$(mktemp -p $PWD --suffix=.der)				\
-      %{_pesign} %{-i} -E ${sattrs} --certdir ${nss} --force		\
-      rpm-sign --key "%{-n*}" --rsadgstsign ${sattrs}			\
-      %{_pesign} -R ${sattrs}.sig -I ${sattrs} %{-i}			\\\
-                 --certdir ${nss} -c signer %{-o}			\
-      rm -rf ${sattrs} ${sattrs}.sig ${nss}				\
-    elif [ "$(id -un)" == "kojibuilder" -a				\\\
-           grep -q ID=fedora /etc/os-release -a				\\\
-           ! -S /run/pesign/socket ]; then				\
-      echo "No socket even though this is kojibuilder" 1>&2		\
-      ls -ld /run/pesign 1>&2					\
-      ls -l /run/pesign/socket 1>&2					\
-      getfacl /run/pesign 1>&2					\
-      getfacl /run/pesign/socket 1>&2				\
-      exit 1								\
-    elif [ -S /run/pesign/socket ]; then				\
-      %{_pesign_client} -t %{__pesign_client_token}			\\\
-                        -c %{__pesign_client_cert}			\\\
-                        %{-i} %{-o} %{-e} %{-s} %{-C}			\
-    else								\
-      %{_pesign} %{__pesign_token} -c %{__pesign_cert}			\\\
-                 --certdir ${_pesign_nssdir}				\\\
-                 %{-i} %{-o} %{-e} %{-s} %{-C}				\
-    fi									\
-  else									\
-    if [ -n "%{-i*}" -a -n "%{-o*}" ]; then				\
-      mv %{-i*} %{-o*}							\
-    elif [ -n "%{-i*}" -a -n "%{-e*}" ]; then				\
-      touch %{-e*}							\
-    fi									\
-  fi									\
-  if [ ! -s %{-o} ]; then						\
-    if [ -e "%{-o*}" ]; then						\
-      rm -f %{-o*}							\
-    fi									\
-    exit 1								\
-  fi ;
-
+  %{_libexecdir}/pesign/pesign-rpmbuild-helper				\\\
+    "%{_target_cpu}"							\\\
+    "%{_pesign}"							\\\
+    "%{_pesign_client}"							\\\
+    %{?__pesign_client_token:--client-token %{__pesign_client_token}}	\\\
+    %{?__pesign_client_cert:--client-cert %{__pesign_client_cert}}	\\\
+    %{?__pesign_token:%{__pesign_token}}				\\\
+    %{?__pesign_cert:--cert %{__pesign_cert}}				\\\
+    %{?_buildhost:--hostname "%{_buildhost}"}				\\\
+    %{?vendor:--vendor "%{vendor}"}					\\\
+    %{?_rhel:--rhelver "%{_rhel}"}					\\\
+    %{?-n:--rhelcert %{-n*}}%{?!-n:--rhelcert %{__pesign_cert}}	\\\
+    %{?-a:--rhelcafile "%{-a*}"}					\\\
+    %{?-c:--rhelcertfile "%{-c*}"}					\\\
+    %{?-C:--certout "%{-C*}"}						\\\
+    %{?-e:--sattrout "%{-e*}"}						\\\
+    %{?-i:--in "%{-i*}"}						\\\
+    %{?-o:--out "%{-o*}"}						\\\
+    %{?-s:--sign}							\\\
+    ;									\
+%{nil}
