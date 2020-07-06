@@ -61,24 +61,24 @@ print_flag_name(FILE *f, int flag)
 }
 
 static int
-connect_to_server(void)
+connect_to_server_helper(const char * const sockpath)
 {
-	int rc = access(SOCKPATH, R_OK);
+	int rc = access(sockpath, R_OK);
 	if (rc != 0) {
-		fprintf(stderr, "pesign-client: could not connect to server: "
-			"%m\n");
-		exit(1);
+		warn("could not access socket \"%s\"", sockpath);
+		return rc;
 	}
 
 	struct sockaddr_un addr_un = {
 		.sun_family = AF_UNIX,
-		.sun_path = SOCKPATH,
 	};
+	strncpy(addr_un.sun_path, sockpath, sizeof(addr_un.sun_path));
+	addr_un.sun_path[sizeof(addr_un.sun_path)-1] = '\0';
 
 	int sd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (sd < 0) {
-		fprintf(stderr, "pesign-client: could not open socket: %m\n");
-		exit(1);
+		warn("could not open socket \"%s\"", sockpath);
+		return sd;
 	}
 
 	socklen_t len = strlen(addr_un.sun_path) +
@@ -86,12 +86,30 @@ connect_to_server(void)
 
 	rc = connect(sd, (struct sockaddr *)&addr_un, len);
 	if (rc < 0) {
-		fprintf(stderr, "pesign-client: could not connect to daemon: "
-			"%m\n");
-		exit(1);
+		warn("could not connect to daemon");
+		return sd;
 	}
 
 	return sd;
+}
+
+static int
+connect_to_server(void)
+{
+	int rc, i;
+	const char * const sockets[] = {
+		"/run/pesign/socket",
+		"/var/run/pesign/socket",
+		NULL
+	};
+
+	for (i = 0; sockets[i] != NULL; i++) {
+		rc = connect_to_server_helper(sockets[i]);
+		if (rc >= 0)
+			return rc;
+	}
+
+	exit(1);
 }
 
 static int32_t
