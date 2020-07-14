@@ -536,7 +536,6 @@ oom:
 				  0, true);
 	}
 
-	printf("add_file_type:%d\n", add_file_type);
 	pm->version = PESIGND_VERSION;
 	pm->command = attached ? (add_file_type ? CMD_SIGN_ATTACHED_WITH_FILE_TYPE
 						: CMD_SIGN_ATTACHED)
