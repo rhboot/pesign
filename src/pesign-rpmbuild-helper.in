@@ -202,6 +202,23 @@ main() {
 	    "${input[@]}" "${output[@]}"
 	rm -rf "${sattrs}" "${sattrs}.sig" "${nssdir}"
     elif [[ -n "${socket}" ]] ; then
+	### welcome haaaaack city
+	if [[ "${client_token[1]}" = "OpenSC Card (Fedora Signer)" ]] ; then
+	    if [[ "${input[1]}" =~ (/|^)vmlinuz($|[_.-]) ]] \
+	       || [[ "${input[1]}" =~ (/|^)bzImage($|[_.-]) ]] ; then
+		if [[ "${rhelcertfile}" =~ redhatsecureboot501.* ]] \
+		   || [[ "${rhelcertfile}" =~ redhatsecureboot401.* ]] \
+		   || [[ "${rhelcertfile}" =~ centossecureboot201.* ]] ; then
+		    client_cert[1]=kernel-signer
+		elif [[ "${rhelcertfile}" =~ redhatsecureboot502.* ]] \
+		   || [[ "${rhelcertfile}" =~ centossecureboot202.* ]] ; then
+		    client_cert[1]=grub2-signer
+		elif [[ "${rhelcertfile}" =~ redhatsecureboot503.* ]] \
+		   || [[ "${rhelcertfile}" =~ centossecureboot203.* ]] ; then
+		    client_cert[1]=fwupd-signer
+		fi
+	    fi
+	fi
 	"${client}" "${client_token[@]}" "${client_cert[@]}"    \
 	    "${sattrout[@]}" "${certout[@]}"	\
 	    ${sign} "${input[@]}" "${output[@]}"
