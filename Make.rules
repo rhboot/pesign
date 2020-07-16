@@ -48,11 +48,16 @@ define substitute-version =
 		-e "s,@@VERSION@@,$(VERSION),g"			\
 		-e "s,@@LIBDIR@@,$(libdir),g"			\
 		-e "s,@@LIBEXECDIR@@,$(libexecdir),g"		\
+		-e "s,@@RUNDIR@@,$(rundir),g"			\
+		-e "s,@@EFI_ARCHES@@,$(EFI_ARCHES),g"		\
 		$(1) > $(2)
 endef
 
 %.1 : %.1.mdoc
 	@mandoc -man -Ios=Linux $^ > $@
+
+% : %.in
+	@$(call substitute-version,$<,$@)
 
 %.pc : %.pc.in
 	@$(call substitute-version,$<,$@)

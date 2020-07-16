@@ -22,6 +22,10 @@
 #include "compiler.h"
 #include "list.h"
 
+#ifndef RUNDIR
+#define RUNDIR "/run"
+#endif
+
 extern size_t HIDDEN page_size;
 
 #define xfree(x) ({ if (x) { free(x); x = NULL; } })

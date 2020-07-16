@@ -86,6 +86,7 @@ connect_to_server(void)
 {
 	int rc, i;
 	const char * const sockets[] = {
+		RUNDIR "/pesign/socket",
 		"/run/pesign/socket",
 		"/var/run/pesign/socket",
 		NULL

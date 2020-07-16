@@ -3,7 +3,7 @@ Description=Pesign signing daemon
 
 [Service]
 PrivateTmp=true
-PIDFile=/run/pesign.pid
+PIDFile=@@RUNDIR@@/pesign.pid
 ExecStart=/usr/bin/pesign --daemonize --nofork
 ExecStartPost=@@LIBEXECDIR@@/pesign/pesign-authorize
 
