@@ -4,7 +4,7 @@
 #
 # chkconfig: - 50 50
 # processname: /usr/bin/pesign
-# pidfile: /var/run/pesign.pid
+# pidfile: /run/pesign.pid
 ### BEGIN INIT INFO 
 # Provides: pesign
 # Default-Start:
@@ -20,9 +20,9 @@ RETVAL=0
 
 start(){
     echo -n "Starting pesign: "
-    mkdir /var/run/pesign 2>/dev/null &&
-        chown pesign:pesign /var/run/pesign &&
-        chmod 0770 /var/run/pesign
+    mkdir /run/pesign 2>/dev/null &&
+        chown pesign:pesign /run/pesign &&
+        chmod 0770 /run/pesign
     daemon /usr/bin/pesign --daemonize
     RETVAL=$?
     echo
@@ -32,7 +32,7 @@ start(){
 
 stop(){
     echo -n "Stopping pesign: "
-    killproc -p /var/run/pesign.pid pesignd
+    killproc -p /run/pesign.pid pesignd
     RETVAL=$?
     echo
     rm -f /var/lock/subsys/pesign

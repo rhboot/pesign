@@ -48,7 +48,7 @@ update_subdir() {
 }
 
 sleep 3
-for x in /etc/pki/pesign/ /var/run/pesign/ ; do
+for x in /etc/pki/pesign/ /run/pesign/ ; do
 	if [ -d "${x}" ]; then
 		update_subdir "${x}"
 	else
