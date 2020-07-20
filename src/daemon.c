@@ -856,7 +856,7 @@ handle_event(context *ctx, struct pollfd *pollfd)
 
 	if (pm.version != PESIGND_VERSION) {
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
-			"got version %d, expected version %d",
+			"got version %#x, expected version %#x",
 			pm.version, PESIGND_VERSION);
 		ctx->backup_cms->log(ctx->backup_cms, ctx->priority|LOG_ERR,
 			"possible exploit attempt.  closing.");

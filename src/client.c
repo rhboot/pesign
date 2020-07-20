@@ -135,7 +135,7 @@ check_cmd_version(int sd, uint32_t command, char *name, int32_t version)
 	if (rc < 0)
 		errx(1, "command \"%s\" not known by server", name);
 	if (rc != version)
-		errx(1, "command \"%s\": client version %d, server version %d",
+		errx(1, "command \"%s\": client version %#x, server version %#x",
 			name, version, rc);
 }
 
@@ -199,8 +199,8 @@ check_response(int sd, char **srvmsg)
 	pm = (pesignd_msghdr *)buffer;
 
 	if (pm->version != PESIGND_VERSION) {
-		fprintf(stderr, "pesign-client: got version %d, "
-			"expected version %d\n", pm->version, PESIGND_VERSION);
+		fprintf(stderr, "pesign-client: got version %#x, "
+			"expected version %#x\n", pm->version, PESIGND_VERSION);
 		exit(1);
 	}
 
