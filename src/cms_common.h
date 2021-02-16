@@ -30,18 +30,29 @@
 #define for_each_cert(cl, node) \
 	for (CERTCertListNode *node = CERT_LIST_HEAD(cl); !CERT_LIST_END(node, cl); node = CERT_LIST_NEXT(node))
 
-#define cmserr(rv, cms, fmt, args...) ({				\
-		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt ": %s",	\
-			__FILE__, __func__, __LINE__, ## args,		\
-			PORT_ErrorToString(PORT_GetError()));		\
-		exit(rv);						\
+#define cmsreterr(rv, cms, fmt, args...) ({			\
+		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt,	\
+			__FILE__, __func__, __LINE__, ## args);	\
+		return rv;					\
 	})
-#define cmsreterr(rv, cms, fmt, args...) ({				\
+#define cmsgotoerr(errlabel, cms, fmt, args...) ({		\
+		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt,	\
+			__FILE__, __func__, __LINE__, ## args);	\
+		goto errlabel;					\
+	})
+#define cnreterr(rv, cms, fmt, args...) ({				\
 		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt ":%s:%s",	\
 			__FILE__, __func__, __LINE__, ## args,		\
 			PORT_ErrorToName(PORT_GetError()),		\
 			PORT_ErrorToString(PORT_GetError()));		\
 		return rv;						\
+	})
+#define cngotoerr(errlabel, cms, fmt, args...) ({			\
+		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt ":%s:%s",	\
+			__FILE__, __func__, __LINE__, ## args,		\
+			PORT_ErrorToName(PORT_GetError()),		\
+			PORT_ErrorToString(PORT_GetError()));		\
+		goto errlabel;						\
 	})
 
 struct digest {

@@ -152,7 +152,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 	 * 2. Initialize SHA hash context. */
 	map = pe_rawfile(pe, &map_size);
 	if (!map)
-		pereterr(-1, "could not get raw output file address");
+		cmsreterr(-1, cms, "could not get raw output file address");
 
 	/* 3. Calculate the distance from the base of the image header to the
 	 * image checksum.
@@ -161,10 +161,8 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 	hash_base = map;
 
 	opthdr = pe_getopthdr(pe);
-	if (opthdr == NULL) {
-		cms->log(cms, LOG_ERR, "%s:%s:%d PE header is invalid", __FILE__, __func__, __LINE__);
-		goto error;
-	}
+	if (opthdr == NULL)
+		cmsgotoerr(error, cms, "PE header is invalid");
 
 	switch (pe_kind(pe)) {
 	case PE_K_PE_EXE: {
