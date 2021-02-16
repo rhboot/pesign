@@ -23,6 +23,9 @@
 #define ALIGNED(n) __attribute__((__aligned__(n)))
 #define CLEANUP_FUNC(x) __attribute__((__cleanup__(x)))
 
+#ifndef __CONCAT
+#define __CONCAT(a, b) a ## b
+#endif
 #define __CONCAT3(a, b, c) a ## b ## c
 #define CONCATENATE(a, b) __CONCAT(a, b)
 #define CAT(a, b) __CONCAT(a, b)
@@ -71,7 +74,7 @@
  * compiler has support to do so.
  */
 #define compiletime_assert(condition, msg) \
-	_compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
+	_compiletime_assert(condition, msg, __compiletime_assert_, __LINE__ - 1)
 
 /**
  * BUILD_BUG_ON_MSG - break compile if a condition is true & emit supplied

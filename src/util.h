@@ -61,7 +61,7 @@ extern size_t HIDDEN page_size;
 
 #define nsserr(rv, fmt, args...) ({					\
 		errx((rv), "%s:%s:%d: " fmt ": %s",			\
-			__FILE__, __func__, __LINE__, ##args,		\
+			__FILE__, __func__, __LINE__ - 2, ##args,	\
 			PORT_ErrorToString(PORT_GetError()));		\
 	})
 #define condnsserr(cond, rv, fmt, args...) ({				\
@@ -70,7 +70,7 @@ extern size_t HIDDEN page_size;
 	})
 #define nssreterr(rv, fmt, args...) ({					\
 		fprintf(stderr, "%s:%s:%d: " fmt ": %s\n",		\
-			__FILE__, __func__, __LINE__, ##args,		\
+			__FILE__, __func__, __LINE__ - 2, ##args,	\
 			PORT_ErrorToString(PORT_GetError()));		\
 		return rv;						\
 	})
@@ -80,21 +80,21 @@ extern size_t HIDDEN page_size;
 	})
 #define liberr(rv, fmt, args...) ({					\
 		err((rv), "%s:%s:%d: " fmt,				\
-			__FILE__, __func__, __LINE__, ##args);		\
+			__FILE__, __func__, __LINE__ - 2, ##args);	\
 	})
 #define libreterr(rv, fmt, args...) ({					\
 		fprintf(stderr, "%s:%s:%d: " fmt ": %m\n",		\
-			__FILE__, __func__, __LINE__, ##args);		\
+			__FILE__, __func__, __LINE__ - 2, ##args);	\
 		return rv;						\
 	})
 #define peerr(rv, fmt, args...) ({					\
 		errx((rv), "%s:%s:%d: " fmt ": %s",			\
-			__FILE__, __func__, __LINE__, ##args,		\
+			__FILE__, __func__, __LINE__ - 2, ##args,	\
 			pe_errmsg(pe_errno()));				\
 	})
 #define pereterr(rv, fmt, args...) ({					\
 		fprintf(stderr, "%s:%s:%d: " fmt ": %s\n",		\
-			__FILE__, __func__, __LINE__, ##args,		\
+			__FILE__, __func__, __LINE__ - 2, ##args,	\
 			pe_errmsg(pe_errno()));				\
 		return rv;						\
 	})
@@ -269,11 +269,25 @@ proxy_fd_mode(int fd, char *infile, mode_t *outmode, size_t *inlength)
 
 extern long verbosity(void);
 
-#define dprintf_(tv, file, func, line, fmt, args...) ({struct timeval tv; gettimeofday(&tv, NULL); warnx("%ld.%lu %s:%s():%d: " fmt, tv.tv_sec, tv.tv_usec, file, func, line, ##args); })
+#define dprintf_(tv, file, func, line, fmt, args...) ({	\
+		struct timeval tv;			\
+		gettimeofday(&tv, NULL);		\
+		warnx("%ld.%lu %s:%s():%d: " fmt,	\
+		      tv.tv_sec, tv.tv_usec,		\
+		      file, func, line, ##args);	\
+	})
 #if defined(PESIGN_DEBUG)
-#define dprintf(fmt, args...) dprintf_(CAT(CAT(CAT(tv_,__COUNTER__),__LINE__),_), __FILE__, __func__, __LINE__, fmt, ##args)
+#define dprintf(fmt, args...)					\
+	dprintf_(CAT(CAT(CAT(tv_,__COUNTER__),__LINE__),_),	\
+		 __FILE__, __func__, __LINE__ - 2, fmt, ##args)
 #else
-#define dprintf(fmt, args...) ({ if (verbosity() > 1) dprintf_(CAT(CAT(CAT(tv_,__COUNTER__),__LINE__),_), __FILE__, __func__, __LINE__, fmt, ##args); 0; })
+#define dprintf(fmt, args...) ({						\
+		if (verbosity() > 1)						\
+			dprintf_(CAT(CAT(CAT(tv_,__COUNTER__),__LINE__),_),	\
+				 __FILE__, __func__, __LINE__ - 3,		\
+				 fmt, ##args);					\
+		0;								\
+	})
 #endif
 #define ingress() dprintf("ingress");
 #define egress() dprintf("egress");

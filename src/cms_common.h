@@ -32,24 +32,26 @@
 
 #define cmsreterr(rv, cms, fmt, args...) ({			\
 		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt,	\
-			__FILE__, __func__, __LINE__, ## args);	\
+			__FILE__, __func__, __LINE__ - 2,	\
+			## args);				\
 		return rv;					\
 	})
 #define cmsgotoerr(errlabel, cms, fmt, args...) ({		\
 		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt,	\
-			__FILE__, __func__, __LINE__, ## args);	\
+			__FILE__, __func__, __LINE__ - 2,	\
+			## args);				\
 		goto errlabel;					\
 	})
 #define cnreterr(rv, cms, fmt, args...) ({				\
 		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt ":%s:%s",	\
-			__FILE__, __func__, __LINE__, ## args,		\
+			__FILE__, __func__, __LINE__ - 2, ## args,	\
 			PORT_ErrorToName(PORT_GetError()),		\
 			PORT_ErrorToString(PORT_GetError()));		\
 		return rv;						\
 	})
 #define cngotoerr(errlabel, cms, fmt, args...) ({			\
 		(cms)->log((cms), LOG_ERR, "%s:%s:%d: " fmt ":%s:%s",	\
-			__FILE__, __func__, __LINE__, ## args,		\
+			__FILE__, __func__, __LINE__ - 2, ## args,	\
 			PORT_ErrorToName(PORT_GetError()),		\
 			PORT_ErrorToString(PORT_GetError()));		\
 		goto errlabel;						\
