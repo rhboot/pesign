@@ -180,12 +180,12 @@ add_auth_key_id(cms_context *cms, void *extHandle, SECKEYPublicKey *pubkey)
 {
 	SECItem *pubkey_der = PK11_DEREncodePublicKey(pubkey);
 	if (!pubkey_der)
-		cmserr(-1, cms, "could not encode CA Key ID extension");
+		cmsreterr(-1, cms, "could not encode CA Key ID extension");
 
 	SECItem *encoded = PK11_MakeIDFromPubKey(pubkey_der);
 	SECITEM_FreeItem(pubkey_der, PR_TRUE);
 	if (!encoded)
-		cmserr(-1, cms, "could not encode CA Key ID extension");
+		cmsreterr(-1, cms, "could not encode CA Key ID extension");
 
 	SECItem cspecific = { 0 };
 	int rc = make_context_specific(cms, 0, &cspecific, encoded);
@@ -204,7 +204,7 @@ add_auth_key_id(cms_context *cms, void *extHandle, SECKEYPublicKey *pubkey)
 	status = CERT_AddExtension(extHandle, SEC_OID_X509_AUTH_KEY_ID,
 					&wrapped, PR_FALSE, PR_TRUE);
 	if (status != SECSuccess)
-		cmserr(-1, cms, "could not encode CA Key ID extension");
+		cmsreterr(-1, cms, "could not encode CA Key ID extension");
 	return 0;
 }
 
