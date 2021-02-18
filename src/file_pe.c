@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <prerror.h>
+#include <err.h>
 
 #include "pesign.h"
 #include "pesign_standalone.h"
@@ -132,7 +133,7 @@ void
 pe_handle_action(pesign_context *ctxp, int action, int padding)
 {
 	ssize_t sigspace = 0;
-	int err;
+	int perr;
 	int rc;
 
 	switch (action) {
@@ -154,7 +155,9 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
+			rc = generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
+			if (rc < 0)
+				err(1, "generate_digest() failed");
 			sigspace = calculate_signature_space(ctxp->cms_ctx,
 								ctxp->outpe);
 			allocate_signature_space(ctxp->outpe, sigspace);
@@ -165,7 +168,9 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 		case EXPORT_SATTRS:
 			open_input(ctxp);
 			open_sattr_output(ctxp);
-			generate_digest(ctxp->cms_ctx, ctxp->inpe, 1);
+			rc = generate_digest(ctxp->cms_ctx, ctxp->inpe, 1);
+			if (rc < 0)
+				err(1, "generate_digest() failed");
 			generate_sattr_blob(ctxp);
 			close_sattr_output(ctxp);
 			close_input(ctxp);
@@ -244,33 +249,39 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			break;
 		case GENERATE_DIGEST|PRINT_DIGEST|OMIT_VENDOR_CERT:
 			open_input(ctxp);
-			generate_digest(ctxp->cms_ctx, ctxp->inpe, padding);
+			rc = generate_digest(ctxp->cms_ctx, ctxp->inpe, padding);
+			if (rc < 0)
+				err(1, "generate_digest() failed");
 			print_digest(ctxp);
 			break;
 		case GENERATE_DIGEST|PRINT_DIGEST:
 			open_input(ctxp);
-			generate_digest(ctxp->cms_ctx, ctxp->inpe, padding);
+			rc = generate_digest(ctxp->cms_ctx, ctxp->inpe, padding);
+			if (rc < 0)
+				err(1, "generate_digest() failed");
 			print_digest(ctxp);
 			break;
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:
-			err = PORT_GetError();
-			dprintf("PORT_GetError():%s:%s", PORT_ErrorToName(err), PORT_ErrorToString(err));
+			perr = PORT_GetError();
+			dprintf("PORT_GetError():%s:%s", PORT_ErrorToName(perr), PORT_ErrorToString(perr));
 			PORT_SetError(0);
 			rc = find_certificate(ctxp->cms_ctx, 1);
 			conderrx(rc < 0, 1, "Could not find certificate %s",
 				 ctxp->cms_ctx->certname);
 			open_input(ctxp);
 			open_sig_output(ctxp);
-			generate_digest(ctxp->cms_ctx, ctxp->inpe, 1);
+			rc = generate_digest(ctxp->cms_ctx, ctxp->inpe, 1);
+			if (rc < 0)
+				err(1, "generate_digest() failed");
 			generate_signature(ctxp->cms_ctx);
 			export_signature(ctxp->cms_ctx, ctxp->outsigfd, ctxp->ascii);
 			break;
 		/* generate a signature and embed it in the binary */
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
 			check_inputs(ctxp);
-			err = PORT_GetError();
-			dprintf("PORT_GetError():%s:%s", PORT_ErrorToName(err), PORT_ErrorToString(err));
+			perr = PORT_GetError();
+			dprintf("PORT_GetError():%s:%s", PORT_ErrorToName(perr), PORT_ErrorToString(perr));
 			rc = find_certificate(ctxp->cms_ctx, 1);
 			conderrx(rc < 0, 1, "Could not find certificate %s",
 				 ctxp->cms_ctx->certname);
@@ -279,11 +290,15 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
+			rc = generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
+			if (rc < 0)
+				err(1, "generate_digest() failed");
 			sigspace = calculate_signature_space(ctxp->cms_ctx,
 							     ctxp->outpe);
 			allocate_signature_space(ctxp->outpe, sigspace);
-			generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
+			rc = generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
+			if (rc < 0)
+				err(1, "generate_digest() failed");
 			generate_signature(ctxp->cms_ctx);
 			insert_signature(ctxp->cms_ctx, ctxp->signum);
 			close_output(ctxp);
