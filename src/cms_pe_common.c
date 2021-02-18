@@ -34,20 +34,27 @@ check_pointer_and_size(cms_context *cms, Pe *pe, void *ptr, size_t size)
 {
 	void *map = NULL;
 	size_t map_size = 0;
+	unsigned long p, m;
 
 	map = pe_rawfile(pe, &map_size);
 	if (!map || map_size < 1)
 		cmsreterr(0, cms, "mmap is %p mmap size is %zd end is %p",
 			  map, map_size, (void *)((uintptr_t)map + map_size));
 
-	if ((uintptr_t)ptr < (uintptr_t)map)
+	p = (unsigned long)(uintptr_t)ptr;
+	m = (unsigned long)(uintptr_t)map;
+
+	if (p < m)
 		cmsreterr(0, cms, "pointer %p is below mmap at %p", ptr, map);
 
-	if ((uintptr_t)ptr + size > (uintptr_t)map + map_size)
+	if (p + size > m + map_size)
 		cmsreterr(0, cms,
-			  "pointer region end %p is above mmap end at %p",
-			  (void *)((uintptr_t)ptr + size),
-			  (void *)((uintptr_t)map + map_size));
+			  "pointer %p is above mmap end at %p (%lu is %lu bytes past EOF at %lu)",
+			  (void *)((uintptr_t)p + size),
+			  (void *)((uintptr_t)m + map_size),
+			  p + size - m,
+			  p + size - (m + map_size),
+			  map_size);
 
 	return 1;
 }
