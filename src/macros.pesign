@@ -34,7 +34,8 @@
     %{?__pesign_cert:--cert %{__pesign_cert}}				\\\
     %{?_buildhost:--hostname "%{_buildhost}"}				\\\
     %{?vendor:--vendor "%{vendor}"}					\\\
-    %{?_rhel:--rhelver "%{_rhel}"}					\\\
+    %{?rhel:--rhelver "%{rhel}"}					\\\
+    %{?centos:--rhelver "%{centos}"}					\\\
     %{?-n:--rhelcert %{-n*}}%{?!-n:--rhelcert %{__pesign_cert}}	\\\
     %{?-a:--rhelcafile "%{-a*}"}					\\\
     %{?-c:--rhelcertfile "%{-c*}"}					\\\
