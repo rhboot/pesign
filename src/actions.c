@@ -290,7 +290,7 @@ parse_signature(pesign_context *ctx)
 {
 	int rc;
 	char *sig;
-	size_t siglen;
+	size_t siglen = 0;
 
 	rc = read_file(ctx->insigfd, &sig, &siglen);
 	if (rc < 0) {
