@@ -48,17 +48,17 @@
            "$(uname -m)" == "x86_64" ] &&				\\\
          grep -q ID=fedora /etc/os-release && 				\\\
          [[ "%{_buildhost}" =~ ^bkernel.* ]] &&			\\\
-         ! [ -S /var/run/pesign/socket ]; then				\
+         ! [ -S /run/pesign/socket ]; then				\
       echo "No socket even though this is %{_buildhost}"		\
-      ls -ld /var/run/pesign || :					\
-      getfacl /var/run/pesign || :					\
-      ls -l /var/run/pesign/socket || :				\
-      getfacl /var/run/pesign/socket || :				\
+      ls -ld /run/pesign || :					\
+      getfacl /run/pesign || :					\
+      ls -l /run/pesign/socket || :				\
+      getfacl /run/pesign/socket || :				\
       echo =========== env ==============				\
       set								\
       echo =========== env ==============				\
       exit 1								\
-    elif [ -S /var/run/pesign/socket ]; then				\
+    elif [ -S /run/pesign/socket ]; then				\
       %{_pesign_client} -t %{__pesign_client_token}			\\\
                         -c %{__pesign_client_cert}			\\\
                         %{-i} %{-o} %{-e} %{-s} %{-C}			\

@@ -4,6 +4,6 @@ Description=Pesign signing daemon
 [Service]
 PrivateTmp=true
 Type=forking
-PIDFile=/var/run/pesign.pid
+PIDFile=/run/pesign.pid
 ExecStart=/usr/bin/pesign --daemonize
 ExecStartPost=@@LIBEXECDIR@@/pesign/pesign-authorize
