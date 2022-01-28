@@ -74,7 +74,7 @@
  * compiler has support to do so.
  */
 #define compiletime_assert(condition, msg) \
-	_compiletime_assert(condition, msg, __compiletime_assert_, __LINE__ - 1)
+	_compiletime_assert(condition, msg, __compiletime_assert_, __LINE__)
 
 /**
  * BUILD_BUG_ON_MSG - break compile if a condition is true & emit supplied
