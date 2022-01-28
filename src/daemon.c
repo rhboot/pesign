@@ -916,6 +916,10 @@ do_shutdown(context *ctx, int nsockets, struct pollfd *pollfds)
 	free(pollfds);
 }
 
+/* GCC -fanalyzer has trouble with realloc
+ * https://bugzilla.redhat.com/show_bug.cgi?id=2047926 */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wanalyzer-use-of-uninitialized-value"
 static int
 handle_events(context *ctx)
 {
@@ -994,6 +998,7 @@ shutdown:
 	}
 	return 0;
 }
+#pragma GCC diagnostic pop
 
 static int
 get_uid_and_gid(context *ctx, char **homedir)
