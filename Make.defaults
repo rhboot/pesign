@@ -47,9 +47,13 @@ ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
 
 SOFLAGS	?= -shared
 clang_cflags =
-gcc_cflags = -Wmaybe-uninitialized -grecord-gcc-switches -fplugin=annobin \
+gcc_cflags = -Wmaybe-uninitialized -grecord-gcc-switches \
              $(call enabled,ENABLE_LEAK_CHECKER,$(call enabled,ENABLE_LEAK_CHECKER_LTO,-flto,),) \
 	     $(DIAGFLAGS)
+ifneq (,$(wildcard /usr/lib/gcc/x86_64-redhat-linux/*/plugin/annobin.so))
+  gcc_cflags += -fplugin=annobin
+endif
+
 cflags	= $(CFLAGS) $(ARCH3264) \
 	-Wall -Wextra -Wsign-compare -Wno-unused-result \
 	-Wno-unused-function -Wno-missing-field-initializers \
