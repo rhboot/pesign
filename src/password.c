@@ -302,11 +302,16 @@ SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
 		int rc;
 		char c;
 
+		/* Workaround for -fanalzer/reallocarray() bug
+		 * https://bugzilla.redhat.com/show_bug.cgi?id=2047926 */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wanalyzer-mismatching-deallocation"
 		new_phrases = reallocarray(phrases, nphrases + 1, sizeof(struct token_pass));
 		if (!new_phrases)
 			goto err_phrases;
 		phrases = new_phrases;
 		memset(&new_phrases[nphrases], 0, sizeof(struct token_pass));
+#pragma GCC diagnostic pop
 
 		span = strspn(start, whitespace_and_eol_chars);
 		dprintf("whitespace span is %zd", span);
