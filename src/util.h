@@ -109,7 +109,7 @@ read_file(int fd, char **bufp, size_t *lenptr) {
 	size += i;
 	if ((size + (page_size >> 2)) > alloced) {
 	    alloced += page_size;
-	    buf = realloc(buf, ALIGN_UP(alloced + 1, page_size));
+	    buf = xrealloc(buf, ALIGN_UP(alloced + 1, page_size));
 	}
     } while ((i = read(fd, buf + size, page_size >> 2)) > 0);
 
