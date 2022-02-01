@@ -271,9 +271,11 @@ extern long verbosity(void);
 
 #define dprintf_(tv, file, func, line, fmt, args...) ({	\
 		struct timeval tv;			\
+		long int hacks;				\
 		gettimeofday(&tv, NULL);		\
+		hacks = tv.tv_sec;			\
 		warnx("%ld.%lu %s:%s():%d: " fmt,	\
-		      tv.tv_sec, tv.tv_usec,		\
+		      hacks, tv.tv_usec,		\
 		      file, func, line, ##args);	\
 	})
 #if defined(PESIGN_DEBUG)
