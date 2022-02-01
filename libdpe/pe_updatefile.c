@@ -119,7 +119,7 @@ __pe_updatemmap(Pe *pe, size_t shnum UNUSED)
 	char *msync_end = (char *)dd + sizeof(*dd);
 	msync(msync_start, msync_end - msync_start, MS_SYNC);
 
-	#warning this is not done yet.
+	/* TODO: this is not done yet. */
 	//struct section_header *sh = __get_last_section(pe);
 
 	size_t dd_size = sizeof (*dd) / sizeof (dd->exports);
