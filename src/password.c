@@ -213,7 +213,7 @@ parse_pwfile_line(char *start, struct token_pass *tp)
 	dprintf("non-whitespace span is %zd", span);
 
 	if (line[span] == '\0') {
-		dprintf("returning %ld", (line + span) - start);
+		dprintf("returning %td", (line + span) - start);
 		return (line + span) - start;
 	}
 	line[span] = '\0';
@@ -241,7 +241,7 @@ parse_pwfile_line(char *start, struct token_pass *tp)
 	dprintf("Setting token pass %p to { %p, %p }", tp, tp->token, tp->pass);
 	dprintf("token:\"%s\"", tp->token);
 	dprintf("pass:\"%s\"", tp->pass);
-	dprintf("returning %ld", (line + span) - start);
+	dprintf("returning %td", (line + span) - start);
 	return (line + span) - start;
 }
 
@@ -330,7 +330,8 @@ SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
 		if (c != '\0')
 			span++;
 		start += span;
-		dprintf("start is file[%ld] == '\\x%02hhx'", start - file, start[0]);
+		dprintf("start is file[%td] == '\\x%02hhx'", start - file,
+			start[0]);
 	}
 
 	qsort(phrases, nphrases, sizeof(struct token_pass), token_pass_cmp);

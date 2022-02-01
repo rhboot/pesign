@@ -49,7 +49,7 @@ check_pointer_and_size(cms_context *cms, Pe *pe, void *ptr, size_t size)
 
 	if (p + size > m + map_size)
 		cmsreterr(0, cms,
-			  "pointer %p is above mmap end at %p (%lu is %lu bytes past EOF at %lu)",
+			  "pointer %p is above mmap end at %p (%lu is %lu bytes past EOF at %zu)",
 			  (void *)((uintptr_t)p + size),
 			  (void *)((uintptr_t)m + map_size),
 			  p + size - m,
@@ -189,7 +189,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 	if (!check_pointer_and_size(cms, pe, hash_base, hash_size))
 		cmsgotoerr(error, cms, "PE header is invalid");
 	dprintf("beginning of hash");
-	dprintf("digesting %lx + %lx", hash_base - map, hash_size);
+	dprintf("digesting %tx + %zx", hash_base - map, hash_size);
 	generate_digest_step(cms, hash_base, hash_size);
 
 	/* 5. Skip over the image checksum
@@ -209,7 +209,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 		cmsgotoerr(error, cms, "PE data directory is invalid");
 
 	generate_digest_step(cms, hash_base, hash_size);
-	dprintf("digesting %lx + %lx", hash_base - map, hash_size);
+	dprintf("digesting %tx + %zx", hash_base - map, hash_size);
 
 	/* 8. Skip over the crt dir
 	 * 9. Hash everything up to the end of the image header. */
@@ -222,7 +222,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 		cmsgotoerr(error, cms, "PE relocations table is invalid");
 
 	generate_digest_step(cms, hash_base, hash_size);
-	dprintf("digesting %lx + %lx", hash_base - map, hash_size);
+	dprintf("digesting %tx + %zx", hash_base - map, hash_size);
 
 	/* 10. Set SUM_OF_BYTES_HASHED to the size of the header. */
 	hashed_bytes = pe32opthdr ? pe32opthdr->header_size
@@ -265,7 +265,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 		}
 
 		generate_digest_step(cms, hash_base, hash_size);
-		dprintf("digesting %lx + %lx", hash_base - map, hash_size);
+		dprintf("digesting %tx + %zx", hash_base - map, hash_size);
 
 		hashed_bytes += hash_size;
 	}
@@ -285,10 +285,12 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 			memset(tmp_array, '\0', tmp_size);
 			memcpy(tmp_array, hash_base, hash_size);
 			generate_digest_step(cms, tmp_array, tmp_size);
-			dprintf("digesting %lx + %lx", (unsigned long)tmp_array, tmp_size);
+			dprintf("digesting %tx + %zx", (ptrdiff_t)tmp_array,
+				tmp_size);
 		} else {
 			generate_digest_step(cms, hash_base, hash_size);
-			dprintf("digesting %lx + %lx", hash_base - map, hash_size);
+			dprintf("digesting %tx + %zx", hash_base - map,
+				hash_size);
 		}
 	}
 	dprintf("end of hash");
