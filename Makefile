@@ -46,7 +46,7 @@ test-archive:
 	@echo "The archive is in pesign-$(VERSION).tar.bz2"
 
 tag:
-	git tag -s $(GITTAG) refs/heads/master
+	git tag -s $(GITTAG) refs/heads/main
 
 archive: tag
 	@rm -rf /tmp/pesign-$(VERSION) /tmp/pesign-$(VERSION)-tmp
