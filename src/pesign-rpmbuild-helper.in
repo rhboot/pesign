@@ -133,6 +133,11 @@ main() {
 	sign=-s
 	shift
     fi
+    if [[ $# -ge 1 ]] ; then
+	echo "$# extra unparsed arguments!">>/dev/stderr
+	echo "Cowardly refusing to run">>/dev/stderr
+	exit 1
+    fi
 
     if [[ -z "${target_cpu}" ]] ; then
 	target_cpu="$(uname -m)"
