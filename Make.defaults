@@ -22,11 +22,15 @@ EFI_ARCHES ?= aa64 ia32 x64
 
 enabled = $(if $(filter undefined,$(origin $(1))),$(3),$(2))
 
+HOSTARCH   = $(shell uname -m | sed s,i[3456789]86,ia32,)
+ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
+
+
 PKG_CONFIG ?= $(CROSS_COMPILE)pkg-config
 CC	:= $(if $(filter default,$(origin CC)),$(CROSS_COMPILE)gcc,$(CC))
 CCLD	:= $(if $(filter undefined,$(origin CCLD)),$(CC),$(CCLD))
 CFLAGS	?= -O2 -g3 -pipe -fPIE -fstack-protector-all \
-	-fstack-clash-protection -fcf-protection=full
+	-fstack-clash-protection $(ifneq(($ARCH), aa64),-fcf-protection=full,)
 DIAGFLAGS ?= -fmessage-length=0 \
 	     -fdiagnostics-color=always \
 	     -fdiagnostics-format=text \
@@ -41,9 +45,6 @@ LD	?= $(CROSS_COMPILE)ld
 INSTALL	?= $(CROSS_COMPILE)install
 
 PKGS	= efivar nspr nss nss-util uuid
-
-HOSTARCH   = $(shell uname -m | sed s,i[3456789]86,ia32,)
-ARCH	   := $(shell uname -m | sed s,i[3456789]86,ia32,)
 
 SOFLAGS	?= -shared
 clang_cflags =
