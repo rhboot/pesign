@@ -313,7 +313,7 @@ void cms_set_pw_data(cms_context *cms, secuPWData *pwdata)
 
 	case PW_FROMFD:
 		if (cms->pwdata.intdata >= 0 &&
-		    !(pwdata->source == PW_FROMFD &&
+		    !(pwdata && pwdata->source == PW_FROMFD &&
 		      cms->pwdata.intdata == pwdata->intdata))
 			close(cms->pwdata.intdata);
 		break;
@@ -330,12 +330,18 @@ void cms_set_pw_data(cms_context *cms, secuPWData *pwdata)
 		xfree(cms->pwdata.data);
 		break;
 	}
-	memmove(&cms->pwdata, pwdata, sizeof(*pwdata));
 
-	dprintf("pwdata:%p", pwdata);
-	dprintf("pwdata->source:%d", pwdata->source);
-	dprintf("pwdata->data:%p (\"%s\")", pwdata->data,
-		pwdata->data ? pwdata->data : "(null)");
+	if (!pwdata) {
+		cms->pwdata.source = PW_SOURCE_INVALID;
+		dprintf("pwdata:NULL");
+	} else {
+		memmove(&cms->pwdata, pwdata, sizeof(*pwdata));
+		dprintf("pwdata:%p", pwdata);
+		dprintf("pwdata->source:%d", pwdata->source);
+		dprintf("pwdata->data:%p (\"%s\")", pwdata->data,
+			pwdata->data ? pwdata->data : "(null)");
+	}
+
 	egress();
 }
 
