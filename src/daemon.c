@@ -166,6 +166,7 @@ handle_unlock_token(context *ctx, struct pollfd *pollfd, socklen_t size)
 	struct msghdr msg;
 	struct iovec iov;
 	ssize_t n;
+	char *pin = NULL;
 
 	int rc = cms_context_alloc(&ctx->cms);
 	if (rc < 0) {
@@ -233,7 +234,8 @@ malformed:
 	if (!ctx->cms->tokenname)
 		goto oom;
 
-	char *pin = (char *)tp->value;
+	if (!tp->value)
+		pin = strndup((char *)tp->value, tp->size);
 	if (!pin)
 		goto oom;
 
