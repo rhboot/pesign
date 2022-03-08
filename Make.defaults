@@ -67,6 +67,10 @@ cflags	= $(CFLAGS) $(ARCH3264) \
 	$(if $(filter $(CC),clang),$(clang_cflags), ) \
 	$(if $(filter $(CC),gcc),$(gcc_cflags), ) \
 	$(call pkg-config-cflags)
+ifeq ($(ARCH), armv7l)
+	cflags += -Wl,--no-wchar-size-warning
+endif
+
 clang_ccldflags =
 gcc_ccldflags = -fno-merge-constants \
 	-fvar-tracking -fvar-tracking-assignments -fkeep-inline-functions \

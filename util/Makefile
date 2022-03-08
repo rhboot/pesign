@@ -11,6 +11,9 @@ LDFLAGS = -nostdlib -T $(LIBDIR)/gnuefi/elf_$(HOSTARCH)_efi.lds -shared -Bsymbol
 LIBS=-lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name)
 CCLDFLAGS =
 BUILDFLAGS = -I/usr/include/efi/ -I/usr/include/efi/$(HOSTARCH)/ -I/usr/include/efi/protocol -fpic -fshort-wchar -fno-reorder-functions -fno-strict-aliasing -fno-merge-constants -mno-red-zone -Wimplicit-function-declaration
+ifeq ($(ARCH, armv7l)
+	BUILDFLAGS += -Wl,--no-wchar-size-warning
+endif
 
 TARGETS = setupsb.efi dumpsb.efi clearpk.efi
 
