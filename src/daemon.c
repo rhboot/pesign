@@ -234,8 +234,7 @@ malformed:
 	if (!ctx->cms->tokenname)
 		goto oom;
 
-	if (!tp->value)
-		pin = strndup((char *)tp->value, tp->size);
+	pin = strndup((char *)tp->value, tp->size);
 	if (!pin)
 		goto oom;
 
