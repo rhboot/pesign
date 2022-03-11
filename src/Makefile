@@ -6,7 +6,7 @@ include $(TOPDIR)/Make.rules
 include $(TOPDIR)/Make.defaults
 
 BINTARGETS=authvar client efikeygen pesigcheck pesign \
-	   pesign-rpmbuild-helper pesign-authorize
+	   pesign-rpmbuild-helper pesign-authorize pesum
 CFGTARGETS=tmpfiles.conf
 SVCTARGETS=pesign.sysvinit pesign.service
 MAN1TARGETS=authvar.1 efikeygen.1 pesigcheck.1 pesign-client.1 pesign.1
@@ -29,9 +29,12 @@ EFIKEYGEN_SOURCES = efikeygen.c
 PESIGCHECK_SOURCES = pesigcheck.c pesigcheck_context.c certdb.c
 PESIGN_SOURCES = pesign.c pesign_context.c actions.c daemon.c \
 		 file_pe.c file_kmod.c pesign_kmod.c
+PESUM_SOURCES = pesum.c pesign_context.c actions.c \
+		file_pe.c file_kmod.c pesign_kmod.c
 
 ALL_SOURCES=$(COMMON_SOURCES) $(AUTHVAR_SORUCES) $(CLIENT_SOURCES) \
-	$(EFIKEYGEN_SOURCES) $(PESIGCHECK_SOURCES) $(PESIGN_SOURCES)
+	$(EFIKEYGEN_SOURCES) $(PESIGCHECK_SOURCES) $(PESIGN_SOURCES) \
+	$(PESUM_SOURCES)
 -include $(call deps-of,$(ALL_SOURCES))
 
 authvar : $(call objects-of,$(AUTHVAR_SOURCES) $(COMMON_SOURCES))
@@ -52,6 +55,10 @@ pesigcheck : PKGS=efivar nss nspr popt
 pesign : $(call objects-of,$(PESIGN_SOURCES) $(COMMON_SOURCES) $(COMMON_PE_SOURCES))
 pesign : LDLIBS+=$(TOPDIR)/libdpe/libdpe.a
 pesign : PKGS=efivar nss nspr popt
+
+pesum : $(call objects-of,$(PESUM_SOURCES) $(COMMON_SOURCES) $(COMMON_PE_SOURCES))
+pesum : LDLIBS+=$(TOPDIR)/libdpe/libdpe.a
+pesum : PKGS=efivar nss nspr popt
 
 deps : PKGS=efivar nss nspr popt uuid
 deps : $(ALL_SOURCES)
@@ -81,6 +88,7 @@ install :
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(bindir)
 	$(INSTALL) -m 755 authvar $(INSTALLROOT)$(bindir)
 	$(INSTALL) -m 755 pesign $(INSTALLROOT)$(bindir)
+	$(INSTALL) -m 755 pesum $(INSTALLROOT)$(bindir)
 	$(INSTALL) -m 755 client $(INSTALLROOT)$(bindir)pesign-client
 	$(INSTALL) -m 755 efikeygen $(INSTALLROOT)$(bindir)
 	$(INSTALL) -m 755 pesigcheck $(INSTALLROOT)$(bindir)

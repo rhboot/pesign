@@ -5,6 +5,7 @@ client
 efikeygen
 efidbtool
 pesigcheck
+pesum
 peverify
 pesign.service
 pesign.sysvinit

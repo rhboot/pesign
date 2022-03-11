@@ -1,0 +1,38 @@
+.Dd $Mdocdate: Mar 11 2022$
+.Dt PESUM 1
+.Os Linux
+.Sh NAME
+.Nm pesum
+.Nd tool for generating Authenticode digests
+.Sh SYNOPSIS
+.Nm
+.Bk -words
+.Ar file0.efi
+.Op Ar file1.efi ...
+.Sh DESCRIPTION
+.Nm
+is a command line tool to generate Authenticode digests of PE binaries.
+.Sh EXAMPLES
+.Ss Getting the Authenticode digest of some files
+host:$ \fBpesum shimx64.efi grubx64.efi\fR
+8c5806e66bb5b052ebf860e1722474269cff3dde588610df21dbe8cf12c08390\ shimx64.efi
+546a71319c22da1d81879383c4c74be06d1c374bdecfafc9fcc80bd541802bfc\ grubx64.efi
+.Sh STANDARDS
+.Rs
+.%B Portable Executable
+.%I Microsoft
+.%D August 26, 2019
+.%U https://docs.microsoft.com/en-us/windows/win32/debug/pe-format\ \&
+.Re
+
+.Rs
+.%B Windows Authenticode Portable Executable Signature Format
+.%I Microsoft
+.%D March 21, 2008
+.%U https://web.archive.org/web/20130518222430/http://download.microsoft.com/download/9/c/5/9c5b2167-8017-4bae-9fde-d599bac8184a/Authenticode_PE.docx\ \&
+.Re
+.Sh SEE ALSO
+.Xr pesign 1
+.LP
+.Sh AUTHORS
+.An Peter Jones
