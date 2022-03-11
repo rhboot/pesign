@@ -32,11 +32,11 @@ CCLD	:= $(if $(filter undefined,$(origin CCLD)),$(CC),$(CCLD))
 CFLAGS	?= -O2 -g3 -pipe -fPIE -fstack-protector-all \
 	-fstack-clash-protection \
 	$(if $(filter x86_64 ia32,$(ARCH)),-fcf-protection=full,)
-DIAGFLAGS ?= -fmessage-length=0 \
+DIAGFLAGS ?= $(call enabled,ENABLE_GCC_ANALYZER,-fmessage-length=0 \
 	     -fdiagnostics-color=always \
 	     -fdiagnostics-format=text \
 	     -fdiagnostics-show-cwe \
-	     -fanalyzer \
+	     -fanalyzer) \
 	     $(call enabled,ENABLE_LEAK_CHECKER,-Wno-analyzer-malloc-leak,)
 AS	?= $(CROSS_COMPILE)as
 AR	?= $(CROSS_COMPILE)$(if $(filter $(CC),clang),llvm-ar,$(notdir $(CC))-ar)
@@ -59,7 +59,7 @@ endif
 cflags	= $(CFLAGS) $(ARCH3264) \
 	-Wall -Wextra -Wsign-compare -Wno-unused-result \
 	-Wno-unused-function -Wno-missing-field-initializers \
-	-Wno-analyzer-malloc-leak \
+	$(call enabled,ENABLE_LEAK_CHECKER,-Wno-analyzer-malloc-leak,) \
 	-Werror -Wno-error=cpp -Wno-free-nonheap-object \
 	-std=gnu11 -fshort-wchar -fPIC -fno-strict-aliasing \
 	-D_GNU_SOURCE -DCONFIG_$(ARCH) -I${TOPDIR}/include \
