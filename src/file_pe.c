@@ -121,12 +121,11 @@ print_digest(pesign_context *pctx)
 	if (!ctx)
 		return;
 
-	printf("%s ", pctx->infile);
 	int j = ctx->selected_digest;
 	for (unsigned int i = 0; i < ctx->digests[j].pe_digest->len; i++)
 		printf("%02x",
 			(unsigned char)ctx->digests[j].pe_digest->data[i]);
-	printf("\n");
+	printf(" %s\n", pctx->infile);
 }
 
 void
