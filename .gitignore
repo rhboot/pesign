@@ -1,3 +1,4 @@
+.cache/
 .*.d
 .*.P
 .*.sw?
@@ -26,6 +27,7 @@
 /*.rpm
 *-8be4df61-93ca-11d2-aa0d-00e098032b8c
 *-d719b2cb-3d3a-4596-a3bc-dad00e67656f
+compile_commands.json
 core.*
 cov-int/
 pwfile
