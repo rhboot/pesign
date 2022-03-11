@@ -264,7 +264,8 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 		/* generate a signature and save it in a separate file */
 		case EXPORT_SIGNATURE|GENERATE_SIGNATURE:
 			perr = PORT_GetError();
-			dprintf("PORT_GetError():%s:%s", PORT_ErrorToName(perr), PORT_ErrorToString(perr));
+			dbgprintf("PORT_GetError():%s:%s",
+				  PORT_ErrorToName(perr), PORT_ErrorToString(perr));
 			PORT_SetError(0);
 			rc = find_certificate(ctxp->cms_ctx, 1);
 			conderrx(rc < 0, 1, "Could not find certificate %s",
@@ -281,7 +282,8 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 		case IMPORT_SIGNATURE|GENERATE_SIGNATURE:
 			check_inputs(ctxp);
 			perr = PORT_GetError();
-			dprintf("PORT_GetError():%s:%s", PORT_ErrorToName(perr), PORT_ErrorToString(perr));
+			dbgprintf("PORT_GetError():%s:%s",
+				  PORT_ErrorToName(perr), PORT_ErrorToString(perr));
 			rc = find_certificate(ctxp->cms_ctx, 1);
 			conderrx(rc < 0, 1, "Could not find certificate %s",
 				 ctxp->cms_ctx->certname);

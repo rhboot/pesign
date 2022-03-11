@@ -167,7 +167,7 @@ SECU_GetPasswordString(void *arg UNUSED, char *prompt)
 	char *ret;
 	ingress();
 	ret = get_password(stdin, stdout, prompt, NULL);
-	dprintf("password:\"%s\"", ret ? ret : "(null)");
+	dbgprintf("password:\"%s\"", ret ? ret : "(null)");
 	egress();
 	return ret;
 }
@@ -194,7 +194,7 @@ parse_pwfile_line(char *start, struct token_pass *tp)
 	size_t offset = 0;
 
 	span = strspn(line, whitespace_and_eol_chars);
-	dprintf("whitespace span is %zd", span);
+	dbgprintf("whitespace span is %zd", span);
 	if (span == 0 && line[span] == '\0')
 		return -1;
 	line += span;
@@ -210,17 +210,17 @@ parse_pwfile_line(char *start, struct token_pass *tp)
 			offset += escspan + 2;
 	} while(escspan < span);
 	span += offset;
-	dprintf("non-whitespace span is %zd", span);
+	dbgprintf("non-whitespace span is %zd", span);
 
 	if (line[span] == '\0') {
-		dprintf("returning %td", (line + span) - start);
+		dbgprintf("returning %td", (line + span) - start);
 		return (line + span) - start;
 	}
 	line[span] = '\0';
 
 	line += span + 1;
 	span = strspn(line, whitespace_and_eol_chars);
-	dprintf("whitespace span is %zd", span);
+	dbgprintf("whitespace span is %zd", span);
 	line += span;
 	tp->token = tp->pass;
 	tp->pass = line;
@@ -233,15 +233,15 @@ parse_pwfile_line(char *start, struct token_pass *tp)
 			offset += escspan + 2;
 	} while(escspan < span);
 	span += offset;
-	dprintf("non-whitespace span is %zd", span);
+	dbgprintf("non-whitespace span is %zd", span);
 	if (line[span] != '\0')
 		line[span++] = '\0';
 
 	resolve_escapes(tp->token);
-	dprintf("Setting token pass %p to { %p, %p }", tp, tp->token, tp->pass);
-	dprintf("token:\"%s\"", tp->token);
-	dprintf("pass:\"%s\"", tp->pass);
-	dprintf("returning %td", (line + span) - start);
+	dbgprintf("Setting token pass %p to { %p, %p }", tp, tp->token, tp->pass);
+	dbgprintf("token:\"%s\"", tp->token);
+	dbgprintf("pass:\"%s\"", tp->pass);
+	dbgprintf("returning %td", (line + span) - start);
 	return (line + span) - start;
 }
 
@@ -260,7 +260,7 @@ SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
 	char *path;
 
 	ingress();
-	dprintf("token_name: %s", token_name);
+	dbgprintf("token_name: %s", token_name);
 	if (cms->pwdata.source != PW_FROMFILEDB) {
 		cms->log(cms, LOG_ERR,
 			 "Got to %s() but no file is specified.\n",
@@ -289,8 +289,8 @@ SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
 		if (rc < 0 || file_len < 1)
 			goto err_file;
 		file[file_len-1] = '\0';
-		dprintf("file_len:%zd", file_len);
-		dprintf("file:\"%s\"", file);
+		dbgprintf("file_len:%zd", file_len);
+		dbgprintf("file:\"%s\"", file);
 
 		unbreak_line_continuations(file, file_len);
 	}
@@ -314,23 +314,23 @@ SECU_FilePasswd(PK11SlotInfo *slot, PRBool retry, void *arg)
 #pragma GCC diagnostic pop
 
 		span = strspn(start, whitespace_and_eol_chars);
-		dprintf("whitespace span is %zd", span);
+		dbgprintf("whitespace span is %zd", span);
 		start += span;
 		span = strcspn(start, eol_chars);
-		dprintf("non-whitespace span is %zd", span);
+		dbgprintf("non-whitespace span is %zd", span);
 
 		c = start[span];
 		start[span] = '\0';
-		dprintf("file:\"%s\"", file);
+		dbgprintf("file:\"%s\"", file);
 		rc = parse_pwfile_line(start, &phrases[nphrases++]);
-		dprintf("parse_pwfile_line returned %d", rc);
+		dbgprintf("parse_pwfile_line returned %d", rc);
 		if (rc < 0)
 			goto err_phrases;
 
 		if (c != '\0')
 			span++;
 		start += span;
-		dprintf("start is file[%td] == '\\x%02hhx'", start - file,
+		dbgprintf("start is file[%td] == '\\x%02hhx'", start - file,
 			start[0]);
 	}
 
@@ -359,7 +359,7 @@ err_file:
 err_phrases:
 	xfree(phrases);
 err:
-	dprintf("ret:\"%s\"", ret ? ret : "(null)");
+	dbgprintf("ret:\"%s\"", ret ? ret : "(null)");
 	egress();
 	return ret;
 }
@@ -412,10 +412,10 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 	ingress();
 
 	if (PK11_ProtectedAuthenticationPath(slot)) {
-		dprintf("prompting for PW_DEVICE data");
+		dbgprintf("prompting for PW_DEVICE data");
 		pwdata = &pwxtrn;
 	} else {
-		dprintf("using pwdata from cms");
+		dbgprintf("using pwdata from cms");
 		pwdata = &cms->pwdata;
 	}
 
@@ -423,17 +423,17 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 	    pwdata->source >= PW_SOURCE_MAX ||
 	    pwdata->orig_source <= PW_SOURCE_INVALID ||
 	    pwdata->orig_source >= PW_SOURCE_MAX) {
-		dprintf("pwdata is invalid");
+		dbgprintf("pwdata is invalid");
 		return NULL;
 	}
 
-	dprintf("pwdata:%p retry:%d", pwdata, retry);
-	dprintf("pwdata->source:%s (%d) orig:%s (%d)",
-		pw_source_names[pwdata->source], pwdata->source,
-		pw_source_names[pwdata->orig_source], pwdata->orig_source);
-	dprintf("pwdata->data:%p (\"%s\")", pwdata->data,
-		pwdata->data ? pwdata->data : "(null)");
-	dprintf("pwdata->intdata:%ld", pwdata->intdata);
+	dbgprintf("pwdata:%p retry:%d", pwdata, retry);
+	dbgprintf("pwdata->source:%s (%d) orig:%s (%d)",
+		  pw_source_names[pwdata->source], pwdata->source,
+		  pw_source_names[pwdata->orig_source], pwdata->orig_source);
+	dbgprintf("pwdata->data:%p (\"%s\")", pwdata->data,
+		  pwdata->data ? pwdata->data : "(null)");
+	dbgprintf("pwdata->intdata:%ld", pwdata->intdata);
 
 	if (retry) {
 		warnx("Incorrect password/PIN entered.");
@@ -470,7 +470,7 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 
 	case PW_FROMFILEDB:
 	case PW_DATABASE:
-		dprintf("pwdata->source:%s", pw_source_names[pwdata->source]);
+		dbgprintf("pwdata->source:%s", pw_source_names[pwdata->source]);
 		/* Instead of opening and closing the file every time, get the pw
 		 * once, then keep it in memory (duh).
 		 */
@@ -480,17 +480,17 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 		return pw;
 
 	case PW_FROMENV:
-		dprintf("pwdata->source:PW_FROMENV");
+		dbgprintf("pwdata->source:PW_FROMENV");
 		if (!pwdata || !pwdata->data)
 			break;
 		pw = get_env(pwdata->data);
-		dprintf("env:%s pw:%s", pwdata->data, pw ? pw : "(null)");
+		dbgprintf("env:%s pw:%s", pwdata->data, pw ? pw : "(null)");
 		pwdata->data = pw;
 		pwdata->source = PW_PLAINTEXT;
 		goto PW_PLAINTEXT;
 
 	case PW_FROMFILE:
-		dprintf("pwdata->source:PW_FROMFILE");
+		dbgprintf("pwdata->source:PW_FROMFILE");
 		in = fopen(pwdata->data, "r");
 		if (!in)
 			return NULL;
@@ -501,7 +501,7 @@ SECU_GetModulePassword(PK11SlotInfo *slot, PRBool retry, void *arg)
 		goto PW_PLAINTEXT;
 
 	case PW_FROMFD:
-		dprintf("pwdata->source:PW_FROMFD");
+		dbgprintf("pwdata->source:PW_FROMFD");
 		rc = pwdata->intdata;
 		in = fdopen(pwdata->intdata, "r");
 		if (!in)

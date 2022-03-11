@@ -188,8 +188,8 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 	}
 	if (!check_pointer_and_size(cms, pe, hash_base, hash_size))
 		cmsgotoerr(error, cms, "PE header is invalid");
-	dprintf("beginning of hash");
-	dprintf("digesting %tx + %zx", hash_base - map, hash_size);
+	dbgprintf("beginning of hash");
+	dbgprintf("digesting %tx + %zx", hash_base - map, hash_size);
 	generate_digest_step(cms, hash_base, hash_size);
 
 	/* 5. Skip over the image checksum
@@ -209,7 +209,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 		cmsgotoerr(error, cms, "PE data directory is invalid");
 
 	generate_digest_step(cms, hash_base, hash_size);
-	dprintf("digesting %tx + %zx", hash_base - map, hash_size);
+	dbgprintf("digesting %tx + %zx", hash_base - map, hash_size);
 
 	/* 8. Skip over the crt dir
 	 * 9. Hash everything up to the end of the image header. */
@@ -222,7 +222,7 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 		cmsgotoerr(error, cms, "PE relocations table is invalid");
 
 	generate_digest_step(cms, hash_base, hash_size);
-	dprintf("digesting %tx + %zx", hash_base - map, hash_size);
+	dbgprintf("digesting %tx + %zx", hash_base - map, hash_size);
 
 	/* 10. Set SUM_OF_BYTES_HASHED to the size of the header. */
 	hashed_bytes = pe32opthdr ? pe32opthdr->header_size
@@ -256,16 +256,16 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 			char *name = shdrs[i].name;
 			if (name && name[0] == '/')
 				name = get_str(cms, pe, name + 1);
-			dprintf("section:\"%s\"", name ? name : "(null)");
+			dbgprintf("section:\"%s\"", name ? name : "(null)");
 			if (name && !strcmp(name, ".vendor_cert")) {
-				dprintf("skipping .vendor_cert section");
+				dbgprintf("skipping .vendor_cert section");
 				hashed_bytes += hash_size;
 				continue;
 			}
 		}
 
 		generate_digest_step(cms, hash_base, hash_size);
-		dprintf("digesting %tx + %zx", hash_base - map, hash_size);
+		dbgprintf("digesting %tx + %zx", hash_base - map, hash_size);
 
 		hashed_bytes += hash_size;
 	}
@@ -285,15 +285,15 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 			memset(tmp_array, '\0', tmp_size);
 			memcpy(tmp_array, hash_base, hash_size);
 			generate_digest_step(cms, tmp_array, tmp_size);
-			dprintf("digesting %tx + %zx", (ptrdiff_t)tmp_array,
+			dbgprintf("digesting %tx + %zx", (ptrdiff_t)tmp_array,
 				tmp_size);
 		} else {
 			generate_digest_step(cms, hash_base, hash_size);
-			dprintf("digesting %tx + %zx", hash_base - map,
+			dbgprintf("digesting %tx + %zx", hash_base - map,
 				hash_size);
 		}
 	}
-	dprintf("end of hash");
+	dbgprintf("end of hash");
 
 	rc = generate_digest_finish(cms);
 	if (rc < 0)

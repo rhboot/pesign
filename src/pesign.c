@@ -333,7 +333,7 @@ main(int argc, char *argv[])
 	while ((rc = poptGetNextOpt(optCon)) > 0) {
 		switch (rc) {
 		case POPT_RET_PWDB:
-			dprintf("POPT_RET_PWDB:\"%s\"", pwdata.data ? pwdata.data : "(null)");
+			dbgprintf("POPT_RET_PWDB:\"%s\"", pwdata.data ? pwdata.data : "(null)");
 			if (pwdata.source != PW_SOURCE_INVALID)
 				errx(1, "only one password/pin method can be used at a time");
 			if (pwdata.data == NULL)
@@ -346,7 +346,7 @@ main(int argc, char *argv[])
 			continue;
 
 		case POPT_RET_ENV:
-			dprintf("POPT_RET_ENV:\"%s\"", pwdata.data ? pwdata.data : "(null)");
+			dbgprintf("POPT_RET_ENV:\"%s\"", pwdata.data ? pwdata.data : "(null)");
 			if (pwdata.source != PW_SOURCE_INVALID)
 				errx(1, "only one password/pin method can be used at a time");
 			if (pwdata.data == NULL)
@@ -359,7 +359,7 @@ main(int argc, char *argv[])
 			continue;
 
 		case POPT_RET_PINFD:
-			dprintf("POPT_RET_PINFD:\"%s\"", pwdata.data ? pwdata.data : "(null)");
+			dbgprintf("POPT_RET_PINFD:\"%s\"", pwdata.data ? pwdata.data : "(null)");
 			if (pwdata.source != PW_SOURCE_INVALID)
 				errx(1, "only one password/pin method can be used at a time");
 			if (pwdata.data == NULL)
@@ -373,7 +373,7 @@ main(int argc, char *argv[])
 			continue;
 
 		case POPT_RET_PINFILE:
-			dprintf("POPT_RET_PINFILE:\"%s\"", pwdata.data ? pwdata.data : "(null)");
+			dbgprintf("POPT_RET_PINFILE:\"%s\"", pwdata.data ? pwdata.data : "(null)");
 			if (pwdata.source != PW_SOURCE_INVALID)
 				errx(1, "only one password/pin method can be used at a time");
 			if (pwdata.data == NULL)
@@ -387,7 +387,7 @@ main(int argc, char *argv[])
 		}
 	}
 
-	dprintf("pwdata.source:%d %schecking for PESIGN_TOKEN_PIN",
+	dbgprintf("pwdata.source:%d %schecking for PESIGN_TOKEN_PIN",
 		pwdata.source,
 		pwdata.source == PW_SOURCE_INVALID ? "" : "not ");
 	if (pwdata.source == PW_SOURCE_INVALID && secure_getenv("PESIGN_TOKEN_PIN")) {

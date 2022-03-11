@@ -269,28 +269,28 @@ proxy_fd_mode(int fd, char *infile, mode_t *outmode, size_t *inlength)
 
 extern long verbosity(void);
 
-#define dprintf_(tv, file, func, line, fmt, args...) ({	\
-		struct timeval tv;			\
-		gettimeofday(&tv, NULL);		\
-		warnx("%ld.%lu %s:%s():%d: " fmt,	\
-		      tv.tv_sec, tv.tv_usec,		\
-		      file, func, line, ##args);	\
+#define dbgprintf_(tv, file, func, line, fmt, args...) ({	\
+		struct timeval tv;				\
+		gettimeofday(&tv, NULL);			\
+		warnx("%ld.%lu %s:%s():%d: " fmt,		\
+		      tv.tv_sec, tv.tv_usec,			\
+		      file, func, line, ##args);		\
 	})
 #if defined(PESIGN_DEBUG)
-#define dprintf(fmt, args...)					\
-	dprintf_(CAT(CAT(CAT(tv_,__COUNTER__),__LINE__),_),	\
-		 __FILE__, __func__, __LINE__ - 2, fmt, ##args)
+#define dbgprintf(fmt, args...)					\
+	dbgprintf_(CAT(CAT(CAT(tv_,__COUNTER__),__LINE__),_),	\
+		   __FILE__, __func__, __LINE__ - 2, fmt, ##args)
 #else
-#define dprintf(fmt, args...) ({						\
+#define dbgprintf(fmt, args...) ({						\
 		if (verbosity() > 1)						\
-			dprintf_(CAT(CAT(CAT(tv_,__COUNTER__),__LINE__),_),	\
+			dbgprintf_(CAT(CAT(CAT(tv_,__COUNTER__),__LINE__),_),	\
 				 __FILE__, __func__, __LINE__ - 3,		\
 				 fmt, ##args);					\
 		0;								\
 	})
 #endif
-#define ingress() dprintf("ingress");
-#define egress() dprintf("egress");
+#define ingress() dbgprintf("ingress");
+#define egress() dbgprintf("egress");
 
 #endif /* PESIGN_UTIL_H */
 // vim:fenc=utf-8:tw=75:noet

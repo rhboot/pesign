@@ -1067,9 +1067,9 @@ int main(int argc, char *argv[])
 
 		errno = 0;
 		timeul = strtoul(not_valid_before, &endptr, 0);
-		dprintf("not_valid_before:%lu", timeul);
+		dbgprintf("not_valid_before:%lu", timeul);
 		if (errno == 0 && endptr && *endptr == 0) {
-			dprintf("not_valid_before:%lu", timeul);
+			dbgprintf("not_valid_before:%lu", timeul);
 			not_before = (PRTime)timeul * PR_USEC_PER_SEC;
 		} else {
 			prstatus = PR_ParseTimeString(not_valid_before,
@@ -1078,7 +1078,7 @@ int main(int argc, char *argv[])
 				 "could not parse date \"%s\"",
 				 not_valid_before);
 		}
-		dprintf("not_before:%"PRId64, not_before);
+		dbgprintf("not_before:%"PRId64, not_before);
 	}
 
 	if (not_valid_after) {
@@ -1086,11 +1086,11 @@ int main(int argc, char *argv[])
 		char *endptr;
 
 		errno = 0;
-		dprintf("not_valid_after:%s", not_valid_after);
+		dbgprintf("not_valid_after:%s", not_valid_after);
 		timeul = strtoul(not_valid_after, &endptr, 0);
-		dprintf("not_valid_after:%lu", timeul);
+		dbgprintf("not_valid_after:%lu", timeul);
 		if (errno == 0 && endptr && *endptr == 0) {
-			dprintf("not_valid_after:%lu", timeul);
+			dbgprintf("not_valid_after:%lu", timeul);
 			not_after = (PRTime)timeul * PR_USEC_PER_SEC;
 		} else {
 			prstatus = PR_ParseTimeString(not_valid_after, PR_TRUE,
@@ -1102,10 +1102,10 @@ int main(int argc, char *argv[])
 	} else {
 		// Mon Jan 19 03:14:07 GMT 2037, aka 0x7fffffff minus 1 year.
 		time_t time = 0x7ffffffful - 60ul * 60 * 24 * 365;
-		dprintf("not_valid_after:%lu", time);
+		dbgprintf("not_valid_after:%lu", time);
 		not_after = (PRTime)time * PR_USEC_PER_SEC;
 	}
-	dprintf("not_after:%"PRId64, not_after);
+	dbgprintf("not_after:%"PRId64, not_after);
 
 	CERTValidity *validity = NULL;
 	validity = CERT_CreateValidity(not_before, not_after);

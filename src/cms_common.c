@@ -333,13 +333,13 @@ void cms_set_pw_data(cms_context *cms, secuPWData *pwdata)
 
 	if (!pwdata) {
 		cms->pwdata.source = PW_SOURCE_INVALID;
-		dprintf("pwdata:NULL");
+		dbgprintf("pwdata:NULL");
 	} else {
 		memmove(&cms->pwdata, pwdata, sizeof(*pwdata));
-		dprintf("pwdata:%p", pwdata);
-		dprintf("pwdata->source:%d", pwdata->source);
-		dprintf("pwdata->data:%p (\"%s\")", pwdata->data,
-			pwdata->data ? pwdata->data : "(null)");
+		dbgprintf("pwdata:%p", pwdata);
+		dbgprintf("pwdata->source:%d", pwdata->source);
+		dbgprintf("pwdata->data:%p (\"%s\")", pwdata->data,
+			  pwdata->data ? pwdata->data : "(null)");
 	}
 
 	egress();
@@ -382,7 +382,7 @@ is_valid_cert(CERTCertificate *cert, void *data)
 
 	errnum = PORT_GetError();
 	if (errnum == SEC_ERROR_EXTENSION_NOT_FOUND) {
-		dprintf("Got SEC_ERROR_EXTENSION_NOT_FOUND; clearing");
+		dbgprintf("Got SEC_ERROR_EXTENSION_NOT_FOUND; clearing");
 		PORT_SetError(0);
 		errnum = 0;
 	}
@@ -415,7 +415,7 @@ is_valid_cert_without_private_key(CERTCertificate *cert, void *data)
 
 	errnum = PORT_GetError();
 	if (errnum == SEC_ERROR_EXTENSION_NOT_FOUND) {
-		dprintf("Got SEC_ERROR_EXTENSION_NOT_FOUND; clearing");
+		dbgprintf("Got SEC_ERROR_EXTENSION_NOT_FOUND; clearing");
 		PORT_SetError(0);
 		errnum = 0;
 	}
@@ -467,23 +467,23 @@ unescape_html_in_place(char *s)
 	size_t pos = 0;
 	char *s1;
 
-	dprintf("unescaping pos:%zd sz:%zd \"%s\"", pos, sz, s);
+	dbgprintf("unescaping pos:%zd sz:%zd \"%s\"", pos, sz, s);
 	do {
 		s1 = strchrnul(&s[pos], '%');
 		if (s1[0] == '\0')
 			break;
-		dprintf("s1 is \"%s\"", s1);
+		dbgprintf("s1 is \"%s\"", s1);
 		if ((size_t)(s1 - s) < (size_t)(sz - 3)) {
 			int c;
 
 			c = (hexchar_to_bin(s1[1]) << 4)
 			    | (hexchar_to_bin(s1[2]) & 0xf);
-			dprintf("replacing %%%c%c with 0x%02hhx", s1[1], s1[2], (char)c);
+			dbgprintf("replacing %%%c%c with 0x%02hhx", s1[1], s1[2], (char)c);
 			s1[0] = c;
 			memmove(&s1[1], &s1[3], sz - (&s1[3] - s));
 			sz -= 2;
 			pos = &s1[1] - s;
-			dprintf("new pos:%zd sz:%zd s:\"%s\"", pos, sz, s);
+			dbgprintf("new pos:%zd sz:%zd s:\"%s\"", pos, sz, s);
 		}
 	} while (pos < sz);
 }
@@ -499,7 +499,7 @@ resolve_pkcs11_token_in_place(char *tokenname)
 		char c = *cp;
 		*cp = '\0';
 
-		dprintf("ntn:\"%s\"", ntn);
+		dbgprintf("ntn:\"%s\"", ntn);
 		if (!strncmp(&ntn[pos], "token=", 6)) {
 			ntn += 6;
 			memmove(tokenname, ntn, cp - ntn + 1);
@@ -510,13 +510,13 @@ resolve_pkcs11_token_in_place(char *tokenname)
 		ntn = cp + (c ? 1 : 0);
 	}
 	unescape_html_in_place(tokenname);
-	dprintf("token name is \"%s\"", tokenname);
+	dbgprintf("token name is \"%s\"", tokenname);
 }
 
 #define resolve_token_name(tn) ({					\
 	char *s_ = tn;							\
 	if (!strncmp(tn, "pkcs11:", 7))	{				\
-		dprintf("provided token name is pkcs11 uri; parsing");	\
+		dbgprintf("provided token name is pkcs11 uri; parsing");\
 		s_ = strdupa(tn+7);					\
 		resolve_pkcs11_token_in_place(s_);			\
 	}								\
@@ -528,7 +528,8 @@ unlock_nss_token(cms_context *cms)
 {
 	char *tokenname = resolve_token_name(cms->tokenname);
 
-	dprintf("setting password function to %s", cms->func ? "cms->func" : "SECU_GetModulePassword");
+	dbgprintf("setting password function to %s",
+		  cms->func ? "cms->func" : "SECU_GetModulePassword");
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
@@ -592,7 +593,8 @@ find_certificate(cms_context *cms, int needs_private_key)
 		return -1;
 	}
 
-	dprintf("setting password function to %s", cms->func ? "cms->func" : "SECU_GetModulePassword");
+	dbgprintf("setting password function to %s",
+		  cms->func ? "cms->func" : "SECU_GetModulePassword");
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
@@ -610,10 +612,10 @@ find_certificate(cms_context *cms, int needs_private_key)
 	}
 
 	while (psle) {
-		dprintf("looking for token \"%s\", got \"%s\"",
-			tokenname, PK11_GetTokenName(psle->slot));
+		dbgprintf("looking for token \"%s\", got \"%s\"",
+			  tokenname, PK11_GetTokenName(psle->slot));
 		if (!strcmp(tokenname, PK11_GetTokenName(psle->slot))) {
-			dprintf("found token \"%s\"", tokenname);
+			dbgprintf("found token \"%s\"", tokenname);
 			break;
 		}
 
@@ -673,8 +675,9 @@ find_certificate(cms_context *cms, int needs_private_key)
 					psle->slot, is_valid_cert, &cbd);
 		errnum = PORT_GetError();
 		if (errnum)
-			dprintf("PK11_TraverseCertsForNicknameInSlot():%s:%s",
-				PORT_ErrorToName(errnum), PORT_ErrorToString(errnum));
+			dbgprintf("PK11_TraverseCertsForNicknameInSlot():%s:%s",
+				  PORT_ErrorToName(errnum),
+				  PORT_ErrorToString(errnum));
 	} else {
 		status = PK11_TraverseCertsForNicknameInSlot(&nickname,
 					psle->slot,
@@ -682,28 +685,30 @@ find_certificate(cms_context *cms, int needs_private_key)
 					&cbd);
 		errnum = PORT_GetError();
 		if (errnum)
-			dprintf("PK11_TraverseCertsForNicknameInSlot():%s:%s",
-				PORT_ErrorToName(errnum), PORT_ErrorToString(errnum));
+			dbgprintf("PK11_TraverseCertsForNicknameInSlot():%s:%s",
+				PORT_ErrorToName(errnum),
+				PORT_ErrorToString(errnum));
 	}
-	dprintf("status:%d cbd.cert:%p", status, cbd.cert);
+	dbgprintf("status:%d cbd.cert:%p", status, cbd.cert);
 	if (status == SECSuccess && cbd.cert != NULL) {
 		if (cms->cert)
 			CERT_DestroyCertificate(cms->cert);
 		cms->cert = CERT_DupCertificate(cbd.cert);
 	} else {
 		errnum = PORT_GetError();
-		dprintf("token traversal %s; cert %sfound:%s:%s",
-			status == SECSuccess ? "succeeded" : "failed",
-			cbd.cert == NULL ? "not" : "",
-			PORT_ErrorToName(errnum), PORT_ErrorToString(errnum));
+		dbgprintf("token traversal %s; cert %sfound:%s:%s",
+			  status == SECSuccess ? "succeeded" : "failed",
+			  cbd.cert == NULL ? "not" : "",
+			  PORT_ErrorToName(errnum),
+			  PORT_ErrorToString(errnum));
 	}
 
 	save_port_err() {
-		dprintf("Destroying cert list");
+		dbgprintf("Destroying cert list");
 		CERT_DestroyCertList(certlist);
-		dprintf("Destroying slot list element");
+		dbgprintf("Destroying slot list element");
 		PK11_DestroySlotListElement(slots, &psle);
-		dprintf("Destroying slot list");
+		dbgprintf("Destroying slot list");
 		PK11_FreeSlotList(slots);
 		cms->psle = NULL;
 	}
@@ -723,7 +728,8 @@ find_slot_for_token(cms_context *cms, PK11SlotInfo **slot)
 
 	char *tokenname = resolve_token_name(cms->tokenname);
 
-	dprintf("setting password function to %s", cms->func ? "cms->func" : "SECU_GetModulePassword");
+	dbgprintf("setting password function to %s",
+		  cms->func ? "cms->func" : "SECU_GetModulePassword");
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
@@ -792,7 +798,8 @@ find_certificate_by_callback(cms_context *cms,
 		return -1;
 	}
 
-	dprintf("setting password function to %s", cms->func ? "cms->func" : "SECU_GetModulePassword");
+	dbgprintf("setting password function to %s",
+		  cms->func ? "cms->func" : "SECU_GetModulePassword");
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
