@@ -79,7 +79,7 @@ ccldflags = $(cflags) $(CCLDFLAGS) $(LDFLAGS) \
 	$(call pkg-config-ccldflags)
 efi_cflags = $(cflags)
 ASFLAGS	?= $(ARCH3264)
-CPPFLAGS ?= -D_FORTIFY_SOURCE=2
+CPPFLAGS ?= -D_FORTIFY_SOURCE=2 -D_GLIBCXX_ASSERTIONS
 RANLIBFLAGS	?= $(if $(filter $(CC),gcc),-D)
 ARFLAGS ?= $(if $(filter $(CC),gcc),-Dcvqs)$(if $(filter $(CC),clang),-cqvs)
 
