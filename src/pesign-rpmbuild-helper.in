@@ -190,7 +190,7 @@ main() {
         getfacl -n /run/pesign /run/pesign/socket /var/run/pesign /var/run/pesign/socket 1>&2 ||:
     fi
 
-    if [[ "${rhelver}" -ge 7 ]] ; then
+    if [[ "${rhelver}" -ge 7 ]] && which rpm-sign >&/dev/null ; then
 	nssdir="$(mktemp -p "${PWD}" -d)"
 	echo > "${nssdir}/pwfile"
 	certutil -N -d "${nssdir}" -f "${nssdir}/pwfile"
