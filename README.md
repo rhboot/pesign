@@ -15,6 +15,8 @@ Generate a key for use with pesign, stored on disk:
 efikeyen -d /etc/pki/pesign -S -TYPE -c 'CN=Your Name Key' -n 'Custom Secureboot'
 ```
 
+(where TYPE is m if you're only signing kernel modules, and k otherwise).
+
 For more complex and secure use cases (e.g., hardware tokens), see
 efikeygen man page (`man efikeygen`).
 
