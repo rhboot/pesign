@@ -33,15 +33,6 @@
 
 #include "hex.h"
 
-struct digest_param {
-	char *name;
-	SECOidTag digest_tag;
-	SECOidTag signature_tag;
-	SECOidTag digest_encryption_tag;
-	const efi_guid_t *efi_guid;
-	int size;
-};
-
 static struct digest_param digest_params[] = {
 	{.name = "sha256",
 	 .digest_tag = SEC_OID_SHA256,
@@ -65,29 +56,25 @@ static int n_digest_params = sizeof (digest_params) / sizeof (digest_params[0]);
 SECOidTag
 digest_get_digest_oid(cms_context *cms)
 {
-	int i = cms->selected_digest;
-	return digest_params[i].digest_tag;
+	return cms->selected_digest->digest_params->digest_tag;
 }
 
 SECOidTag
 digest_get_encryption_oid(cms_context *cms)
 {
-	int i = cms->selected_digest;
-	return digest_params[i].digest_encryption_tag;
+	return cms->selected_digest->digest_params->digest_encryption_tag;
 }
 
 SECOidTag
 digest_get_signature_oid(cms_context *cms)
 {
-	int i = cms->selected_digest;
-	return digest_params[i].signature_tag;
+	return cms->selected_digest->digest_params->signature_tag;
 }
 
 int
 digest_get_digest_size(cms_context *cms)
 {
-	int i = cms->selected_digest;
-	return digest_params[i].size;
+	return cms->selected_digest->digest_params->size;
 }
 
 void
@@ -141,8 +128,6 @@ cms_context_init(cms_context *cms)
 	cms->arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
 	if (!cms->arena)
 		cnreterr(-1, cms, "could not create cryptographic arena");
-
-	cms->selected_digest = -1;
 
 	INIT_LIST_HEAD(&cms->pk12_ins);
 	cms->pk12_out.fd = -1;
@@ -226,7 +211,7 @@ cms_context_fini(cms_context *cms)
 		memset(&cms->newsig, '\0', sizeof (cms->newsig));
 	}
 
-	cms->selected_digest = -1;
+	cms->selected_digest = NULL;
 
 	if (cms->ci_digest) {
 		free_poison(cms->ci_digest->data, cms->ci_digest->len);
@@ -351,7 +336,7 @@ set_digest_parameters(cms_context *cms, char *name)
 	if (strcmp(name, "help")) {
 		for (int i = 0; i < n_digest_params; i++) {
 			if (!strcmp(name, digest_params[i].name)) {
-				cms->selected_digest = i;
+				cms->selected_digest = &cms->digests[i];
 				return 0;
 			}
 		}
@@ -1279,6 +1264,7 @@ generate_digest_begin(cms_context *cms)
 			cngotoerr(err, cms, "could not create digest context");
 
 		PK11_DigestBegin(digests[i].pk11ctx);
+		digests[i].digest_params = &digest_params[i];
 	}
 
 	cms->digests = digests;
@@ -1351,11 +1337,11 @@ generate_signature(cms_context *cms)
 {
 	int rc = 0;
 
-	if (cms->digests[cms->selected_digest].pe_digest == NULL)
+	if (cms->selected_digest->pe_digest == NULL)
 		cnreterr(-1, cms, "PE digest has not been allocated");
 
-	if (content_is_empty(cms->digests[cms->selected_digest].pe_digest->data,
-			cms->digests[cms->selected_digest].pe_digest->len))
+	if (content_is_empty(cms->selected_digest->pe_digest->data,
+			cms->selected_digest->pe_digest->len))
 		cnreterr(-1, cms, "PE binary has not been digested");
 
 	SECItem sd_der;

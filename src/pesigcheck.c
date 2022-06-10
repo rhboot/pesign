@@ -221,9 +221,7 @@ static void
 get_digest(pesigcheck_context *ctx, SECItem *digest)
 {
 	struct cms_context *cms = ctx->cms_ctx;
-	struct digest *cms_digest = &cms->digests[cms->selected_digest];
-
-	memcpy(digest, cms_digest->pe_digest, sizeof (*digest));
+	memcpy(digest, cms->selected_digest->pe_digest, sizeof(*digest));
 }
 
 static int

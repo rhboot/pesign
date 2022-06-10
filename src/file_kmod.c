@@ -60,7 +60,7 @@ ssize_t
 kmod_write_signature(cms_context *cms, int outfd)
 {
 	SEC_PKCS7ContentInfo *cinfo;
-	SECItem *digest = cms->digests[cms->selected_digest].pe_digest;
+	SECItem *digest = cms->selected_digest->pe_digest;
 	SECStatus rv;
 	struct write_sig_info info = {
 		.outfd = outfd,
