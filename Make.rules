@@ -54,7 +54,7 @@ define substitute-version =
 endef
 
 %.1 : %.1.mdoc
-	@mandoc -man -Ios=Linux $^ > $@
+	@mandoc -man -T man -Ios=Linux $^ > $@
 
 % : %.in
 	@$(call substitute-version,$<,$@)
