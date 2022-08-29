@@ -33,34 +33,27 @@
 
 #include "hex.h"
 
-struct digest_param {
-	char *name;
-	SECOidTag digest_tag;
-	SECOidTag signature_tag;
-	SECOidTag digest_encryption_tag;
-	const efi_guid_t *efi_guid;
-	int size;
-};
-
-static struct digest_param digest_params[] = {
-	{.name = "sha256",
-	 .digest_tag = SEC_OID_SHA256,
-	 .signature_tag = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
-	 .digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
-	 .efi_guid = &efi_guid_sha256,
-	 .size = 32
+const struct digest_param digest_params[] = {
+	[DIGEST_PARAM_SHA256] = {
+		.name = "sha256",
+		.digest_tag = SEC_OID_SHA256,
+		.signature_tag = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
+		.digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
+		.efi_guid = &efi_guid_sha256,
+		.size = 32
 	},
 #if 1
-	{.name = "sha1",
-	 .digest_tag = SEC_OID_SHA1,
-	 .signature_tag = SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION,
-	 .digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
-	 .efi_guid = &efi_guid_sha1,
-	 .size = 20
+	[DIGEST_PARAM_SHA1] = {
+		.name = "sha1",
+		.digest_tag = SEC_OID_SHA1,
+		.signature_tag = SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION,
+		.digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
+		.efi_guid = &efi_guid_sha1,
+		.size = 20
 	},
 #endif
 };
-static int n_digest_params = sizeof (digest_params) / sizeof (digest_params[0]);
+const int n_digest_params = sizeof (digest_params) / sizeof (digest_params[0]);
 
 SECOidTag
 digest_get_digest_oid(cms_context *cms)

@@ -263,20 +263,24 @@ check_hash(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 {
 	efi_guid_t efi_sha256 = efi_guid_sha256;
 	efi_guid_t efi_sha1 = efi_guid_sha1;
-	void *digest;
+	void *digest_data;
+	struct digest *digests = ctx->cms_ctx->digests;
+	int selected_digest = -1;
+	size_t size;
 
 	if (memcmp(sigtype, &efi_sha256, sizeof(efi_guid_t)) == 0) {
-		digest = ctx->cms_ctx->digests[0].pe_digest->data;
-		if (memcmp (digest, sig->data, 32) == 0) {
-			ctx->cms_ctx->selected_digest = 0;
-			return FOUND;
-		}
+		selected_digest = DIGEST_PARAM_SHA256;
 	} else if (memcmp(sigtype, &efi_sha1, sizeof(efi_guid_t)) == 0) {
-		digest = ctx->cms_ctx->digests[1].pe_digest->data;
-		if (memcmp (digest, sig->data, 20) == 0) {
-			ctx->cms_ctx->selected_digest = 1;
-			return FOUND;
-		}
+		selected_digest = DIGEST_PARAM_SHA1;
+	} else {
+		return NOT_FOUND;
+	}
+
+	digest_data = digests[selected_digest].pe_digest->data;
+	size = digest_params[selected_digest].size;
+	if (memcmp (digest_data, sig->data, size) == 0) {
+		ctx->cms_ctx->selected_digest = selected_digest;
+		return FOUND;
 	}
 
 	return NOT_FOUND;

@@ -12,6 +12,7 @@
 #include <secpkcs7.h>
 
 #include <errno.h>
+#include <efivar.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <sys/types.h>
@@ -61,6 +62,21 @@ struct digest {
 	PK11Context *pk11ctx;
 	SECItem *pe_digest;
 };
+
+#define DIGEST_PARAM_SHA256	0
+#define DIGEST_PARAM_SHA1	1
+
+struct digest_param {
+	char *name;
+	SECOidTag digest_tag;
+	SECOidTag signature_tag;
+	SECOidTag digest_encryption_tag;
+	const efi_guid_t *efi_guid;
+	int size;
+};
+
+extern const struct digest_param digest_params[2];
+extern const int n_digest_params;
 
 typedef struct pk12_file {
 	char *path;
