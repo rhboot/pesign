@@ -114,8 +114,6 @@ check_inputs(pesign_context *ctx)
 static void
 print_digest(pesign_context *pctx)
 {
-	unsigned int i;
-
 	if (!pctx)
 		return;
 
@@ -123,9 +121,10 @@ print_digest(pesign_context *pctx)
 	if (!ctx)
 		return;
 
-	unsigned char *ddata = ctx->selected_digest->pe_digest->data;
-	for (i = 0; i < ctx->selected_digest->pe_digest->len; i++)
-		printf("%02x", ddata[i]);
+	int j = ctx->selected_digest;
+	for (unsigned int i = 0; i < ctx->digests[j].pe_digest->len; i++)
+		printf("%02x",
+			(unsigned char)ctx->digests[j].pe_digest->data[i]);
 	printf(" %s\n", pctx->infile);
 }
 

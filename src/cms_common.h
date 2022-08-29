@@ -12,7 +12,6 @@
 #include <secpkcs7.h>
 
 #include <errno.h>
-#include <efivar.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <sys/types.h>
@@ -58,19 +57,9 @@
 		goto errlabel;						\
 	})
 
-struct digest_param {
-	char *name;
-	SECOidTag digest_tag;
-	SECOidTag signature_tag;
-	SECOidTag digest_encryption_tag;
-	const efi_guid_t *efi_guid;
-	int size;
-};
-
 struct digest {
 	PK11Context *pk11ctx;
 	SECItem *pe_digest;
-	struct digest_param *digest_params;
 };
 
 typedef struct pk12_file {
@@ -144,7 +133,7 @@ typedef struct cms_context {
 	int db_out, dbx_out, dbt_out;
 
 	struct digest *digests;
-	struct digest *selected_digest;
+	int selected_digest;
 	int omit_vendor_cert;
 
 	SECItem newsig;
