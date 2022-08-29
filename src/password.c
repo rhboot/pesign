@@ -79,6 +79,7 @@ read_password(FILE *in, FILE *out, char *buf, size_t bufsz)
 	int infd = fileno(in);
 	struct termios tio;
 	char *ret;
+	int len;
 
 	ingress();
 	ret = fgets(buf, bufsz, in);
@@ -96,7 +97,14 @@ read_password(FILE *in, FILE *out, char *buf, size_t bufsz)
 	if (ret == NULL)
 		return -1;
 
-	buf[strlen(buf)-1] = '\0';
+	len = strlen(buf);
+	while (len > 0 && (buf[len-1] == '\r' || buf[len-1] == '\n')) {
+		buf[len-1] = '\0';
+		len--;
+	}
+	if (len == 0)
+		return -1;
+
 	egress();
 	return 0;
 }
