@@ -365,13 +365,23 @@ err:
 }
 
 char *
-get_password_passthrough(PK11SlotInfo *slot UNUSED,
-			 PRBool retry, void *arg)
+get_password_passthrough(PK11SlotInfo *slot UNUSED, PRBool retry, void *arg)
 {
+	cms_context *cms;
+	secuPWData *pwdata;
+
+	dbgprintf("ctx:%p", arg);
+
 	if (retry || !arg)
 		return NULL;
 
-	char *ret = strdup(arg);
+	cms = (cms_context *)arg;
+	pwdata = &cms->pwdata;
+
+	if (pwdata->source != PW_PLAINTEXT)
+		return NULL;
+
+	char *ret = strdup(pwdata->data);
 	if (!ret)
 		err(1, "Could not allocate memory");
 
