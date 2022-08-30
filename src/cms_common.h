@@ -65,6 +65,7 @@ struct digest {
 
 #define DIGEST_PARAM_SHA256	0
 #define DIGEST_PARAM_SHA1	1
+#define DEFAULT_DIGEST_PARAM	DIGEST_PARAM_SHA256
 
 struct digest_param {
 	char *name;
@@ -76,7 +77,7 @@ struct digest_param {
 };
 
 extern const struct digest_param digest_params[2];
-extern const int n_digest_params;
+extern const unsigned int n_digest_params;
 
 typedef struct pk12_file {
 	char *path;
@@ -149,7 +150,7 @@ typedef struct cms_context {
 	int db_out, dbx_out, dbt_out;
 
 	struct digest *digests;
-	int selected_digest;
+	unsigned int selected_digest;
 	int omit_vendor_cert;
 
 	SECItem newsig;

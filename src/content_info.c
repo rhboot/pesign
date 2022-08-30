@@ -181,7 +181,7 @@ generate_spc_digest_info(cms_context *cms, SECItem *dip)
 	if (generate_algorithm_id(cms, &di.digestAlgorithm,
 			digest_get_digest_oid(cms)) < 0)
 		return -1;
-	int i = cms->selected_digest;
+	unsigned int i = cms->selected_digest;
 	memcpy(&di.digest, cms->digests[i].pe_digest, sizeof (di.digest));
 
 	if (content_is_empty(di.digest.data, di.digest.len)) {

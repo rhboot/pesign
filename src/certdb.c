@@ -265,7 +265,7 @@ check_hash(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	efi_guid_t efi_sha1 = efi_guid_sha1;
 	void *digest_data;
 	struct digest *digests = ctx->cms_ctx->digests;
-	int selected_digest = -1;
+	unsigned int selected_digest;
 	size_t size;
 
 	if (memcmp(sigtype, &efi_sha256, sizeof(efi_guid_t)) == 0) {
