@@ -30,10 +30,6 @@ commonname="$1"
 refresh_crl=false
 revoke_cert=false
 ocsp_serve=false
-if test "x$commonname" = "x-refresh-crl" ; then
-	refresh_crl=true
-	commonname="$1"
-fi
 if test "x$commonname" = "x-refresh_crl" ; then
 	refresh_crl=true
 	commonname="$1"
