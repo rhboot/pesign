@@ -872,7 +872,7 @@ find_certificate_by_callback(cms_context *cms,
 			continue;
 
 		int rc = match(tmpnode->cert, cbdata);
-		if (rc == 0) {
+		if (rc == 1) {
 			node = tmpnode;
 			break;
 		}
