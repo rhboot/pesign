@@ -878,8 +878,12 @@ find_certificate_by_callback(cms_context *cms,
 		}
 	}
 
-	if (!node)
+	if (!node) {
+		PK11_DestroySlotListElement(slots, &psle);
+		PK11_FreeSlotList(slots);
+		CERT_DestroyCertList(certlist);
 		cnreterr(-1, cms, "Could not find certificate");
+	}
 
 	*cert = CERT_DupCertificate(node->cert);
 
