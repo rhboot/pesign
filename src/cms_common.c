@@ -628,7 +628,8 @@ find_certificate(cms_context *cms, int needs_private_key)
 
 	int errnum;
 	SECStatus status;
-	if (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, cms)) {
+	if ((needs_private_key || !PK11_IsFriendly(psle->slot)) &&
+	    (PK11_NeedLogin(psle->slot) && !PK11_IsLoggedIn(psle->slot, cms))) {
 		status = PK11_Authenticate(psle->slot, PR_TRUE, cms);
 		if (status != SECSuccess) {
 			save_port_err() {
