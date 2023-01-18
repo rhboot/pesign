@@ -2,55 +2,12 @@
 set -e
 set -u
 
-#
-# With /run/pesign/socket on tmpfs, a simple way of restoring the
-# acls for specific users is useful
-#
-#  Compare to: http://infrastructure.fedoraproject.org/cgit/ansible.git/tree/roles/bkernel/tasks/main.yml?id=17198dadebf59d8090b7ed621bc8ab22152d2eb6
-#
-
 # License: GPLv2
-declare -a fileusers=()
-declare -a dirusers=()
-for user in $(cat /etc/pesign/users); do
-	dirusers[${#dirusers[@]}]=-m
-	dirusers[${#dirusers[@]}]="u:$user:rwx"
-	fileusers[${#fileusers[@]}]=-m
-	fileusers[${#fileusers[@]}]="u:$user:rw"
-done
 
-declare -a filegroups=()
-declare -a dirgroups=()
-for group in $(cat /etc/pesign/groups); do
-	dirgroups[${#dirgroups[@]}]=-m
-	dirgroups[${#dirgroups[@]}]="g:$group:rwx"
-	filegroups[${#filegroups[@]}]=-m
-	filegroups[${#filegroups[@]}]="g:$group:rw"
-done
+# This script is deprecated and will be removed in a future release.
 
-update_subdir() {
-	subdir=$1 && shift
-
-	setfacl -bk "${subdir}"
-	setfacl "${dirusers[@]}" "${dirgroups[@]}" "${subdir}"
-	for x in "${subdir}"* ; do
-		if [ -d "${x}" ]; then
-			setfacl -bk ${x}
-			setfacl "${dirusers[@]}" "${dirgroups[@]}" ${x}
-			update_subdir "${x}/"
-		elif [ -e "${x}" ]; then
-			setfacl -bk ${x}
-			setfacl "${fileusers[@]}" "${filegroups[@]}" ${x}
-		else
-			:;
-		fi
-	done
-}
-
-for x in /run/pesign/ /etc/pki/pesign*/ ; do
-	if [ -d "${x}" ]; then
-		update_subdir "${x}"
-	else
-		:;
-	fi
+sleep 3
+for x in @@RUNDIR@@pesign/ /etc/pki/pesign/ ; do
+	chown -R pesign:pesign "${x}" || true
+	chmod -R ug+rwX "${x}" || true
 done
