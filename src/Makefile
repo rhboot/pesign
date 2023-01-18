@@ -77,8 +77,7 @@ install_systemd: pesign.service
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/usr/lib/systemd/system/
 	$(INSTALL) -m 644 pesign.service $(INSTALLROOT)/usr/lib/systemd/system/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(libexecdir)/pesign/
-	$(INSTALL) -m 755 pesign-authorize-users $(INSTALLROOT)$(libexecdir)/pesign/pesign-authorize-users
-	$(INSTALL) -m 755 pesign-authorize-groups $(INSTALLROOT)$(libexecdir)/pesign/pesign-authorize-groups
+	$(INSTALL) -m 755 pesign-authorize $(INSTALLROOT)$(libexecdir)/pesign/pesign-authorize
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pesign
 	$(INSTALL) -m 600 /dev/null $(INSTALLROOT)/etc/pesign/users
 	$(INSTALL) -m 600 /dev/null $(INSTALLROOT)/etc/pesign/groups
