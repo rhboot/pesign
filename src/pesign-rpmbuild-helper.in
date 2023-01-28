@@ -2,7 +2,6 @@
 # shellcheck shell=bash
 
 set -eu
-set -x
 
 usage() {
     local status="${1}" && shift
