@@ -27,7 +27,6 @@ start(){
     RETVAL=$?
     echo
     touch /var/lock/subsys/pesign
-    @@LIBEXECDIR@@/pesign/pesign-authorize
 }
 
 stop(){

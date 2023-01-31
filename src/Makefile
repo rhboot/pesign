@@ -6,7 +6,7 @@ include $(TOPDIR)/Make.rules
 include $(TOPDIR)/Make.defaults
 
 BINTARGETS=authvar client efikeygen pesigcheck pesign \
-	   pesign-rpmbuild-helper pesign-authorize pesum
+	   pesign-rpmbuild-helper pesum
 CFGTARGETS=tmpfiles.conf
 SVCTARGETS=pesign.sysvinit pesign.service
 MAN1TARGETS=authvar.1 efikeygen.1 pesigcheck.1 pesign-client.1 pesign.1
@@ -99,7 +99,6 @@ install :
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(libexecdir)/pesign/
-	$(INSTALL) -m 750 pesign-authorize $(INSTALLROOT)$(libexecdir)/pesign/
 	$(INSTALL) -m 755 pesign-rpmbuild-helper $(INSTALLROOT)$(libexecdir)/pesign/
 	$(INSTALL) -d -m 700 $(INSTALLROOT)/etc/pesign
 	$(INSTALL) -m 600 pesign-users $(INSTALLROOT)/etc/pesign/users

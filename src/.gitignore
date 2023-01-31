@@ -10,5 +10,4 @@ peverify
 pesign.service
 pesign.sysvinit
 pesign-rpmbuild-helper
-pesign-authorize
 tmpfiles.conf

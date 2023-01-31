@@ -5,7 +5,6 @@ Description=Pesign signing daemon
 PrivateTmp=true
 PIDFile=@@RUNDIR@@/pesign.pid
 ExecStart=/usr/bin/pesign --daemonize --nofork
-ExecStartPost=@@LIBEXECDIR@@/pesign/pesign-authorize
 
 [Install]
 WantedBy=multi-user.target
