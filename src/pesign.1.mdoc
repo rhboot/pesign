@@ -1,4 +1,4 @@
-.Dd $Mdocdate: Jun 4 2020$
+.Dd $Mdocdate: Apr 11 2023$
 .Dt PESIGN 1
 .Os Linux
 .Sh NAME
@@ -25,6 +25,7 @@
 .Op Fl l
 .Op Fl S
 .Op Fl v
+.Op Fl Fl pinfile Ar file | Fl Fl pwfile Ar file
 .Ek
 \&
 .Ao
@@ -132,7 +133,7 @@ Remove signature
 .It Fl h | Fl Fl hash
 Display the \fBAuthenticode\fR hash of the binary
 .It Fl d Ar digest | Fl Fl digest-type Ar digest
-Use the cryptorgaphic
+Use the cryptographic
 .Ar digest
 with
 .Fl Fl hash
@@ -153,8 +154,27 @@ default:
 
 Padding is recommended (and in many circumstances required) even for binaries
 which predate the current PE spec, and is enabled by default as of pesign 113.
+.It Fl Fl pinfile Ar file | Fl Fl pwfile Ar file
+Read token's password from
+.Ar file
+rather than from interactive prompt.
+
+.Po
+the same can be accomplished by exporting the environment variable
+.Ev PESIGN_TOKEN_PIN
+.Pc
 .El
 .Sh EXAMPLES
+
+Keep in mind that the following examples assume that
+.Pa /etc/pki/pesign
+is the certificate database. To make use of it as a regular user, add yourself to the
+.Ar pesign
+Unix group with
+
+.Bd -literal -offset 1 -compact
+sudo usermod -a -G pesign $USER
+.Ed
 
 .Ss Signing with the certificate and private key in individual files
 
@@ -235,6 +255,59 @@ OpenSC Card (myorg-sb-signer):/CN=My Org's SB Signer    u,u,u\p
 host:~$ \fBpesign -t "OpenSC Card (myorg-sb-signer)" \e
         -c "OpenSC Card (myorg-sb-signer):/CN=My Org's SB Signer" \e
         -s -i foo.unsigned.efi -o foo.efi\fR
+.Ed
+.Ss Example with OpenDNSSEC's SoftHSM
+
+
+The OpenDNSSEC project provides a software implementation of a generic
+cryptographic device with a PKCS#11 interface - SoftHSM.
+
+.Rs
+.%B SoftHSM
+.%I OpenDNSSEC
+.%U https://www.opendnssec.org/softhsm/ \&
+.Re
+
+This project may come in handy as one can practice how HSMs work without the
+need to have a physical HSM.
+
+In this example we'll initialize one token, generate a CA certificate directly
+in it and make pesign ask it for the generated object to sign a shimx64 binary.
+
+Please note that this is just an example and was written purely for
+demonstration purposes. Use hardware tokens, strong passwords and don't store
+these in plaintext directly in filesystem.
+
+https://www.opendnssec.org/softhsm/
+
+.Bd -literal -offset 1 -compact
+# Initialize a SoftHSM token\p
+host:~$ \fBmkdir -p $HOME/.config/softhsm2/tokens\fR
+host:~$ \fBecho "directories.tokendir = $HOME/.config/softhsm2/tokens" > $HOME/.config/softhsm2/softhsm2.conf\fR
+host:~$ \fBsofthsm2-util --init-token --label HSM --so-pin Secret.123 --pin Secret.123 --free\fR
+
+# Store this PIN in a file\p
+host:~$ \fBcat ~/pwfile.txt\fR
+Secret.123
+
+# Generate a CA directly in this token\p
+host:~$ \fBefikeygen -t HSM -d /etc/pki/pesign -n example \e
+        --ca --self-sign --common-name "CN=example,OU=example,O=example" --kernel\fR
+
+# Confirm the certificate is really in there\p
+host:~$ \fBcertutil -d /etc/pki/pesign -h HSM -L\fR
+
+Certificate Nickname                                         Trust Attributes
+                                                             SSL,S/MIME,JAR/XPI
+
+Enter Password or Pin for "HSM": \fB<type the PIN 'Secret.123' here>\fR\p
+HSM:example                                                  u,u,u\p
+
+# Do the signing\p
+host:~$ \fBpesign -t HSM -n /etc/pki/pesign -c example \e
+        -i ~/shimx64.efi.unsigned -o ~/shimx64.efi.signed \e
+        --pinfile ~/pwfile.txt -s\fR
+
 .Ed
 .Ss Signing using an HSM with an OpenSSL Engine
 
@@ -337,3 +410,4 @@ host:~$ \fBpesign -c myorg-sb-signer \e
 .Sh AUTHORS
 .An Peter Jones
 .An Vikas Charak \fR(examples)
+.An Kamil Aronowski \fR(fixes and improvements)
