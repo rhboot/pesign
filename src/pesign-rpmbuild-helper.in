@@ -169,6 +169,14 @@ main() {
 	return 0
     fi
 
+    local inplace=0 || :
+    if [[ -n "${input[*]}" ]] && [[ -z "${output[*]}" ]] \
+       || [[ "${input[1]}" = "${output[1]}" ]]; then
+        inplace=1
+        output[0]=-o
+        output[1]="$(mktemp -u pesign-XXXXXXX.efi)"
+    fi
+
     USERNAME="${USERNAME:-$(id -un)}"
 
     local socket="" || :
@@ -234,6 +242,11 @@ main() {
     # if there's a 0-sized output file, delete it and error out
     if [[ "${#output[@]}" -eq 2 ]] ; then
 	error_on_empty "${output[1]}"
+    fi
+
+    if [[ "$inplace" -eq 1 ]] ; then
+	chmod 644 "${output[1]}"
+	mv "${output[1]}" "${input[1]}"
     fi
 }
 
