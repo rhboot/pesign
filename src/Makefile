@@ -11,7 +11,10 @@ CFGTARGETS=tmpfiles.conf
 SVCTARGETS=pesign.sysvinit pesign.service
 MAN1TARGETS=authvar.1 efikeygen.1 pesigcheck.1 pesign-client.1 pesign.1
 
-TARGETS=$(BINTARGETS) $(SVCTARGETS) $(MAN1TARGETS) $(CFGTARGETS)
+TARGETS=$(BINTARGETS) $(SVCTARGETS) $(CFGTARGETS)
+ifeq ($(ENABLE_DOCS), 1)
+TARGETS += $(MAN1TARGETS)
+endif
 
 all : deps $(TARGETS)
 
@@ -94,8 +97,10 @@ install :
 	$(INSTALL) -m 755 pesigcheck $(INSTALLROOT)$(bindir)
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/popt.d/
 	$(INSTALL) -m 644 pesign.popt $(INSTALLROOT)/etc/popt.d/
+ifeq ($(ENABLE_DOCS), 1)
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(mandir)man1/
 	$(INSTALL) -m 644 $(MAN1TARGETS) $(INSTALLROOT)$(mandir)man1/
+endif
 	$(INSTALL) -d -m 755 $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -m 644 macros.pesign $(INSTALLROOT)/etc/rpm/
 	$(INSTALL) -d -m 755 $(INSTALLROOT)$(libexecdir)/pesign/

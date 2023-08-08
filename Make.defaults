@@ -101,3 +101,7 @@ ifeq ($(ARCH), x86_64)
     ARCH3264 := -m64
   endif
 endif
+
+# Docs are enabled by default. Set ENABLE_DOCS=0 to disable
+# building/installing docs.
+ENABLE_DOCS ?= 1
