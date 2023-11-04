@@ -11,7 +11,7 @@ SCAN_RANLIB = $(CROSS_COMPILE)llvm-ranlib
 scan-test : ; $(SCAN_BUILD_ERROR)
 
 scan-clean : clean
-	@if [[ -d scan-results ]]; then rm -rf scan-results && echo "removed 'scan-results'"; fi
+	@if [ -d scan-results ]; then rm -rf scan-results && echo "removed 'scan-results'"; fi
 
 scan-build : | scan-test
 scan-build : clean
