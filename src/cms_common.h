@@ -222,7 +222,8 @@ extern int generate_signature(cms_context *ctx);
 extern int unlock_nss_token(cms_context *ctx);
 extern int find_certificate(cms_context *ctx, int needs_private_key);
 extern int generate_keys(cms_context *cms, PK11SlotInfo *slot,
-		SECKEYPrivateKey **privkey, SECKEYPublicKey **pubkey);
+		SECKEYPrivateKey **privkey, SECKEYPublicKey **pubkey,
+		int key_bits, unsigned long exponent);
 extern int is_issuer_of(CERTCertificate *c0, CERTCertificate *c1);
 
 typedef int (find_cert_match_t)(CERTCertificate *cert, void *cbdata);

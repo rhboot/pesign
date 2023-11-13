@@ -716,6 +716,8 @@ int main(int argc, char *argv[])
 	PRStatus prstatus;
 	void *frees[50] = { NULL, };
 	int nfrees = 0;
+	int key_bits = 2048;
+	unsigned long exponent = 0x010001ul;
 
 	cms_context *cms = NULL;
 
@@ -1022,7 +1024,8 @@ int main(int argc, char *argv[])
 			nsserr(1, "could not find NSS slot for token \"%s\"",
 				cms->tokenname);
 
-		rc = generate_keys(cms, slot, &privkey, &pubkey);
+		rc = generate_keys(cms, slot, &privkey, &pubkey, key_bits,
+				   exponent);
 	}
 	if (rc < 0)
 		exit(1);
