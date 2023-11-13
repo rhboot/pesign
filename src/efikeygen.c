@@ -688,6 +688,31 @@ long verbosity(void)
 	return verbose;
 }
 
+struct algorithm {
+	char name[16];
+	int key_bits;
+	unsigned long exponent;
+};
+
+struct algorithm algorithms[] = {
+	{.name = "rsa2048",
+	 .key_bits = 2048,
+	 .exponent = 0x010001ul,
+	},
+	{.name = "rsa3072",
+	 .key_bits = 3072,
+	 .exponent = 0x010001ul,
+	},
+	{.name = "rsa4096",
+	 .key_bits = 4096,
+	 .exponent = 0x010001ul,
+	},
+	{.name = "",
+	 .key_bits = 0,
+	 .exponent = 0,
+	}
+};
+
 int main(int argc, char *argv[])
 {
 	int is_ca = 0;
@@ -718,6 +743,8 @@ int main(int argc, char *argv[])
 	int nfrees = 0;
 	int key_bits = 2048;
 	unsigned long exponent = 0x010001ul;
+	char *orig_algo = "rsa2048";
+	char *algo = orig_algo;
 
 	cms_context *cms = NULL;
 
@@ -760,6 +787,12 @@ int main(int argc, char *argv[])
 		 .descrip = "Generate a self-signed certificate" },
 
 		/* stuff about the generated key */
+		{.longName = "algorithm",
+		 .shortName = 'a',
+		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
+		 .arg = &algo,
+		 .descrip = "Algorithm for keys",
+		 .argDescrip = "<algorithm>" },
 		{.longName = "kek",
 		 .shortName = 'K',
 		 .argInfo = POPT_ARG_VAL|POPT_ARGFLAG_OR|POPT_ARGFLAG_DOC_HIDDEN,
@@ -917,6 +950,7 @@ int main(int argc, char *argv[])
 
 	while ((rc = poptGetNextOpt(optCon)) > 0) {
 		switch (rc) {
+		case 'a': frees[nfrees++] = algo; break;
 		case 'c': frees[nfrees++] = cn; break;
 		case 'D': frees[nfrees++] = db_path; break;
 		case 'd': frees[nfrees++] = dbdir; break;
@@ -942,6 +976,14 @@ int main(int argc, char *argv[])
 			poptPeekArg(optCon));
 
 	poptFreeContext(optCon);
+
+	if (strcmp(algo, "help") == 0) {
+		printf("Supported algorithms:");
+		for (int i = 0; algorithms[i].name[0] != '\0'; i++)
+			printf(" %s", algorithms[i].name);
+		printf("\n");
+		exit(0);
+	}
 
 	/*
 	 * Scenarios that are okay (x == valid combination)
@@ -970,6 +1012,16 @@ int main(int argc, char *argv[])
 
 	if (!is_self_signed && !signer)
 		errx(1, "signing certificate is required");
+
+	for (int i=0; true; i++) {
+		if (strcmp(algorithms[i].name, "") == 0)
+			errx(1, "invalid algorithm: \"%s\"", algo);
+		if (strcmp(algorithms[i].name, algo) == 0) {
+			key_bits = algorithms[i].key_bits;
+			exponent = algorithms[i].exponent;
+			break;
+		}
+	}
 
 	cms->tokenname = tokenname;
 	cms->certname = signer;
