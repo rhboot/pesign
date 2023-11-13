@@ -1783,11 +1783,12 @@ generate_auth_info(cms_context *cms, SECItem *der, char *url)
 
 int
 generate_keys(cms_context *cms, PK11SlotInfo *slot,
-		SECKEYPrivateKey **privkey, SECKEYPublicKey **pubkey)
+		SECKEYPrivateKey **privkey, SECKEYPublicKey **pubkey,
+		int key_bits, unsigned long exponent)
 {
 	PK11RSAGenParams rsaparams = {
-		.keySizeInBits = 2048,
-		.pe = 0x010001,
+		.keySizeInBits = key_bits,
+		.pe = exponent,
 	};
 
 	SECStatus rv;
