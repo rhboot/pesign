@@ -231,8 +231,9 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			open_input(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
-			if(ctxp->signum < 0 ||
-			   ctxp->signum >= ctxp->cms_ctx->num_signatures) {
+			if (ctxp->signum < 0)
+				ctxp->signum = 0;
+			if (ctxp->signum >= ctxp->cms_ctx->num_signatures) {
 				warnx("Invalid signature number %d.",
 				      ctxp->signum);
 				errx(1, "Must be between 0 and %d.",
