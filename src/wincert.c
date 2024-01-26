@@ -73,7 +73,11 @@ finalize_signatures(SECItem **sigs, int num_sigs, Pe *pe)
 	void *clist = NULL;
 	size_t clist_size = 0;
 
-	if (!pe) {
+	if (num_sigs == 0) {
+		return 0;
+	}
+
+	if (!pe || num_sigs < 0) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -82,9 +86,11 @@ finalize_signatures(SECItem **sigs, int num_sigs, Pe *pe)
 				&clist, &clist_size) < 0)
 		return -1;
 
-	if (implant_cert_list(pe, clist, clist_size) < 0) {
-		free(clist);
-		return -1;
+	if (clist_size > 0) {
+		if (implant_cert_list(pe, clist, clist_size) < 0) {
+			free(clist);
+			return -1;
+		}
 	}
 	free(clist);
 	return 0;
