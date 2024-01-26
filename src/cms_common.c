@@ -172,8 +172,10 @@ cms_context_fini(cms_context *cms)
 		xfree(cms->pwdata.data);
 		break;
 	case PW_PLAINTEXT:
-		memset(cms->pwdata.data, 0, strlen(cms->pwdata.data));
-		xfree(cms->pwdata.data);
+		if (cms->pwdata.data) {
+			memset(cms->pwdata.data, 0, strlen(cms->pwdata.data));
+			xfree(cms->pwdata.data);
+		}
 		break;
 	}
 	cms->pwdata.source = PW_SOURCE_INVALID;
@@ -319,8 +321,10 @@ void cms_set_pw_data(cms_context *cms, secuPWData *pwdata)
 	case PW_FROMENV:
 	case PW_FROMFILE:
 	case PW_PLAINTEXT:
-		memset(cms->pwdata.data, 0, strlen(cms->pwdata.data));
-		xfree(cms->pwdata.data);
+		if (cms->pwdata.data) {
+			memset(cms->pwdata.data, 0, strlen(cms->pwdata.data));
+			xfree(cms->pwdata.data);
+		}
 		break;
 
 	case PW_DATABASE:

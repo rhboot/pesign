@@ -985,6 +985,11 @@ int main(int argc, char *argv[])
 	if (!strcmp(dbdir, "-") && list_empty(&cms->pk12_ins) && !is_self_signed)
 		errx(1, "'--dbdir -' requires either --pk12-in or --self-sign.");
 
+	secuPWData pwdata;
+	memset(&pwdata, 0, sizeof(pwdata));
+	pwdata.source = pwdata.orig_source = PW_PROMPT;
+	cms_set_pw_data(cms, &pwdata);
+
 	PK11_SetPasswordFunc(cms->func ? cms->func : readpw);
 	if (strcmp(dbdir, "-")) {
 		if (cms->pk12_out.fd >= 0)

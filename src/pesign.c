@@ -395,6 +395,8 @@ main(int argc, char *argv[])
 		pwdata.data = strdup(secure_getenv("PESIGN_TOKEN_PIN"));
 		if (!pwdata.data)
 			err(1, "could not allocate memory");
+	} else if (pwdata.source == PW_SOURCE_INVALID) {
+		pwdata.source = PW_PROMPT;
 	}
 	pwdata.orig_source = pwdata.source;
 
