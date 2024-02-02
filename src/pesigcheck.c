@@ -240,7 +240,7 @@ check_signature(pesigcheck_context *ctx, int *nreasons,
 
 	cert_iter iter;
 
-	reasonps = calloc(sizeof(struct reason), 512);
+	reasonps = calloc(512, sizeof(struct reason));
 	if (!reasonps)
 		err(1, "check_signature");
 
@@ -281,7 +281,7 @@ check_signature(pesigcheck_context *ctx, int *nreasons,
 
 			num_reasons += 16;
 
-			new_reasons = calloc(sizeof(struct reason), num_reasons);
+			new_reasons = calloc(num_reasons, sizeof(struct reason));
 			if (!new_reasons)
 				err(1, "check_signature");
 			reasonps = new_reasons;
