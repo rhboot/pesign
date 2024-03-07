@@ -141,7 +141,8 @@ bundle_signature(cms_context *cms, SECItem *sigder, SECItem *data,
 		errx(1, "could not encode certificate: %s",
 			PORT_ErrorToString(PORT_GetError()));
 
-	sigder->data[sigder->len - 261] = DER_BIT_STRING;
+	//Note: offset is signature size + 5 bytes for DER encoding
+	sigder->data[sigder->len - (signature->len + 5)] = DER_BIT_STRING;
 
 	return 0;
 }
