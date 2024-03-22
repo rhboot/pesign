@@ -102,10 +102,28 @@ add_trust(cms_context *cms, CERTIssuerAndSN *ias,
 		cmsreterr(-1, cms, "Could not find certificate");
 
 	status = CERT_ChangeCertTrust(CERT_GetDefaultCertDB(), cert, &trust);
-	if (status != SECSuccess)
-		cmsreterr(-1, cms, "could not set trust for certificate");
+	if (status != SECSuccess) {
+		// Some tokens doesn't supprot trust so CERT_ChangeCertTrust writes
+		// it to the internal token. Authenticate internal token and retry.
+		PK11SlotInfo *internal_slot = PK11_GetInternalKeySlot();
+		if (PK11_NeedLogin(internal_slot) && !PK11_IsLoggedIn(internal_slot, cms)) {
+			secuPWData pwdata;
+			memset(&pwdata, 0, sizeof(pwdata));
+			pwdata.source = pwdata.orig_source = PW_PROMPT;
+			cms_set_pw_data(cms, &pwdata);
+			status = PK11_Authenticate(internal_slot, PR_TRUE, cms);
+			if (status != SECSuccess) {
+				CERT_DestroyCertificate(cert);
+				cmsreterr(-1, cms, "authentication failed for internal token");
+			}
+			status = CERT_ChangeCertTrust(CERT_GetDefaultCertDB(), cert, &trust);
+		}
+	}
 
 	CERT_DestroyCertificate(cert);
+	if (status != SECSuccess) {
+		cmsreterr(-1, cms, "could not set trust for certificate");
+	}
 
 	return 0;
 }
