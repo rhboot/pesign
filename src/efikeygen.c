@@ -1069,14 +1069,14 @@ int main(int argc, char *argv[])
 		nsserr(1, "Could not register OIDs");
 
 	PK11SlotInfo *slot = NULL;
+	rc = find_slot_for_token(cms, &slot);
+	if (rc < 0)
+		nsserr(1, "could not find NSS slot for token \"%s\"",
+			cms->tokenname);
+
 	if (pubfile) {
 		rc = get_pubkey_from_file(pubfile, &pubkey);
 	} else {
-		rc = find_slot_for_token(cms, &slot);
-		if (rc < 0)
-			nsserr(1, "could not find NSS slot for token \"%s\"",
-				cms->tokenname);
-
 		rc = generate_keys(cms, slot, &privkey, &pubkey, key_bits,
 				   exponent);
 	}
