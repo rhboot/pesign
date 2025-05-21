@@ -4,7 +4,7 @@
  * Copyright Peter Jones <pjones@redhat.com>
  * Copyright Red Hat, Inc.
  */
-#include "fix_coverity.h"
+#include "fix_coverity.h" // IWYU pragma: keep
 
 #include <err.h>
 #include <fcntl.h>
@@ -711,6 +711,8 @@ long verbosity(void)
 	return verbose;
 }
 
+#define DEFAULT_PKCS1_ALGORITHM SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION
+
 struct algorithm {
 	char name[16];
 	CK_MECHANISM_TYPE keygen_mech;
@@ -723,21 +725,21 @@ struct algorithm {
 struct algorithm algorithms[] = {
 	{.name = "rsa2048",
 	 .keygen_mech = CKM_RSA_PKCS_KEY_PAIR_GEN,
-	 .sig_oid = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
+	 .sig_oid = DEFAULT_PKCS1_ALGORITHM,
 	 .key_type = CKK_RSA,
 	 .key_bits = 2048,
 	 .exponent = 0x010001ul,
 	},
 	{.name = "rsa3072",
 	 .keygen_mech = CKM_RSA_PKCS_KEY_PAIR_GEN,
-	 .sig_oid = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
+	 .sig_oid = DEFAULT_PKCS1_ALGORITHM,
 	 .key_type = CKK_RSA,
 	 .key_bits = 3072,
 	 .exponent = 0x010001ul,
 	},
 	{.name = "rsa4096",
 	 .keygen_mech = CKM_RSA_PKCS_KEY_PAIR_GEN,
-	 .sig_oid = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
+	 .sig_oid = DEFAULT_PKCS1_ALGORITHM,
 	 .key_type = CKK_RSA,
 	 .key_bits = 4096,
 	 .exponent = 0x010001ul,
@@ -755,6 +757,29 @@ struct algorithm algorithms[] = {
 	 .key_type = 0,
 	 .key_bits = 0,
 	 .exponent = 0,
+	}
+};
+
+struct digest_algorithm {
+	char name[16];
+	SECOidTag sec_oid;
+};
+
+struct digest_algorithm digest_algorithms[] = {
+	{.name = "sha256",
+	 .sec_oid = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
+	},
+	{.name = "sha384",
+	 .sec_oid = SEC_OID_PKCS1_SHA384_WITH_RSA_ENCRYPTION,
+	},
+	{.name = "sha512",
+	 .sec_oid = SEC_OID_PKCS1_SHA512_WITH_RSA_ENCRYPTION,
+	},
+	{.name = "ml-dsa-87",
+	 .sec_oid = SEC_OID_ML_DSA_87,
+	},
+	{.name = "",
+	 .sec_oid = SEC_OID_UNKNOWN,
 	}
 };
 
@@ -789,6 +814,9 @@ int main(int argc, char *argv[])
 	struct algorithm *selected_algo = &algorithms[0];
 	char *orig_algo = "rsa2048";
 	char *algo = orig_algo;
+	char *orig_digest = "sha256";
+	char *digest = orig_digest;
+	SECOidTag digest_tag = SEC_OID_UNKNOWN;
 
 	cms_context *cms = NULL;
 
@@ -837,6 +865,12 @@ int main(int argc, char *argv[])
 		 .arg = &algo,
 		 .descrip = "Algorithm for keys",
 		 .argDescrip = "<algorithm>" },
+		{.longName = "digest",
+		 .shortName = 'h',
+		 .argInfo = POPT_ARG_STRING|POPT_ARGFLAG_SHOW_DEFAULT,
+		 .arg = &digest,
+		 .descrip = "Digest algorithm for certs",
+		 .argDescrip = "<digest>" },
 		{.longName = "kek",
 		 .shortName = 'K',
 		 .argInfo = POPT_ARG_VAL|POPT_ARGFLAG_OR|POPT_ARGFLAG_DOC_HIDDEN,
@@ -998,6 +1032,7 @@ int main(int argc, char *argv[])
 		case 'c': frees[nfrees++] = cn; break;
 		case 'D': frees[nfrees++] = db_path; break;
 		case 'd': frees[nfrees++] = dbdir; break;
+		case 'h': frees[nfrees++] = digest; break;
 		case 'i': frees[nfrees++] = issuer; break;
 		case 'K': frees[nfrees++] = kek_nickname; break;
 		case 'n': frees[nfrees++] = nickname; break;
@@ -1025,6 +1060,14 @@ int main(int argc, char *argv[])
 		printf("Supported algorithms:");
 		for (int i = 0; algorithms[i].name[0] != '\0'; i++)
 			printf(" %s", algorithms[i].name);
+		printf("\n");
+		exit(0);
+	}
+
+	if (strcmp(digest, "help") == 0) {
+		printf("Supported digest algorithms:");
+		for (int i = 0; digest_algorithms[i].name[0] != '\0'; i++)
+			printf(" %s", digest_algorithms[i].name);
 		printf("\n");
 		exit(0);
 	}
@@ -1066,8 +1109,52 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (selected_algo->keygen_mech == CKM_ML_DSA_KEY_PAIR_GEN)
+	for (int i=0; true; i++) {
+		if (strcmp(digest_algorithms[i].name, "") == 0)
+			errx(1, "invalid digest algorithm: \"%s\"", digest);
+		if (strcmp(digest_algorithms[i].name, digest) == 0) {
+			digest_tag = digest_algorithms[i].sec_oid;
+			break;
+		}
+	}
+
+	switch (selected_algo->keygen_mech) {
+	case CKM_ML_DSA_KEY_PAIR_GEN:
 		cms->selected_digest = DIGEST_PARAM_ML_DSA_87;
+
+		switch (digest_tag) {
+		case SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION:
+		case SEC_OID_PKCS1_SHA384_WITH_RSA_ENCRYPTION:
+		case SEC_OID_PKCS1_SHA512_WITH_RSA_ENCRYPTION:
+			/*
+			 * The user actually asked for it.
+			 */
+			if (digest != orig_digest)
+				errx(1, "SHA digest cannot be used with ML-DSA certificate");
+			__attribute__((fallthrough));
+		default:
+			break;
+		}
+		break;
+	case CKM_RSA_PKCS_KEY_PAIR_GEN:
+		switch (digest_tag) {
+		case SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION:
+			selected_algo->sig_oid = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION;
+			break;
+		case SEC_OID_PKCS1_SHA384_WITH_RSA_ENCRYPTION:
+			selected_algo->sig_oid = SEC_OID_PKCS1_SHA384_WITH_RSA_ENCRYPTION;
+			break;
+		case SEC_OID_PKCS1_SHA512_WITH_RSA_ENCRYPTION:
+			selected_algo->sig_oid = SEC_OID_PKCS1_SHA512_WITH_RSA_ENCRYPTION;
+			break;
+		case SEC_OID_ML_DSA_87:
+			errx(1, "RSA algorithm cannot used with ML-DSA digest");
+			break;
+		default:
+			errx(1, "unknown digest type");
+			break;
+		}
+	}
 
 	cms->tokenname = tokenname;
 	cms->certname = signer;
