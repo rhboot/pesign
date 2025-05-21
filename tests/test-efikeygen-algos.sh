@@ -80,9 +80,23 @@ main() {
     cleanup
     setup
 
+    test_one_algo default sha256 "2048 bit" sha256WithRSAEncryption pass
+    test_one_algo default sha384 "2048 bit" sha384WithRSAEncryption pass
+    test_one_algo default sha512 "2048 bit" sha512WithRSAEncryption pass
     test_one_algo rsa2048 default "2048 bit" sha256WithRSAEncryption pass
     test_one_algo rsa3072 default "3072 bit" sha256WithRSAEncryption pass
     test_one_algo rsa4096 default "4096 bit" sha256WithRSAEncryption pass
+    test_one_algo rsa2048 sha256 "2048 bit" sha256WithRSAEncryption pass
+    test_one_algo rsa2048 sha384 "2048 bit" sha384WithRSAEncryption pass
+    test_one_algo rsa2048 sha512 "2048 bit" sha512WithRSAEncryption pass
+    test_one_algo rsa3072 sha256 "3072 bit" sha256WithRSAEncryption pass
+    test_one_algo rsa3072 sha384 "3072 bit" sha384WithRSAEncryption pass
+    test_one_algo rsa3072 sha512 "3072 bit" sha512WithRSAEncryption pass
+    test_one_algo rsa4096 sha256 "4096 bit" sha256WithRSAEncryption pass
+    test_one_algo rsa4096 sha384 "4096 bit" sha384WithRSAEncryption pass
+    test_one_algo rsa4096 sha512 "4096 bit" sha512WithRSAEncryption pass
+    test_one_algo ml-dsa-87 sha256 ml-dsa-87 sha256 fail
+    test_one_algo rsa2048 ml-dsa-87 rsa2048 ml-dsa-87 fail
     test_one_algo ml-dsa-87 default ML-DSA-87 ML-DSA-87 pass
 
     cleanup
