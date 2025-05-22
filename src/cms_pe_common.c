@@ -278,19 +278,14 @@ generate_digest(cms_context *cms, Pe *pe, int padded)
 			cmsgotoerr(error_shdrs, cms,
 				   "PE has invalid trailing data");
 
+		generate_digest_step(cms, hash_base, hash_size);
+		dbgprintf("digesting %tx + %zx", hash_base - map,
+			hash_size);
 		if (hash_size % 8 != 0 && padded) {
-			size_t tmp_size = hash_size +
-					  ALIGNMENT_PADDING(hash_size, 8);
-			uint8_t tmp_array[tmp_size];
-			memset(tmp_array, '\0', tmp_size);
-			memcpy(tmp_array, hash_base, hash_size);
-			generate_digest_step(cms, tmp_array, tmp_size);
-			dbgprintf("digesting %tx + %zx", (ptrdiff_t)tmp_array,
-				tmp_size);
-		} else {
-			generate_digest_step(cms, hash_base, hash_size);
-			dbgprintf("digesting %tx + %zx", hash_base - map,
-				hash_size);
+			size_t pad_size = ALIGNMENT_PADDING(hash_size, 8);
+			uint8_t pad_array[8] = {0};
+			generate_digest_step(cms, pad_array, pad_size);
+			dbgprintf("padding to %zx", hash_size + pad_size);
 		}
 	}
 	dbgprintf("end of hash");
