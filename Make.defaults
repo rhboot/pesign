@@ -57,7 +57,7 @@ ifneq (,$(wildcard /usr/lib/gcc/x86_64-redhat-linux/*/plugin/annobin.so))
 endif
 
 cflags	= $(CFLAGS) $(ARCH3264) \
-	-Wall -Wextra -Wsign-compare -Wno-unused-result \
+	-Wall -Wextra -Wsign-compare -Wmissing-prototypes -Wstrict-prototypes -Wno-unused-result \
 	-Wno-unused-function -Wno-missing-field-initializers \
 	$(call enabled,ENABLE_LEAK_CHECKER,-Wno-analyzer-malloc-leak,) \
 	-Werror -Wno-error=cpp -Wno-free-nonheap-object \
