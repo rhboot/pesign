@@ -347,7 +347,7 @@ err:
 	return ret;
 }
 
-void
+static void
 callback(poptContext con UNUSED,
 	 enum poptCallbackReason reason UNUSED,
 	 const struct poptOption *opt,

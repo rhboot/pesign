@@ -46,7 +46,7 @@ err_list:
 	return -1;
 }
 
-void
+static void
 free_algorithm_list(cms_context *cms UNUSED,
 		    SECAlgorithmID **algorithm_list)
 {
@@ -122,7 +122,7 @@ typedef enum {
 	END_SIGNER_INFO_LIST
 } SignerInfoType;
 
-int
+static int
 generate_signerInfo_list(cms_context *cms, SpcSignerInfo ***signerInfo_list_p, SignerInfoType type)
 {
 	SpcSignerInfo **signerInfo_list;

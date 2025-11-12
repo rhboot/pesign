@@ -22,6 +22,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "libdpe/libdpe.h"
+
 #include "util.h"
 #include "password.h"
 

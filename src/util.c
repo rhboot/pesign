@@ -11,7 +11,7 @@
 
 size_t HIDDEN page_size;
 
-void CONSTRUCTOR
+static void CONSTRUCTOR
 set_up_global_constants(void)
 {
 	page_size = sysconf(_SC_PAGE_SIZE);

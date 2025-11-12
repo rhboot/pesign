@@ -9,6 +9,8 @@
 #define KMOD_COMMON_H 1
 
 #include <stdint.h>
+
+#include "cms_common.h"
 #include "pesign_context.h"
 
 int kmod_generate_digest(cms_context *cms, unsigned char *addr, size_t len);
