@@ -5,6 +5,9 @@
  *
  * Author(s): Daniel Drake <drake@endlessm.com>
  */
+
+#include "file_kmod.h"
+
 #include "fix_coverity.h"
 
 #include <stdint.h>

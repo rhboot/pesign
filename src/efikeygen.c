@@ -523,7 +523,7 @@ get_signer_public_key(cms_context *cms, SECKEYPublicKey **pubkey)
 }
 
 /* Of course this doesn't exist in 1990's crypto library. */
-SECItem *
+static SECItem *
 SEC_ASN1EncodeLongLong(PRArenaPool *poolp, SECItem *dest,
 				unsigned long long value)
 {
@@ -655,7 +655,7 @@ get_pw_file(pk12_file_t *file, const char *arg)
 	file->pw = pw;
 }
 
-void
+static void
 popt_callback(poptContext con UNUSED,
 	      enum poptCallbackReason reason UNUSED,
 	      const struct poptOption *opt,

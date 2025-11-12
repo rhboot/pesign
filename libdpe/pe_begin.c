@@ -126,7 +126,7 @@ file_read_pe_exe(int fildes, void *map_address, unsigned char *p_ident,
 	return pe;
 }
 
-Pe *
+static Pe *
 __libpe_read_mmapped_file(int fildes, void *map_address, size_t maxsize,
 			Pe_Cmd cmd, Pe *parent)
 {

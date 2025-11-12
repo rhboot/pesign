@@ -1147,7 +1147,7 @@ err:
 	return -1;
 }
 
-int
+static int
 encode_algorithm_id(cms_context *cms, SECItem *der, SECOidTag tag)
 {
 	SECAlgorithmID id;
@@ -1626,7 +1626,7 @@ generate_ava(cms_context *cms, SECItem *der, CERTAVA *certava)
 	return 0;
 }
 
-int
+static int
 generate_name(cms_context *cms, SECItem *der, CERTName *certname)
 {
 	void *marka = PORT_ArenaMark(cms->arena);
