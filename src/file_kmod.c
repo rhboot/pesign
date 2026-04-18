@@ -10,6 +10,7 @@
 #include <stdint.h>
 
 #include "pesign.h"
+#include "signed_data.h"
 
 #include <prerror.h>
 
@@ -35,67 +36,32 @@ kmod_generate_digest(cms_context *cms, unsigned char *addr, size_t len)
 	return 0;
 }
 
-struct write_sig_info {
-	int outfd;
-	int rc;
-	size_t sig_len;
-};
-
-static void
-kmod_signature_out(void *arg, const char *buf, unsigned long len)
-{
-	struct write_sig_info *info = (struct write_sig_info *) arg;
-	int rc;
-
-	rc = write_file(info->outfd, buf, len);
-	if (rc < 0) {
-		info->rc = rc;
-		return;
-	}
-
-	info->sig_len += len;
-}
-
 ssize_t
 kmod_write_signature(cms_context *cms, int outfd)
 {
-	SEC_PKCS7ContentInfo *cinfo;
-	SECItem *digest = cms->digests[cms->selected_digest].pe_digest;
-	SECStatus rv;
-	struct write_sig_info info = {
-		.outfd = outfd,
-	};
+	SECItem sd_der;
 	ssize_t rc = -1;
 
-	cinfo = SEC_PKCS7CreateSignedData(cms->cert,
-					  certUsageObjectSigner, NULL,
-					  digest_get_digest_oid(cms),
-					  digest, NULL, NULL);
-	if (!cinfo) {
+	memset(&sd_der, '\0', sizeof(sd_der));
+
+	/* Use generate_spc_signed_data() instead of SEC_PKCS7CreateSignedData()
+	 * to avoid strict certificate chain validation that fails for self-signed
+	 * certificates even when trust flags are properly set. */
+	rc = generate_spc_signed_data(cms, &sd_der);
+	if (rc < 0) {
 		cms->log(cms, LOG_ERR, "failed to create signed data: %s (%s)",
 			 PORT_ErrorToString(PORT_GetError()),
 			 PORT_ErrorToName(PORT_GetError()));
 		return -1;
 	}
 
-	rv = SEC_PKCS7Encode(cinfo, kmod_signature_out, &info, NULL, NULL,
-			     NULL);
-	if (rv != SECSuccess) {
-		cms->log(cms, LOG_ERR, "failed to encode signed data: %d", rv);
-		goto out;
+	rc = write_file(outfd, sd_der.data, sd_der.len);
+	if (rc < 0) {
+		cms->log(cms, LOG_ERR, "failed to write signature: %m");
+		return -1;
 	}
 
-	if (info.rc != 0) {
-		cms->log(cms, LOG_ERR, "Signed data encode error %d", info.rc);
-		rc = info.rc;
-		goto out;
-	}
-
-	rc = info.sig_len;
-
-out:
-	SEC_PKCS7DestroyContentInfo(cinfo);
-	return rc;
+	return sd_der.len;
 }
 
 static const char magic_number[] = "~Module signature appended~\n";
