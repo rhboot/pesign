@@ -41,6 +41,15 @@ fi
 
 echo "  ✓ Self-signed module certificate created successfully"
 
+# Verify trust flags are set (should be u,u,u for user cert)
+TRUST=$(certutil -d "$WORK_DIR/certdb" -L | grep "Test Module Key" | awk '{print $NF}')
+if [ -z "$TRUST" ]; then
+    echo "  ✗ No trust flags found"
+    exit 1
+else
+    echo "  ✓ Trust flags: $TRUST"
+fi
+
 # Get test data directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEST_DATA="$SCRIPT_DIR/data"

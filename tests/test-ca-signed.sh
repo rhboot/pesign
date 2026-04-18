@@ -58,6 +58,24 @@ fi
 
 echo "  ✓ CA and signing certificates created successfully"
 
+# Verify CA trust flags (CA cert should have CA trust)
+CA_TRUST=$(certutil -d "$WORK_DIR/ca" -L | grep "Test Secure Boot CA" | awk '{print $NF}')
+if echo "$CA_TRUST" | grep -q "C\|T"; then
+    echo "  ✓ CA trust flags: $CA_TRUST"
+else
+    echo "  ✗ CA trust flags missing CA trust: $CA_TRUST"
+    exit 1
+fi
+
+# Verify signing cert trust flags
+SIGN_TRUST=$(certutil -d "$WORK_DIR/ca" -L | grep "Test Secure Boot Signing" | awk '{print $NF}')
+if [ -z "$SIGN_TRUST" ]; then
+    echo "  ✗ No trust flags found for signing cert"
+    exit 1
+else
+    echo "  ✓ Signing cert trust flags: $SIGN_TRUST"
+fi
+
 # Get test data directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEST_DATA="$SCRIPT_DIR/data"
