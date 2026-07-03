@@ -147,6 +147,7 @@ main() {
     target_cpu="${target_cpu/x86_64/x64}"
     target_cpu="${target_cpu/aarch64/aa64}"
     target_cpu="${target_cpu/arm*/arm/}"
+    target_cpu="${target_cpu/loongarch64/la64/}"
 
     local nssdir=/etc/pki/pesign
     if [[ "${#cert[@]}" -eq 2 ]] &&
