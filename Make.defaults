@@ -56,7 +56,7 @@ ifneq (,$(wildcard /usr/lib/gcc/x86_64-redhat-linux/*/plugin/annobin.so))
   gcc_cflags += -fplugin=annobin
 endif
 
-cflags	= $(CFLAGS) $(ARCH3264) \
+cflags	= $(CFLAGS) $(ARCH3264) $(ARCH_CFLAGS) \
 	-Wall -Wextra -Wsign-compare -Wmissing-prototypes -Wstrict-prototypes -Wno-unused-result \
 	-Wno-unused-function -Wno-missing-field-initializers \
 	$(call enabled,ENABLE_LEAK_CHECKER,-Wno-analyzer-malloc-leak,) \
@@ -103,6 +103,10 @@ ifeq ($(ARCH), x86_64)
   ifeq ($(HOSTARCH), ia32)
     ARCH3264 := -m64
   endif
+endif
+
+ifeq ($(ARCH), aarch64)
+  ARCH_CFLAGS := -mbranch-protection=standard
 endif
 
 # Docs are enabled by default. Set ENABLE_DOCS=0 to disable
