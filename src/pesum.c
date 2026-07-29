@@ -141,7 +141,7 @@ main(int argc, char *argv[])
 	while ((infile = poptGetArg(optCon)) != NULL) {
 		pesign_context *ctxp = NULL;
 
-		char *ext = strrchr(infile, '.');
+		char const *ext = strrchr(infile, '.');
 		if (ext && strcmp(ext, ".ko") == 0)
 			fmt = FORMAT_KERNEL_MODULE;
 
