@@ -6,7 +6,7 @@
  */
 #include <unistd.h>
 
-#include "libdpe_priv.h"
+#include "libdpe_priv.h" // IWYU pragma: keep
 
 int
 pe_clearcert(Pe *pe)
@@ -23,8 +23,21 @@ pe_clearcert(Pe *pe)
 	if (rc < 0)
 		return rc;
 
-	if (dd->certs.virtual_address != 0) {
-		pe_freespace(pe, dd->certs.virtual_address, dd->certs.size);
+	if (dd->certs.virtual_address != 0 && dd->certs.size != 0) {
+		uint64_t pos = le32_to_cpu(dd->certs.virtual_address);
+		uint64_t size = le32_to_cpu(dd->certs.size);
+		uint64_t end;
+
+		if (__builtin_add_overflow(pos, size, &end) ||
+		    pos >= pe->maximum_size ||
+		    end > pe->maximum_size) {
+			__libpe_seterrno(PE_E_INVALID_FILE);
+			return -1;
+		}
+
+		rc = pe_freespace(pe, dd->certs.virtual_address, dd->certs.size);
+		if (rc < 0)
+			return rc;
 		memset(&dd->certs, '\0', sizeof (dd->certs));
 	}
 
@@ -42,7 +55,9 @@ pe_alloccert(Pe *pe, size_t size)
 		return -1;
 	}
 
-	pe_clearcert(pe);
+	rc = pe_clearcert(pe);
+	if (rc < 0)
+		return rc;
 
 	uint32_t new_space = 0;
 	rc = pe_extend_file(pe, size, &new_space, 8);
