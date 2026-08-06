@@ -95,6 +95,7 @@ kmod_handle_action(pesign_context *ctxp, int action)
 			rc = find_certificate(ctxp->cms_ctx, 1);
 			conderrx(rc < 0, 1, "Could not find certificate \"%s\"",
 				 ctxp->cms_ctx->certname);
+			cms_context_detect_algorithm(ctxp->cms_ctx);
 			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures + 1,
 				 1, "Invalid signature number.");
 
@@ -112,6 +113,7 @@ kmod_handle_action(pesign_context *ctxp, int action)
 			rc = find_certificate(ctxp->cms_ctx, 1);
 			conderrx(rc < 0, 1, "Could not find certificate \"%s\"",
 				 ctxp->cms_ctx->certname);
+			cms_context_detect_algorithm(ctxp->cms_ctx);
 			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures + 1,
 				 1, "Invalid signature number.");
 

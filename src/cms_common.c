@@ -56,6 +56,14 @@ const struct digest_param digest_params[] = {
 		.size = 20
 	},
 #endif
+	[DIGEST_PARAM_ML_DSA_87] = {
+		.name = "ml-dsa-87",
+		.digest_tag = SEC_OID_SHA256,
+		.signature_tag = SEC_OID_ML_DSA_87,
+		.digest_encryption_tag = SEC_OID_ML_DSA_87,
+		.efi_guid = &efi_guid_sha256,
+		.size = 32
+	},
 };
 const unsigned int n_digest_params = sizeof (digest_params) / sizeof (digest_params[0]);
 
@@ -85,6 +93,14 @@ digest_get_digest_size(cms_context *cms)
 {
 	unsigned int i = cms->selected_digest;
 	return digest_params[i].size;
+}
+
+static CK_MECHANISM_TYPE
+get_token_mechanism(cms_context *cms)
+{
+	if (cms->selected_digest == DIGEST_PARAM_ML_DSA_87)
+		return CKM_ML_DSA;
+	return CKM_RSA_PKCS;
 }
 
 void
@@ -534,7 +550,7 @@ unlock_nss_token(cms_context *cms)
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
-	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, cms);
+	slots = PK11_GetAllTokens(get_token_mechanism(cms), PR_FALSE, PR_TRUE, cms);
 	if (!slots)
 		cnreterr(-1, cms, "could not get pk11 token list");
 
@@ -599,7 +615,7 @@ find_certificate(cms_context *cms, int needs_private_key)
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
-	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, cms);
+	slots = PK11_GetAllTokens(get_token_mechanism(cms), PR_FALSE, PR_TRUE, cms);
 	if (!slots)
 		cnreterr(-1, cms, "could not get pk11 token list");
 
@@ -735,7 +751,7 @@ find_slot_for_token(cms_context *cms, PK11SlotInfo **slot)
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
-	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, cms);
+	slots = PK11_GetAllTokens(get_token_mechanism(cms), PR_FALSE, PR_TRUE, cms);
 	if (!slots)
 		cnreterr(-1, cms, "could not get pk11 token list");
 
@@ -805,7 +821,7 @@ find_certificate_by_callback(cms_context *cms,
 	PK11_SetPasswordFunc(cms->func ? cms->func : SECU_GetModulePassword);
 
 	PK11SlotList *slots = NULL;
-	slots = PK11_GetAllTokens(CKM_RSA_PKCS, PR_FALSE, PR_TRUE, cms);
+	slots = PK11_GetAllTokens(get_token_mechanism(cms), PR_FALSE, PR_TRUE, cms);
 	if (!slots)
 		cnreterr(-1, cms, "could not get pk11 token list");
 
@@ -1132,12 +1148,19 @@ generate_algorithm_id(cms_context *cms, SECAlgorithmID *idp, SECOidTag tag)
 	if (SECITEM_CopyItem(cms->arena, &id.algorithm, &oiddata->oid))
 		return -1;
 
-	SECITEM_AllocItem(cms->arena, &id.parameters, 2);
-	if (id.parameters.data == NULL)
-		goto err;
-	id.parameters.data[0] = SEC_ASN1_NULL;
-	id.parameters.data[1] = 0;
-	id.parameters.type = siBuffer;
+	if (tag == SEC_OID_ML_DSA_44 || tag == SEC_OID_ML_DSA_65 ||
+	    tag == SEC_OID_ML_DSA_87) {
+		id.parameters.data = NULL;
+		id.parameters.len = 0;
+		id.parameters.type = siBuffer;
+	} else {
+		SECITEM_AllocItem(cms->arena, &id.parameters, 2);
+		if (id.parameters.data == NULL)
+			goto err;
+		id.parameters.data[0] = SEC_ASN1_NULL;
+		id.parameters.data[1] = 0;
+		id.parameters.type = siBuffer;
+	}
 
 	memcpy(idp, &id, sizeof (id));
 	return 0;
@@ -1782,26 +1805,32 @@ generate_auth_info(cms_context *cms, SECItem *der, char *url)
 }
 
 int
+cms_context_detect_algorithm(cms_context *cms)
+{
+	if (!cms->cert)
+		return -1;
+
+	KeyType kt = CERT_GetCertKeyType(&cms->cert->subjectPublicKeyInfo);
+	if (kt == mldsaKey)
+		cms->selected_digest = DIGEST_PARAM_ML_DSA_87;
+
+	return 0;
+}
+
+int
 generate_keys(cms_context *cms, PK11SlotInfo *slot,
 		SECKEYPrivateKey **privkey, SECKEYPublicKey **pubkey,
-		int key_bits, unsigned long exponent)
+		CK_MECHANISM_TYPE mech, void *mechparams)
 {
-	PK11RSAGenParams rsaparams = {
-		.keySizeInBits = key_bits,
-		.pe = exponent,
-	};
-
 	SECStatus rv;
 	rv = PK11_Authenticate(slot, PR_TRUE, cms);
 	if (rv != SECSuccess)
 		cnreterr(-1, cms, "could not authenticate with pk11 service");
 
-	void *params = &rsaparams;
-	*privkey = PK11_GenerateKeyPair(slot, CKM_RSA_PKCS_KEY_PAIR_GEN,
-					params, pubkey, PR_TRUE, PR_TRUE,
-					cms);
+	*privkey = PK11_GenerateKeyPair(slot, mech, mechparams, pubkey,
+					PR_TRUE, PR_TRUE, cms);
 	if (!*privkey)
-		cnreterr(-1, cms, "could not generate RSA keypair");
+		cnreterr(-1, cms, "could not generate keypair");
 	return 0;
 }
 

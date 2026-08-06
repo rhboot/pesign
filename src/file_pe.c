@@ -145,6 +145,7 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			rc = find_certificate(ctxp->cms_ctx, 0);
 			conderrx(rc < 0, 1, "Could not find certificate %s\n",
 				 ctxp->cms_ctx->certname);
+			cms_context_detect_algorithm(ctxp->cms_ctx);
 			open_rawsig_input(ctxp);
 			open_sattr_input(ctxp);
 			import_raw_signature(ctxp);
@@ -270,6 +271,7 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			rc = find_certificate(ctxp->cms_ctx, 1);
 			conderrx(rc < 0, 1, "Could not find certificate %s",
 				 ctxp->cms_ctx->certname);
+			cms_context_detect_algorithm(ctxp->cms_ctx);
 			open_input(ctxp);
 			open_sig_output(ctxp);
 			rc = generate_digest(ctxp->cms_ctx, ctxp->inpe, 1);
@@ -287,6 +289,7 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			rc = find_certificate(ctxp->cms_ctx, 1);
 			conderrx(rc < 0, 1, "Could not find certificate %s",
 				 ctxp->cms_ctx->certname);
+			cms_context_detect_algorithm(ctxp->cms_ctx);
 			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures + 1,
 				 1, "Invalid signature number.");
 			open_input(ctxp);
