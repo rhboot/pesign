@@ -429,6 +429,7 @@ main(int argc, char *argv[])
 		rc = find_certificate(ctx.cms_ctx, 1);
 		conderrx(rc < 0, 1, "Could not find certificate for \"%s\"",
 			 ctx.cms_ctx->certname);
+		cms_context_detect_algorithm(ctx.cms_ctx);
 	}
 
 	switch (action) {

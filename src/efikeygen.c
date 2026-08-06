@@ -469,7 +469,8 @@ populate_extensions(cms_context *cms, CERTCertificate *cert,
 }
 
 static int
-get_pubkey_from_file(char *pubfile, SECKEYPublicKey **pubkey)
+get_pubkey_from_file(char *pubfile, SECKEYPublicKey **pubkey,
+		     CK_KEY_TYPE key_type)
 {
 	SECItem pubkey_item = {
 		.type = siBuffer,
@@ -489,7 +490,7 @@ get_pubkey_from_file(char *pubfile, SECKEYPublicKey **pubkey)
 		libreterr(-1, "could not read public key");
 
 	pubkey_item.data = (unsigned char *)data;
-	*pubkey = SECKEY_ImportDERPublicKey(&pubkey_item, CKK_RSA);
+	*pubkey = SECKEY_ImportDERPublicKey(&pubkey_item, key_type);
 	if (!*pubkey)
 		nssreterr(-1, "could not decode public key");
 
@@ -712,24 +713,46 @@ long verbosity(void)
 
 struct algorithm {
 	char name[16];
+	CK_MECHANISM_TYPE keygen_mech;
+	SECOidTag sig_oid;
+	CK_KEY_TYPE key_type;
 	int key_bits;
 	unsigned long exponent;
 };
 
 struct algorithm algorithms[] = {
 	{.name = "rsa2048",
+	 .keygen_mech = CKM_RSA_PKCS_KEY_PAIR_GEN,
+	 .sig_oid = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
+	 .key_type = CKK_RSA,
 	 .key_bits = 2048,
 	 .exponent = 0x010001ul,
 	},
 	{.name = "rsa3072",
+	 .keygen_mech = CKM_RSA_PKCS_KEY_PAIR_GEN,
+	 .sig_oid = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
+	 .key_type = CKK_RSA,
 	 .key_bits = 3072,
 	 .exponent = 0x010001ul,
 	},
 	{.name = "rsa4096",
+	 .keygen_mech = CKM_RSA_PKCS_KEY_PAIR_GEN,
+	 .sig_oid = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
+	 .key_type = CKK_RSA,
 	 .key_bits = 4096,
 	 .exponent = 0x010001ul,
 	},
+	{.name = "ml-dsa-87",
+	 .keygen_mech = CKM_ML_DSA_KEY_PAIR_GEN,
+	 .sig_oid = SEC_OID_ML_DSA_87,
+	 .key_type = CKK_ML_DSA,
+	 .key_bits = 0,
+	 .exponent = 0,
+	},
 	{.name = "",
+	 .keygen_mech = 0,
+	 .sig_oid = SEC_OID_UNKNOWN,
+	 .key_type = 0,
 	 .key_bits = 0,
 	 .exponent = 0,
 	}
@@ -763,8 +786,7 @@ int main(int argc, char *argv[])
 	PRStatus prstatus;
 	void *frees[50] = { NULL, };
 	int nfrees = 0;
-	int key_bits = 2048;
-	unsigned long exponent = 0x010001ul;
+	struct algorithm *selected_algo = &algorithms[0];
 	char *orig_algo = "rsa2048";
 	char *algo = orig_algo;
 
@@ -1039,11 +1061,13 @@ int main(int argc, char *argv[])
 		if (strcmp(algorithms[i].name, "") == 0)
 			errx(1, "invalid algorithm: \"%s\"", algo);
 		if (strcmp(algorithms[i].name, algo) == 0) {
-			key_bits = algorithms[i].key_bits;
-			exponent = algorithms[i].exponent;
+			selected_algo = &algorithms[i];
 			break;
 		}
 	}
+
+	if (selected_algo->keygen_mech == CKM_ML_DSA_KEY_PAIR_GEN)
+		cms->selected_digest = DIGEST_PARAM_ML_DSA_87;
 
 	cms->tokenname = tokenname;
 	cms->certname = signer;
@@ -1096,10 +1120,21 @@ int main(int argc, char *argv[])
 			cms->tokenname);
 
 	if (pubfile) {
-		rc = get_pubkey_from_file(pubfile, &pubkey);
+		rc = get_pubkey_from_file(pubfile, &pubkey, selected_algo->key_type);
 	} else {
-		rc = generate_keys(cms, slot, &privkey, &pubkey, key_bits,
-				   exponent);
+		void *keygen_params;
+		PK11RSAGenParams rsaparams;
+		CK_ML_DSA_PARAMETER_SET_TYPE mldsa_params;
+		if (selected_algo->keygen_mech == CKM_ML_DSA_KEY_PAIR_GEN) {
+			mldsa_params = CKP_ML_DSA_87;
+			keygen_params = &mldsa_params;
+		} else {
+			rsaparams.keySizeInBits = selected_algo->key_bits;
+			rsaparams.pe = selected_algo->exponent;
+			keygen_params = &rsaparams;
+		}
+		rc = generate_keys(cms, slot, &privkey, &pubkey,
+				   selected_algo->keygen_mech, keygen_params);
 	}
 	if (rc < 0)
 		exit(1);
@@ -1264,7 +1299,7 @@ int main(int argc, char *argv[])
 	if (rc < 0)
 		exit(1);
 
-	rc = generate_algorithm_id(cms, &cert->signature, SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION);
+	rc = generate_algorithm_id(cms, &cert->signature, selected_algo->sig_oid);
 	if (rc < 0)
 		nsserr(1, "could not generate certificate type OID");
 
@@ -1288,9 +1323,9 @@ int main(int argc, char *argv[])
 	}
 
 	SECOidData *oid;
-	oid = SECOID_FindOIDByTag(SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION);
+	oid = SECOID_FindOIDByTag(selected_algo->sig_oid);
 	if (!oid)
-		nsserr(1, "could not find OID for SHA256+RSA");
+		nsserr(1, "could not find OID for signing algorithm");
 
 	SECItem signature;
 	status = SEC_SignData(&signature, certder.data, certder.len,
@@ -1300,7 +1335,7 @@ int main(int argc, char *argv[])
 
 	SECItem sigder = { 0, };
 	bundle_signature(cms, &sigder, &certder,
-				SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
+				selected_algo->sig_oid,
 				&signature);
 
 	status = PK11_ImportDERCert(slot, &sigder, CK_INVALID_HANDLE, nickname,

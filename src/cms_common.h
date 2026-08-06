@@ -9,6 +9,7 @@
 #define CMS_COMMON_H 1
 
 #include <cert.h>
+#include <pk11pub.h>
 #include <secpkcs7.h>
 
 #include <errno.h>
@@ -67,6 +68,7 @@ struct digest {
 
 #define DIGEST_PARAM_SHA256	0
 #define DIGEST_PARAM_SHA1	1
+#define DIGEST_PARAM_ML_DSA_87	2
 #define DEFAULT_DIGEST_PARAM	DIGEST_PARAM_SHA256
 
 struct digest_param {
@@ -78,7 +80,7 @@ struct digest_param {
 	int size;
 };
 
-extern const struct digest_param digest_params[2];
+extern const struct digest_param digest_params[];
 extern const unsigned int n_digest_params;
 
 typedef struct pk12_file {
@@ -225,7 +227,7 @@ extern int unlock_nss_token(cms_context *ctx);
 extern int find_certificate(cms_context *ctx, int needs_private_key);
 extern int generate_keys(cms_context *cms, PK11SlotInfo *slot,
 		SECKEYPrivateKey **privkey, SECKEYPublicKey **pubkey,
-		int key_bits, unsigned long exponent);
+		CK_MECHANISM_TYPE mech, void *mechparams);
 extern int is_issuer_of(CERTCertificate *c0, CERTCertificate *c1);
 
 typedef int (find_cert_match_t)(CERTCertificate *cert, void *cbdata);
@@ -240,6 +242,7 @@ extern int find_certificate_by_issuer_and_sn(cms_context *cms,
 					     CERTCertificate **cert);
 
 extern int find_slot_for_token(cms_context *cms, PK11SlotInfo **slot);
+extern int cms_context_detect_algorithm(cms_context *cms);
 
 extern SECOidTag digest_get_digest_oid(cms_context *cms);
 extern SECOidTag digest_get_encryption_oid(cms_context *cms);
