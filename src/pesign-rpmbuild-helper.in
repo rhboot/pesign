@@ -144,7 +144,7 @@ main() {
     fi
 
     target_cpu="${target_cpu/i?86/ia32}"
-    target_cpu="${target_cpu/x86_64/x64}"
+    target_cpu="${target_cpu/x86_64*/x64}"
     target_cpu="${target_cpu/aarch64/aa64}"
     target_cpu="${target_cpu/arm*/arm/}"
 
