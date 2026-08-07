@@ -66,3 +66,11 @@ strace : all
 gdb : all
 	echo run -f -s -t \'Secure Boot Signer\' -c \'Certificate for Digital Signature\' -i shimx64.efi -o shimx64.signed.efi --pwfile pwfile | copy
 	gdb ./src/pesign
+
+TESTS=$(wildcard tests/test-*.sh)
+
+test : | all
+test : $(TESTS)
+
+$(TESTS) :: % : all
+	@stdbuf -o 0 -e 0 $@
