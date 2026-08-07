@@ -76,9 +76,22 @@ test_one_algo() {
 
 main() {
     trap cleanup INT QUIT SEGV ABRT ERR
-
     cleanup
     setup
+
+    local ENABLE_PQC=y
+    while [ $# -ne 0 ]; do
+        case " $1 " in
+            " --disable-pqc ")
+                ENABLE_PQC=n
+                shift
+                ;;
+            *)
+                echo "unknown argument ${1}" >/dev/stderr
+                exit 1
+                ;;
+        esac
+    done
 
     test_one_algo default sha256 "3072 bit" sha256WithRSAEncryption pass
     test_one_algo default sha384 "3072 bit" sha384WithRSAEncryption pass
@@ -95,9 +108,11 @@ main() {
     test_one_algo rsa4096 sha256 "4096 bit" sha256WithRSAEncryption pass
     test_one_algo rsa4096 sha384 "4096 bit" sha384WithRSAEncryption pass
     test_one_algo rsa4096 sha512 "4096 bit" sha512WithRSAEncryption pass
-    test_one_algo ml-dsa-87 sha256 ml-dsa-87 sha256 fail
-    test_one_algo rsa2048 ml-dsa-87 rsa2048 ml-dsa-87 fail
-    test_one_algo ml-dsa-87 default ML-DSA-87 ML-DSA-87 pass
+    if [ "${ENABLE_PQC}" = y ]; then
+        test_one_algo ml-dsa-87 sha256 ml-dsa-87 sha256 fail
+        test_one_algo rsa2048 ml-dsa-87 rsa2048 ml-dsa-87 fail
+        test_one_algo ml-dsa-87 default ML-DSA-87 ML-DSA-87 pass
+    fi
 
     cleanup
 }
