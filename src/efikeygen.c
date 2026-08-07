@@ -711,7 +711,7 @@ long verbosity(void)
 	return verbose;
 }
 
-#define DEFAULT_PKCS1_ALGORITHM SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION
+#define DEFAULT_PKCS1_ALGORITHM SEC_OID_PKCS1_SHA384_WITH_RSA_ENCRYPTION
 
 struct algorithm {
 	char name[16];
@@ -812,9 +812,9 @@ int main(int argc, char *argv[])
 	void *frees[50] = { NULL, };
 	int nfrees = 0;
 	struct algorithm *selected_algo = &algorithms[0];
-	char *orig_algo = "rsa2048";
+	char *orig_algo = "rsa3072";
 	char *algo = orig_algo;
-	char *orig_digest = "sha256";
+	char *orig_digest = "sha384";
 	char *digest = orig_digest;
 	SECOidTag digest_tag = SEC_OID_UNKNOWN;
 
