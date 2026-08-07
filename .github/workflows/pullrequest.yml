@@ -18,18 +18,23 @@ jobs:
           - arch: amd64
             makearch: x86_64
             distro: centos9
+            test_pqc: 0
           - arch: amd64
             makearch: x86_64
             distro: centos10
+            test_pqc: 1
           - arch: amd64
             makearch: x86_64
             distro: f43
+            test_pqc: 0
           - arch: amd64
             makearch: x86_64
             distro: f44
+            test_pqc: 1
           - arch: amd64
             makearch: x86_64
             distro: f45
+            test_pqc: 1
 
     steps:
       - name: Checkout
@@ -50,7 +55,7 @@ jobs:
       - name: Run tests on ${{ matrix.distro }} for ${{ matrix.arch }}
         id: test
         run: |
-          make ARCH=${{ matrix.makearch }} PREFIX=/usr DESTDIR=/destdir test
+          make ARCH=${{ matrix.makearch }} PREFIX=/usr DESTDIR=/destdir ENABLE_PQC_TESTS=${{ matrix.test_pqc }} test
       - name: Do the build on ${{ matrix.distro }} for ${{ matrix.arch }}
         id: build
         run: |

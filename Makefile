@@ -73,4 +73,4 @@ test : | all
 test : $(TESTS)
 
 $(TESTS) :: % : all
-	@stdbuf -o 0 -e 0 $@
+	@stdbuf -o 0 -e 0 $@ $(if $(filter 0,$(ENABLE_PQC_TESTS)),--disable-pqc)

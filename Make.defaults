@@ -112,3 +112,7 @@ endif
 # Docs are enabled by default. Set ENABLE_DOCS=0 to disable
 # building/installing docs.
 ENABLE_DOCS ?= 1
+
+# PQC testing is enabled by default.  Set ENABLE_PQC_TESTS=0 to disable running
+# them.
+ENABLE_PQC_TESTS ?= 1
