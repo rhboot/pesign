@@ -51,7 +51,7 @@ jobs:
       - name: Install some build requirements
         id: dnf
         run: |
-          dnf install -y efivar-devel nss-devel openssl-devel
+          dnf install -y efivar-devel nss-devel openssl-devel nss-tools
       - name: Run tests on ${{ matrix.distro }} for ${{ matrix.arch }}
         id: test
         run: |

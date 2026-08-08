@@ -1435,7 +1435,8 @@ int main(int argc, char *argv[])
 	memcpy(&ias.issuer, &cert->issuer, sizeof(ias.issuer));
 	memcpy(&ias.serialNumber, &cert->serialNumber, sizeof(ias.serialNumber));
 
-	add_trust(cms, &ias, is_ca ? ",,CTu" : ",,u");
+	if (add_trust(cms, &ias, is_ca ? ",,CTu" : ",,u") < 0)
+		nsserr(1, "could not set trust for certificate");
 
 	SECITEM_FreeItem(&sigder, PR_FALSE);
 	SECITEM_FreeItem(&signature, PR_FALSE);
