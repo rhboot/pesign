@@ -744,6 +744,20 @@ struct algorithm algorithms[] = {
 	 .key_bits = 4096,
 	 .exponent = 0x010001ul,
 	},
+	{.name = "ml-dsa-44",
+	 .keygen_mech = CKM_ML_DSA_KEY_PAIR_GEN,
+	 .sig_oid = SEC_OID_ML_DSA_44,
+	 .key_type = CKK_ML_DSA,
+	 .key_bits = 0,
+	 .exponent = 0,
+	},
+	{.name = "ml-dsa-65",
+	 .keygen_mech = CKM_ML_DSA_KEY_PAIR_GEN,
+	 .sig_oid = SEC_OID_ML_DSA_65,
+	 .key_type = CKK_ML_DSA,
+	 .key_bits = 0,
+	 .exponent = 0,
+	},
 	{.name = "ml-dsa-87",
 	 .keygen_mech = CKM_ML_DSA_KEY_PAIR_GEN,
 	 .sig_oid = SEC_OID_ML_DSA_87,
@@ -774,6 +788,12 @@ struct digest_algorithm digest_algorithms[] = {
 	},
 	{.name = "sha512",
 	 .sec_oid = SEC_OID_PKCS1_SHA512_WITH_RSA_ENCRYPTION,
+	},
+	{.name = "ml-dsa-44",
+	 .sec_oid = SEC_OID_ML_DSA_44,
+	},
+	{.name = "ml-dsa-65",
+	 .sec_oid = SEC_OID_ML_DSA_65,
 	},
 	{.name = "ml-dsa-87",
 	 .sec_oid = SEC_OID_ML_DSA_87,
@@ -1120,9 +1140,17 @@ int main(int argc, char *argv[])
 
 	switch (selected_algo->keygen_mech) {
 	case CKM_ML_DSA_KEY_PAIR_GEN:
-		cms->selected_digest = DIGEST_PARAM_ML_DSA_87;
 
 		switch (digest_tag) {
+		case SEC_OID_ML_DSA_44:
+			cms->selected_digest = DIGEST_PARAM_ML_DSA_44;
+			break;
+		case SEC_OID_ML_DSA_65:
+			cms->selected_digest = DIGEST_PARAM_ML_DSA_65;
+			break;
+		case SEC_OID_ML_DSA_87:
+			cms->selected_digest = DIGEST_PARAM_ML_DSA_87;
+			break;
 		case SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION:
 		case SEC_OID_PKCS1_SHA384_WITH_RSA_ENCRYPTION:
 		case SEC_OID_PKCS1_SHA512_WITH_RSA_ENCRYPTION:
@@ -1147,6 +1175,8 @@ int main(int argc, char *argv[])
 		case SEC_OID_PKCS1_SHA512_WITH_RSA_ENCRYPTION:
 			selected_algo->sig_oid = SEC_OID_PKCS1_SHA512_WITH_RSA_ENCRYPTION;
 			break;
+		case SEC_OID_ML_DSA_44:
+		case SEC_OID_ML_DSA_65:
 		case SEC_OID_ML_DSA_87:
 			errx(1, "RSA algorithm cannot used with ML-DSA digest");
 			break;
@@ -1213,7 +1243,18 @@ int main(int argc, char *argv[])
 		PK11RSAGenParams rsaparams;
 		CK_ML_DSA_PARAMETER_SET_TYPE mldsa_params;
 		if (selected_algo->keygen_mech == CKM_ML_DSA_KEY_PAIR_GEN) {
-			mldsa_params = CKP_ML_DSA_87;
+			switch (selected_algo->sig_oid) {
+				case SEC_OID_ML_DSA_44:
+					mldsa_params = CKP_ML_DSA_44;
+					break;
+				case SEC_OID_ML_DSA_65:
+					mldsa_params = CKP_ML_DSA_65;
+					break;
+				case SEC_OID_ML_DSA_87:
+				default:
+					mldsa_params = CKP_ML_DSA_87;
+					break;
+			}
 			keygen_params = &mldsa_params;
 		} else {
 			rsaparams.keySizeInBits = selected_algo->key_bits;

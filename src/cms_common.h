@@ -68,7 +68,9 @@ struct digest {
 
 #define DIGEST_PARAM_SHA256	0
 #define DIGEST_PARAM_SHA1	1
-#define DIGEST_PARAM_ML_DSA_87	2
+#define DIGEST_PARAM_ML_DSA_44	2
+#define DIGEST_PARAM_ML_DSA_65	3
+#define DIGEST_PARAM_ML_DSA_87	4
 #define DEFAULT_DIGEST_PARAM	DIGEST_PARAM_SHA256
 
 struct digest_param {

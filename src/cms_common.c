@@ -56,6 +56,22 @@ const struct digest_param digest_params[] = {
 		.size = 20
 	},
 #endif
+	[DIGEST_PARAM_ML_DSA_44] = {
+		.name = "ml-dsa-44",
+		.digest_tag = SEC_OID_SHA256,
+		.signature_tag = SEC_OID_ML_DSA_44,
+		.digest_encryption_tag = SEC_OID_ML_DSA_44,
+		.efi_guid = &efi_guid_sha256,
+		.size = 32
+	},
+	[DIGEST_PARAM_ML_DSA_65] = {
+		.name = "ml-dsa-65",
+		.digest_tag = SEC_OID_SHA256,
+		.signature_tag = SEC_OID_ML_DSA_65,
+		.digest_encryption_tag = SEC_OID_ML_DSA_65,
+		.efi_guid = &efi_guid_sha256,
+		.size = 32
+	},
 	[DIGEST_PARAM_ML_DSA_87] = {
 		.name = "ml-dsa-87",
 		.digest_tag = SEC_OID_SHA256,
@@ -98,7 +114,9 @@ digest_get_digest_size(cms_context *cms)
 static CK_MECHANISM_TYPE
 get_token_mechanism(cms_context *cms)
 {
-	if (cms->selected_digest == DIGEST_PARAM_ML_DSA_87)
+	if ((cms->selected_digest == DIGEST_PARAM_ML_DSA_44) ||
+	    (cms->selected_digest == DIGEST_PARAM_ML_DSA_65) ||
+	    (cms->selected_digest == DIGEST_PARAM_ML_DSA_87))
 		return CKM_ML_DSA;
 	return CKM_RSA_PKCS;
 }
@@ -1811,8 +1829,25 @@ cms_context_detect_algorithm(cms_context *cms)
 		return -1;
 
 	KeyType kt = CERT_GetCertKeyType(&cms->cert->subjectPublicKeyInfo);
-	if (kt == mldsaKey)
-		cms->selected_digest = DIGEST_PARAM_ML_DSA_87;
+	if (kt == mldsaKey) {
+		SECOidTag tag =
+			SECOID_GetAlgorithmTag(&cms->cert->subjectPublicKeyInfo.algorithm);
+
+		switch (tag) {
+			case SEC_OID_ML_DSA_44:
+				cms->selected_digest = DIGEST_PARAM_ML_DSA_44;
+				break;
+
+			case SEC_OID_ML_DSA_65:
+				cms->selected_digest = DIGEST_PARAM_ML_DSA_65;
+				break;
+
+			case SEC_OID_ML_DSA_87:
+			default:
+				cms->selected_digest = DIGEST_PARAM_ML_DSA_87;
+				break;
+		}
+	}
 
 	return 0;
 }
