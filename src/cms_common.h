@@ -75,11 +75,13 @@ struct digest {
 
 struct digest_param {
 	char *name;
-	SECOidTag digest_tag;
+	SECOidTag authenticode_digest_tag;
+	SECOidTag cms_digest_tag;
 	SECOidTag signature_tag;
 	SECOidTag digest_encryption_tag;
 	const efi_guid_t *efi_guid;
-	int size;
+	int authenticode_digest_size;
+	int cms_digest_size;
 };
 
 extern const struct digest_param digest_params[];
@@ -246,10 +248,12 @@ extern int find_certificate_by_issuer_and_sn(cms_context *cms,
 extern int find_slot_for_token(cms_context *cms, PK11SlotInfo **slot);
 extern int cms_context_detect_algorithm(cms_context *cms);
 
-extern SECOidTag digest_get_digest_oid(cms_context *cms);
+extern SECOidTag digest_get_authenticode_oid(cms_context *cms);
+extern SECOidTag digest_get_cms_oid(cms_context *cms);
 extern SECOidTag digest_get_encryption_oid(cms_context *cms);
 extern SECOidTag digest_get_signature_oid(cms_context *cms);
-extern int digest_get_digest_size(cms_context *cms);
+extern int digest_get_authenticode_size(cms_context *cms);
+extern int digest_get_cms_size(cms_context *cms);
 extern void cms_set_pw_callback(cms_context *cms, PK11PasswordFunc func);
 extern void cms_set_pw_data(cms_context *cms, secuPWData *pwdata);
 

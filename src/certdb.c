@@ -18,6 +18,7 @@
 #include <prerror.h>
 #include <cert.h>
 #include <pkcs7t.h>
+#include <sechash.h>
 #include <pk11pub.h>
 
 #include "pesigcheck.h"
@@ -277,7 +278,7 @@ check_hash(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	}
 
 	digest_data = digests[selected_digest].pe_digest->data;
-	size = digest_params[selected_digest].size;
+	size = digest_params[selected_digest].authenticode_digest_size;
 	if (memcmp (digest_data, sig->data, size) == 0) {
 		ctx->cms_ctx->selected_digest = selected_digest;
 		return FOUND;
@@ -346,11 +347,15 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	   SECItem *pkcs7sig)
 {
 	SEC_PKCS7ContentInfo *cinfo = NULL;
+	SEC_PKCS7SignerInfo *signer_info = NULL;
 	CERTCertificate *cert = NULL;
 	CERTCertTrust trust;
 	SECItem *content, *digest = NULL;
 	PK11Context *pk11ctx = NULL;
 	SECOidData *oid;
+	SECOidTag digest_tag;
+	HASH_HashType hash_type;
+	unsigned int digest_size;
 	PRBool result;
 	SECStatus rv;
 	db_status status = NOT_FOUND;
@@ -398,16 +403,35 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	if (!cinfo)
 		goto out;
 
-	/* Generate the digest of contentInfo */
-	/* XXX support only sha256 for now */
-	digest = SECITEM_AllocItem(NULL, NULL, 32);
+	/*
+	* Generate the digest of contentInfo using the algorithm encoded in
+	* SignerInfo.digestAlgorithm.
+	*/
+	if (cinfo->content.signedData == NULL ||
+	    cinfo->content.signedData->signerInfos == NULL ||
+	    cinfo->content.signedData->signerInfos[0] == NULL)
+		goto out;
+
+	signer_info = cinfo->content.signedData->signerInfos[0];
+
+	digest_tag = SECOID_GetAlgorithmTag(&signer_info->digestAlg);
+	hash_type = HASH_GetHashTypeByOidTag(digest_tag);
+	digest_size = HASH_ResultLenByOidTag(digest_tag);
+
+	if (digest_tag == SEC_OID_UNKNOWN ||
+	    hash_type == HASH_AlgNULL ||
+	    digest_size == 0)
+		goto out;
+
+	digest = SECITEM_AllocItem(NULL, NULL, digest_size);
 	if (digest == NULL)
 		goto out;
 
 	content = cinfo->content.signedData->contentInfo.content.data;
-	oid = SECOID_FindOIDByTag(SEC_OID_SHA256);
+	oid = SECOID_FindOIDByTag(digest_tag);
 	if (oid == NULL)
 		goto out;
+
 	pk11ctx = PK11_CreateDigestContext(oid->offset);
 	if (ctx == NULL)
 		goto out;
@@ -416,7 +440,8 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	/*   Skip the SEQUENCE tag */
 	if (PK11_DigestOp(pk11ctx, content->data + 2, content->len - 2) != SECSuccess)
 		goto out;
-	if (PK11_DigestFinal(pk11ctx, digest->data, &digest->len, 32) != SECSuccess)
+	if (PK11_DigestFinal(pk11ctx, digest->data, &digest->len,
+			     digest_size) != SECSuccess)
 		goto out;
 
 	/* Import the trusted certificate */
@@ -445,8 +470,8 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 	/* Verify the signature */
 	result = SEC_PKCS7VerifyDetachedSignatureAtTime(cinfo,
 						certUsageObjectSigner,
-						digest, HASH_AlgSHA256,
-						PR_FALSE, atTime);
+						digest, hash_type, PR_FALSE,
+						atTime);
 	if (!result) {
 		fprintf(stderr, "%s\n",	PORT_ErrorToString(PORT_GetError()));
 		goto out;

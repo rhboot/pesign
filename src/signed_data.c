@@ -14,7 +14,8 @@
 #include <nss.h>
 
 static int
-generate_algorithm_id_list(cms_context *cms, SECAlgorithmID ***algorithm_list_p)
+generate_algorithm_id_list(cms_context *cms, SECAlgorithmID ***algorithm_list_p,
+			   SECOidTag digest_oid)
 {
 	SECAlgorithmID **algorithms = NULL;
 	int err = 0;
@@ -30,8 +31,7 @@ generate_algorithm_id_list(cms_context *cms, SECAlgorithmID ***algorithm_list_p)
 		goto err_list;
 	}
 
-	if (generate_algorithm_id(cms, algorithms[0],
-			digest_get_digest_oid(cms)) < 0) {
+	if (generate_algorithm_id(cms, algorithms[0], digest_oid) < 0) {
 		err = PORT_GetError();
 		goto err_item;
 	}
@@ -276,7 +276,8 @@ generate_spc_signed_data(cms_context *cms, SECItem *sdp)
 		cmsreterr(-1, cms, "could not encode integer");
 	}
 
-	if (generate_algorithm_id_list(cms, &sd.algorithms) < 0) {
+	if (generate_algorithm_id_list(cms, &sd.algorithms,
+			digest_get_cms_oid(cms)) < 0) {
 		PORT_ArenaRelease(cms->arena, mark);
 		cms->ci_digest = NULL;
 		return -1;
@@ -353,7 +354,8 @@ generate_authvar_signed_data(cms_context *cms, SECItem *sdp)
 		cmsreterr(-1, cms, "could not encode integer");
 	}
 
-	if (generate_algorithm_id_list(cms, &sd.algorithms) < 0) {
+	if (generate_algorithm_id_list(cms, &sd.algorithms,
+			digest_get_authenticode_oid(cms)) < 0) {
 		PORT_ArenaRelease(cms->arena, mark);
 		return -1;
 	}

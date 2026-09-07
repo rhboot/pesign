@@ -179,7 +179,7 @@ generate_spc_digest_info(cms_context *cms, SECItem *dip)
 	memset(&di, '\0', sizeof (di));
 
 	if (generate_algorithm_id(cms, &di.digestAlgorithm,
-			digest_get_digest_oid(cms)) < 0)
+			digest_get_authenticode_oid(cms)) < 0)
 		return -1;
 	unsigned int i = cms->selected_digest;
 	memcpy(&di.digest, cms->digests[i].pe_digest, sizeof (di.digest));
@@ -298,12 +298,12 @@ generate_cinfo_digest(cms_context *cms, SpcContentInfo *cip)
 	};
 	
 	PK11Context *ctx = NULL;
-	SECOidData *oid = SECOID_FindOIDByTag(digest_get_digest_oid(cms));
+	SECOidData *oid = SECOID_FindOIDByTag(digest_get_cms_oid(cms));
 	if (oid == NULL)
 		return -1;
 
 	cms->ci_digest = SECITEM_AllocItem(cms->arena, NULL,
-					digest_get_digest_size(cms));
+					digest_get_cms_size(cms));
 	if (!cms->ci_digest)
 		goto err;
 
@@ -317,7 +317,7 @@ generate_cinfo_digest(cms_context *cms, SpcContentInfo *cip)
 		goto err;
 	if (PK11_DigestFinal(ctx, cms->ci_digest->data,
 				&cms->ci_digest->len,
-				digest_get_digest_size(cms)) != SECSuccess)
+				digest_get_cms_size(cms)) != SECSuccess)
 		goto err;
 
 	if (content_is_empty(cms->ci_digest->data, cms->ci_digest->len)) {
@@ -325,7 +325,7 @@ generate_cinfo_digest(cms_context *cms, SpcContentInfo *cip)
 		goto err;
 	}
 
-	if ((long long)cms->ci_digest->len > digest_get_digest_size(cms))
+	if ((long long)cms->ci_digest->len > digest_get_cms_size(cms))
 		goto err;
 
 	PK11_DestroyContext(ctx, PR_TRUE);

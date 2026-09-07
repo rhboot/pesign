@@ -72,7 +72,7 @@ kmod_write_signature(cms_context *cms, int outfd)
 
 	cinfo = SEC_PKCS7CreateSignedData(cms->cert,
 					  certUsageObjectSigner, NULL,
-					  digest_get_digest_oid(cms),
+					  digest_get_authenticode_oid(cms),
 					  digest, NULL, NULL);
 	if (!cinfo) {
 		cms->log(cms, LOG_ERR, "failed to create signed data: %s (%s)",

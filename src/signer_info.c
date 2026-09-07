@@ -355,7 +355,7 @@ generate_spc_signer_info(cms_context *cms, SpcSignerInfo *sip)
 	si.sid.signerValue.iasn.serial = cms->cert->serialNumber;
 
 	if (generate_algorithm_id(cms, &si.digestAlgorithm,
-			digest_get_digest_oid(cms)) < 0)
+			digest_get_cms_oid(cms)) < 0)
 		goto err;
 
 
@@ -409,7 +409,7 @@ generate_authvar_signer_info(cms_context *cms, SpcSignerInfo *sip)
 	si.sid.signerValue.iasn.serial = cms->cert->serialNumber;
 
 	if (generate_algorithm_id(cms, &si.digestAlgorithm,
-			digest_get_digest_oid(cms)) < 0)
+			digest_get_authenticode_oid(cms)) < 0)
 		goto err;
 
 	si.signedAttrs.len = 0;
