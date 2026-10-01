@@ -63,7 +63,7 @@ generate_signed_attributes(cms_context *cms, SECItem *sattrs)
 	Attribute *attrs[5];
 	memset(attrs, '\0', sizeof (attrs));
 
-	SECItem encoded;
+	SECItem encoded = {0};
 	SECOidTag tag;
 	SECOidData *oid;
 
@@ -95,6 +95,8 @@ generate_signed_attributes(cms_context *cms, SECItem *sattrs)
 	tag = find_ms_oid_tag(SPC_INDIRECT_DATA_OBJID);
 	if (tag == SEC_OID_UNKNOWN)
 		goto err;
+	encoded.data = NULL;
+	encoded.len = 0;
 	if (generate_object_id(cms, &encoded, tag) < 0)
 		goto err;
 	content_types[0] = SECITEM_ArenaDupItem(cms->arena, &encoded);
@@ -111,6 +113,8 @@ generate_signed_attributes(cms_context *cms, SECItem *sattrs)
 	attrs[2]->attrType = oid->oid;
 
 	SECItem *signing_time[2] = { NULL, NULL };
+	encoded.data = NULL;
+	encoded.len = 0;
 	if (generate_time(cms, &encoded, time(NULL)) < 0)
 		goto err;
 	signing_time[0] = SECITEM_ArenaDupItem(cms->arena, &encoded);
@@ -128,6 +132,8 @@ generate_signed_attributes(cms_context *cms, SECItem *sattrs)
 	attrs[3]->attrType = oid->oid;
 
 	SECItem *digest_values[2] = { NULL, NULL };
+	encoded.data = NULL;
+	encoded.len = 0;
 	if (generate_octet_string(cms, &encoded, cms->ci_digest) < 0)
 		goto err;
 	digest_values[0] = SECITEM_ArenaDupItem(cms->arena, &encoded);

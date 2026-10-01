@@ -466,7 +466,6 @@ is_valid_cert(CERTCertificate *cert, void *data)
 		if (cbd->cert)
 			CERT_DestroyCertificate(cbd->cert);
 		cbd->cert = CERT_DupCertificate(cert);
-		CERT_DestroyCertificate(cert);
 		SECKEY_DestroyPrivateKey(privkey);
 		PORT_SetError(0);
 		return SECSuccess;
@@ -500,11 +499,9 @@ is_valid_cert_without_private_key(CERTCertificate *cert, void *data)
 			CERT_DestroyCertificate(cbd->cert);
 		PORT_SetError(0);
 		cbd->cert = CERT_DupCertificate(cert);
-		CERT_DestroyCertificate(cert);
 		return SECSuccess;
 	} else {
 		SECKEY_DestroyPrivateKey(privkey);
-		CERT_DestroyCertificate(cert);
 	}
 	return SECFailure;
 }
@@ -785,6 +782,7 @@ find_certificate(cms_context *cms, int needs_private_key)
 	if (status != SECSuccess || cms->cert == NULL)
 		cnreterr(-1, cms, "could not find certificate");
 
+	CERT_DestroyCertificate(cbd.cert);
 	return 0;
 }
 
@@ -1186,7 +1184,7 @@ generate_object_id(cms_context *cms, SECItem *der, SECOidTag tag)
 int
 generate_algorithm_id(cms_context *cms, SECAlgorithmID *idp, SECOidTag tag)
 {
-	SECAlgorithmID id;
+	SECAlgorithmID id = {0};
 
 	if (!idp)
 		return -1;

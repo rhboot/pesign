@@ -61,7 +61,7 @@ SEC_ASN1Template SpcPeImageDataTemplate[] = {
 static int
 generate_spc_pe_image_data(cms_context *cms, SECItem *spidp)
 {
-	SpcPeImageData spid;
+	SpcPeImageData spid = {0};
 
 	SECITEM_AllocItem(cms->arena, &spid.flags, 1);
 	if (!spid.flags.data)
