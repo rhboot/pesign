@@ -433,7 +433,7 @@ check_cert(pesigcheck_context *ctx, SECItem *sig, efi_guid_t *sigtype,
 		goto out;
 
 	pk11ctx = PK11_CreateDigestContext(oid->offset);
-	if (ctx == NULL)
+	if (pk11ctx == NULL)
 		goto out;
 	if (PK11_DigestBegin(pk11ctx) != SECSuccess)
 		goto out;
