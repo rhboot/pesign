@@ -112,6 +112,18 @@ check_inputs(pesign_context *ctx)
 }
 
 static void
+check_signum(pesign_context *ctx)
+{
+	/*
+	 * ctx->cms_ctx->num_signatures must be populated, e.g. via
+	 * open_input(), before this conditional check will work correctly
+	 */
+	conderrx(ctx->signum < -1 ||
+		 ctx->signum > ctx->cms_ctx->num_signatures,
+		 1, "Invalid signature number.");
+}
+
+static void
 print_digest(pesign_context *pctx)
 {
 	if (!pctx)
@@ -153,6 +165,7 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			close_rawsig_input(ctxp);
 
 			open_input(ctxp);
+			check_signum(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
 			rc = generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);
@@ -178,9 +191,8 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 		/* add a signature from a file */
 		case IMPORT_SIGNATURE:
 			check_inputs(ctxp);
-			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures + 1,
-				 1, "Invalid signature number.");
 			open_input(ctxp);
+			check_signum(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
 			open_sig_input(ctxp);
@@ -290,9 +302,8 @@ pe_handle_action(pesign_context *ctxp, int action, int padding)
 			conderrx(rc < 0, 1, "Could not find certificate %s",
 				 ctxp->cms_ctx->certname);
 			cms_context_detect_algorithm(ctxp->cms_ctx);
-			conderrx(ctxp->signum > ctxp->cms_ctx->num_signatures + 1,
-				 1, "Invalid signature number.");
 			open_input(ctxp);
+			check_signum(ctxp);
 			open_output(ctxp);
 			close_input(ctxp);
 			rc = generate_digest(ctxp->cms_ctx, ctxp->outpe, 1);

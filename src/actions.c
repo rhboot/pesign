@@ -51,6 +51,14 @@ insert_signature(cms_context *cms, int signum)
 	if (signum == -1)
 		signum = cms->num_signatures;
 
+	if (signum < 0 || signum > cms->num_signatures) {
+		cms->log(cms, LOG_ERR,
+			 "insert signature: invalid signature number %d "
+			 "(valid range is 0 to %d, or use -1 to append)", signum,
+			 cms->num_signatures);
+		exit(1);
+	}
+
 	SECItem **signatures = realloc(cms->signatures,
 		sizeof (SECItem *) * (cms->num_signatures + 1));
 	if (!signatures) {
@@ -61,9 +69,9 @@ err:
 	}
 	cms->signatures = signatures;
 	if (signum != cms->num_signatures) {
-		memmove(cms->signatures[signum+1],
-			cms->signatures[signum],
-			sizeof(SECItem) * (cms->num_signatures - signum));
+		memmove(&cms->signatures[signum+1],
+			&cms->signatures[signum],
+			sizeof(SECItem *) * (cms->num_signatures - signum));
 	}
 
 	SECItem *newsig = malloc(sizeof (*newsig));
