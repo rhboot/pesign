@@ -181,10 +181,13 @@ main() {
     USERNAME="${USERNAME:-$(id -un)}"
 
     local socket="" || :
+    local pkcs11_socket="" || :
     if [[ -S /run/pesign/socket ]] ; then
         socket=/run/pesign/socket
     elif [[ -S /var/run/pesign/socket ]]; then
         socket=/var/run/pesign/socket
+    elif [[ -S /run/siguldry-client-proxy/siguldry-client-proxy.socket ]] ; then
+        pkcs11_socket=/run/siguldry-client-proxy/siguldry-client-proxy.socket
     elif grep -q ID=fedora /etc/os-release \
        && [[ "${rhelver}" -lt 7 ]] \
        && [[ "${USERNAME}" = "mockbuild" ]] \
@@ -234,6 +237,20 @@ main() {
 	"${client}" "${client_token[@]}" "${client_cert[@]}"    \
 	    "${sattrout[@]}" "${certout[@]}"	\
 	    ${sign} "${input[@]}" "${output[@]}"
+	elif [[ -n "${pkcs11_socket}" ]] ; then
+	# This setup assumes that the PKCS11 module is loaded through p11-kit and
+	# does not need to be manually added to the NSS database. It also assumes
+	# the signing key is available via a "protected authentication path" (e.g.
+	# the token has the CKF_PROTECTED_AUTHENTICATION_PATH flag set) so the build
+	# environment does not need to provide a PIN.
+	nssdir="$(mktemp -p "${PWD}" -d)"
+	certutil -N -d "${nssdir}" --empty-password
+	# There's still a prompt we need to dismiss for the PIN and it doesn't like
+	# a plain new line.
+	printf "12345\n" | "${bin}" --certdir "${nssdir}" "${token[@]}"	\
+	    "${cert[@]}" ${sign} "${sattrout[@]}"	\
+	    "${certout[@]}"    "${input[@]}" "${output[@]}"
+	rm -rf "${nssdir}"
     else
 	"${bin}" --certdir "${nssdir}" "${token[@]}"	\
 	    "${cert[@]}" ${sign} "${sattrout[@]}"	\
