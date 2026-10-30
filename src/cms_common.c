@@ -40,81 +40,72 @@
 const struct digest_param digest_params[] = {
 	[DIGEST_PARAM_SHA256] = {
 		.name = "sha256",
-		.authenticode_digest_tag = SEC_OID_SHA256,
-		.cms_digest_tag = SEC_OID_SHA256,
+		.digest_tag = SEC_OID_SHA256,
 		.signature_tag = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION,
 		.digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
 		.efi_guid = &efi_guid_sha256,
-		.authenticode_digest_size = 32,
-		.cms_digest_size = 32,
+		.size = 32
 	},
 #if 1
 	[DIGEST_PARAM_SHA1] = {
 		.name = "sha1",
-		.authenticode_digest_tag = SEC_OID_SHA1,
-		.cms_digest_tag = SEC_OID_SHA1,
+		.digest_tag = SEC_OID_SHA1,
 		.signature_tag = SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION,
 		.digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
 		.efi_guid = &efi_guid_sha1,
-		.authenticode_digest_size = 20,
-		.cms_digest_size = 20,
+		.size = 20
 	},
 #endif
+#if 0
 	[DIGEST_PARAM_ML_DSA_44] = {
 		.name = "ml-dsa-44",
+		.digest_tag = SEC_OID_SHA256,
 		.signature_tag = SEC_OID_ML_DSA_44,
-		.authenticode_digest_tag = SEC_OID_SHA256,
-		.cms_digest_tag = SEC_OID_SHA512,
 		.digest_encryption_tag = SEC_OID_ML_DSA_44,
 		.efi_guid = &efi_guid_sha256,
-		.authenticode_digest_size = 32,
-		.cms_digest_size = 64,
+		.size = 32
 	},
 	[DIGEST_PARAM_ML_DSA_65] = {
 		.name = "ml-dsa-65",
-		.authenticode_digest_tag = SEC_OID_SHA256,
-		.cms_digest_tag = SEC_OID_SHA512,
+		.digest_tag = SEC_OID_SHA384,
 		.signature_tag = SEC_OID_ML_DSA_65,
 		.digest_encryption_tag = SEC_OID_ML_DSA_65,
-		.efi_guid = &efi_guid_sha256,
-		.authenticode_digest_size = 32,
-		.cms_digest_size = 64,
+		.efi_guid = &efi_guid_sha384,
+		.size = 48
 	},
+#endif
 	[DIGEST_PARAM_ML_DSA_87] = {
 		.name = "ml-dsa-87",
-		.authenticode_digest_tag = SEC_OID_SHA256,
-		.cms_digest_tag = SEC_OID_SHA512,
+		.digest_tag = SEC_OID_SHA512,
 		.signature_tag = SEC_OID_ML_DSA_87,
 		.digest_encryption_tag = SEC_OID_ML_DSA_87,
-		.efi_guid = &efi_guid_sha256,
-		.authenticode_digest_size = 32,
-		.cms_digest_size = 64,
+		.efi_guid = &efi_guid_sha512,
+		.size = 64
 	},
 	[DIGEST_PARAM_SHA384] = {
 		.name = "sha384",
-		.authenticode_digest_tag = SEC_OID_SHA384,
-		.cms_digest_tag = SEC_OID_SHA384,
+		.digest_tag = SEC_OID_SHA384,
 		.signature_tag = SEC_OID_PKCS1_SHA384_WITH_RSA_ENCRYPTION,
 		.digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
 		.efi_guid = &efi_guid_sha384,
-		.authenticode_digest_size = 48,
-		.cms_digest_size = 48,
+		.size = 48,
+	},
+	[DIGEST_PARAM_SHA512] = {
+		.name = "sha512",
+		.digest_tag = SEC_OID_SHA512,
+		.signature_tag = SEC_OID_PKCS1_SHA512_WITH_RSA_ENCRYPTION,
+		.digest_encryption_tag = SEC_OID_PKCS1_RSA_ENCRYPTION,
+		.efi_guid = &efi_guid_sha512,
+		.size = 64,
 	},
 };
 const unsigned int n_digest_params = sizeof (digest_params) / sizeof (digest_params[0]);
 
 SECOidTag
-digest_get_authenticode_oid(cms_context *cms)
+digest_get_digest_oid(cms_context *cms)
 {
 	unsigned int i = cms->selected_digest;
-	return digest_params[i].authenticode_digest_tag;
-}
-
-SECOidTag
-digest_get_cms_oid(cms_context *cms)
-{
-	unsigned int i = cms->selected_digest;
-	return digest_params[i].cms_digest_tag;
+	return digest_params[i].digest_tag;
 }
 
 SECOidTag
@@ -132,17 +123,10 @@ digest_get_signature_oid(cms_context *cms)
 }
 
 int
-digest_get_authenticode_size(cms_context *cms)
+digest_get_digest_size(cms_context *cms)
 {
 	unsigned int i = cms->selected_digest;
-	return digest_params[i].authenticode_digest_size;
-}
-
-int
-digest_get_cms_size(cms_context *cms)
-{
-	unsigned int i = cms->selected_digest;
-	return digest_params[i].cms_digest_size;
+	return digest_params[i].size;
 }
 
 static CK_MECHANISM_TYPE
@@ -419,15 +403,17 @@ set_digest_parameters(cms_context *cms, char *name)
 {
 	if (strcmp(name, "help")) {
 		for (unsigned int i = 0; i < n_digest_params; i++) {
-			if (!strcmp(name, digest_params[i].name)) {
+			if (digest_params[i].name && !strcmp(name, digest_params[i].name)) {
 				cms->selected_digest = i;
 				return 0;
 			}
 		}
 	} else {
 		printf("Supported digests: ");
-		for (unsigned int i = 0; digest_params[i].name != NULL; i++) {
-			printf("%s ", digest_params[i].name);
+		for (unsigned int i = 0; i < n_digest_params; i++) {
+			if (digest_params[i].name) {
+				printf("%s ", digest_params[i].name);
+                        }
 		}
 		printf("\n");
 	}
@@ -1354,8 +1340,11 @@ generate_digest_begin(cms_context *cms)
 	}
 
 	for (unsigned int i = 0; i < n_digest_params; i++) {
+		if (!digest_params[i].name) {
+			continue;
+		}
 		digests[i].pk11ctx = PK11_CreateDigestContext(
-				digest_params[i].authenticode_digest_tag);
+						digest_params[i].digest_tag);
 		if (!digests[i].pk11ctx)
 			cngotoerr(err, cms, "could not create digest context");
 
@@ -1378,8 +1367,12 @@ err:
 void
 generate_digest_step(cms_context *cms, void *data, size_t len)
 {
-	for (unsigned int i = 0; i < n_digest_params; i++)
+	for (unsigned int i = 0; i < n_digest_params; i++) {
+		if (!digest_params[i].name) {
+			continue;
+		}
 		PK11_DigestOp(cms->digests[i].pk11ctx, data, len);
+	}
 }
 
 int
@@ -1388,20 +1381,21 @@ generate_digest_finish(cms_context *cms)
 	void *mark = PORT_ArenaMark(cms->arena);
 
 	for (unsigned int i = 0; i < n_digest_params; i++) {
+		if (!digest_params[i].name) {
+			continue;
+		}
 		SECItem *digest = PORT_ArenaZAlloc(cms->arena,sizeof (SECItem));
 		if (digest == NULL)
 			cngotoerr(err, cms, "could not allocate memory");
 
 		digest->type = siBuffer;
-		digest->len = digest_params[i].authenticode_digest_size;
-		digest->data = PORT_ArenaZAlloc(cms->arena,
-				digest_params[i].authenticode_digest_size);
+		digest->len = digest_params[i].size;
+		digest->data = PORT_ArenaZAlloc(cms->arena, digest_params[i].size);
 		if (digest->data == NULL)
 			cngotoerr(err, cms, "could not allocate memory");
 
 		PK11_DigestFinal(cms->digests[i].pk11ctx,
-			digest->data, &digest->len,
-			digest_params[i].authenticode_digest_size);
+			digest->data, &digest->len, digest_params[i].size);
 		PK11_Finalize(cms->digests[i].pk11ctx);
 		PK11_DestroyContext(cms->digests[i].pk11ctx, PR_TRUE);
 		cms->digests[i].pk11ctx = NULL;
